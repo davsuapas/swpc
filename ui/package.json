@@ -13,7 +13,8 @@
     "react-dom": "latest",
     "react-scripts": "latest",
     "recharts": "^2.1.14",
-    "typescript": "latest"
+    "typescript": "latest",
+    "react-router-dom": "latest"
   },
   "scripts": {
     "start": "react-scripts start",

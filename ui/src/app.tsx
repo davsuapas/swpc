@@ -15,10 +15,10 @@
  *   limitations under the License.
  */
 
-import Dashboard from './dashboard/dashboard';
+import Login from "./Login/login";
 
 function App() {
-  return <Dashboard />;
+  return <Login />;
 }
 
 export default App;
