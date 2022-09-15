@@ -17,15 +17,30 @@
 
 import * as React from 'react';
 import Typography from '@mui/material/Typography';
+import Title from './title';
 
-interface TitleProps {
-  children?: React.ReactNode;
+function preventDefault(event: React.MouseEvent) {
+  event.preventDefault();
 }
 
-export default function Title(props: TitleProps) {
+interface MeassureProps {
+  name: string;
+  value: string;
+  unitName: string;
+}
+
+export default function Meassure(props: MeassureProps) {
   return (
-    <Typography component="h2" variant="h6" color="primary" gutterBottom>
-      {props.children}
-    </Typography>
+    <React.Fragment>
+      <Title>{props.name}</Title>
+      <Typography component="p" variant="h4">
+        <br/>
+        {props.value} {props.unitName}
+      </Typography>
+      <Typography sx={{ mb: 1.5 }} color="text.secondary">
+        <br/>
+        El indicador mide el valor actual que proporciona la piscina a través del controlador
+      </Typography>
+    </React.Fragment>
   );
 }

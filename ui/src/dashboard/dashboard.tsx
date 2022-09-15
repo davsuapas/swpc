@@ -15,46 +15,29 @@
  *   limitations under the License.
  */
 
-import { styled, createTheme, ThemeProvider } from '@mui/material/styles';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import Box from '@mui/material/Box';
-import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import Badge from '@mui/material/Badge';
 import Container from '@mui/material/Container';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import Chart from './Chart';
-import Deposits from './Deposits';
+import Chart from './chart';
+import Meassure from './Meassure';
+import AppBar from '@mui/material/AppBar';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp'
 
+const drawerWidth: number = 255;
 
-const drawerWidth: number = 240;
+const temperatureName = "Temperatura";
+const temperatureUnit = "Grados";
 
-interface AppBarProps extends MuiAppBarProps {
-  open?: boolean;
-}
+const phName = "Ph";
+const phUnit = "";
 
-const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== 'open',
-})<AppBarProps>(({ theme, open }) => ({
-  zIndex: theme.zIndex.drawer + 1,
-  transition: theme.transitions.create(['width', 'margin'], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  ...(open && {
-    marginLeft: drawerWidth,
-    width: `calc(100% - ${drawerWidth}px)`,
-    transition: theme.transitions.create(['width', 'margin'], {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-  }),
-}));
-
+const chlorineName = "Cloro";
+const chlorineUnit = "mg/L";
 
 const mdTheme = createTheme();
 
@@ -62,7 +45,7 @@ function DashboardContent() {
   return (
     <ThemeProvider theme={mdTheme}>
           <CssBaseline />
-          <AppBar position="static" open={false}>
+          <AppBar position="static">
             <Toolbar>
               <Typography
                 component="h1"
@@ -73,10 +56,8 @@ function DashboardContent() {
               >
                 Métricas piscina
               </Typography>
-              <IconButton color="inherit">
-                <Badge badgeContent={4} color="secondary">
-                  <NotificationsIcon />
-                </Badge>
+              <IconButton color="warning">
+                  <ExitToAppIcon />
               </IconButton>
             </Toolbar>
           </AppBar>
@@ -88,10 +69,10 @@ function DashboardContent() {
                     p: 2,
                     display: 'flex',
                     flexDirection: 'column',
-                    height: 240,
+                    height: drawerWidth,
                   }}
                 >
-                  <Chart />
+                  <Chart name={temperatureName} unitName={temperatureUnit} />
                 </Paper>
               </Grid>
               <Grid item xs={12} md={4} lg={3}>
@@ -100,10 +81,10 @@ function DashboardContent() {
                     p: 2,
                     display: 'flex',
                     flexDirection: 'column',
-                    height: 240,
+                    height: drawerWidth,
                   }}
                 >
-                  <Deposits />
+                  <Meassure name={temperatureName} value='15' unitName={temperatureUnit} />
                 </Paper>
               </Grid>
               <Grid item xs={12} md={8} lg={9}>
@@ -112,10 +93,10 @@ function DashboardContent() {
                     p: 2,
                     display: 'flex',
                     flexDirection: 'column',
-                    height: 240,
+                    height: drawerWidth,
                   }}
                 >
-                  <Chart />
+                  <Chart name={phName} unitName={phUnit} />
                 </Paper>
               </Grid>
               <Grid item xs={12} md={4} lg={3}>
@@ -124,10 +105,34 @@ function DashboardContent() {
                     p: 2,
                     display: 'flex',
                     flexDirection: 'column',
-                    height: 240,
+                    height: drawerWidth,
                   }}
                 >
-                  <Deposits />
+                  <Meassure name={phName} value='1,4' unitName={phUnit} />
+                </Paper>
+              </Grid>
+              <Grid item xs={12} md={8} lg={9}>
+                <Paper
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: drawerWidth,
+                  }}
+                >
+                  <Chart name={chlorineName} unitName={chlorineUnit} />
+                </Paper>
+              </Grid>
+              <Grid item xs={12} md={4} lg={3}>
+                <Paper
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: drawerWidth,
+                  }}
+                >
+                  <Meassure name={chlorineName} value='0,4' unitName={chlorineUnit} />
                 </Paper>
               </Grid>
             </Grid>

@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-import Dashboard from './dashboard/Dashboard';
+import Dashboard from './dashboard/dashboard';
 
 function App() {
   return <Dashboard />;

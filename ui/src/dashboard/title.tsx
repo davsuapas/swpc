@@ -17,19 +17,15 @@
 
 import * as React from 'react';
 import Typography from '@mui/material/Typography';
-import Title from './Title';
 
-function preventDefault(event: React.MouseEvent) {
-  event.preventDefault();
+interface TitleProps {
+  children?: React.ReactNode;
 }
 
-export default function Deposits() {
+export default function Title(props: TitleProps) {
   return (
-    <React.Fragment>
-      <Title>Temperatura</Title>
-      <Typography component="p" variant="h4">
-        35 grados
-      </Typography>
-    </React.Fragment>
+    <Typography sx={{ textTransform: 'uppercase' }} component="h2" variant="h6" color="primary" gutterBottom>
+      {props.children}
+    </Typography>
   );
 }
