@@ -1,0 +1,77 @@
+/*
+ *   Copyright (c) 2022 CARISA
+ *   All rights reserved.
+
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+
+ *   http://www.apache.org/licenses/LICENSE-2.0
+
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+
+package internal
+
+import (
+	"encoding/json"
+	"os"
+	"strconv"
+
+	"github.com/swpoolcontroller/pkg/strings"
+)
+
+const envConfig = "SW_POOL_CONTROLLER_CONFIG"
+
+// Server describes the http configuration
+type ServerConfig struct {
+	Port int `json:"port"`
+}
+
+// Address returns address to connection server
+func (s *ServerConfig) Address() string {
+	return strings.Concat(":", strconv.Itoa(s.Port))
+}
+
+// ZapConfig defines the configuration for log framework
+type ZapConfig struct {
+	// Development mode. Common value: false
+	Development bool `json:"development,omitempty"`
+	// Level. See logging.Level. Common value: Depending of Development flag
+	Level int `json:"level,omitempty"`
+	// Encoding type. Common value: Depending of Development flag
+	// The values can be: j -> json format, c -> console format
+	Encoding string `json:"encoding,omitempty"`
+}
+
+// Config defines the global information
+type Config struct {
+	ServerConfig `json:"server,omitempty"`
+	ZapConfig    `json:"log,omitempty"`
+}
+
+// loadConfig loads the configuration from environment variable
+func loadConfig() Config {
+	cnf := Config{
+		ServerConfig: ServerConfig{Port: 8080},
+		ZapConfig: ZapConfig{
+			Development: true,
+			Level:       -1,
+			Encoding:    "c",
+		},
+	}
+
+	env := os.Getenv(envConfig)
+
+	if len(env) != 0 {
+		if err := json.Unmarshal([]byte(env), &cnf); err != nil {
+			panic(strings.Concat("configuration environment variable cannot be loaded: ", err.Error()))
+		}
+	}
+
+	return cnf
+}
