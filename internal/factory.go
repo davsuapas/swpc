@@ -19,6 +19,7 @@ package internal
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -54,7 +55,7 @@ func newLogger(c Config) *zap.Logger {
 
 	l, err := log.Build()
 	if err != nil {
-		panic("Error creating zap logger")
+		panic(strings.Concat("Error creating zap logger. Description: ", err.Error()))
 	}
 	return l
 }

@@ -41,6 +41,9 @@ func NewServer(factory *Factory) *Server {
 
 // Start starts the graceful http server
 func (s *Server) Start() {
+
+	s.factory.Logger.Info("Starting the swimming pool controller server ...")
+
 	// Start server
 	go func() {
 		if err := s.factory.Webs.Start(s.factory.Config.Address()); err != nil {
@@ -59,6 +62,8 @@ func (s *Server) Start() {
 	if err := s.factory.Webs.Shutdown(ctx); err != nil {
 		s.factory.Logger.Error(err.Error())
 	}
+
+	s.factory.Logger.Info("The server has been stopped")
 }
 
 // Middleware configure security and behaviour of http
@@ -86,7 +91,7 @@ func (s *Server) Middleware() {
 			case v.Status >= 500:
 				s.factory.Logger.Error("Web server error", fields...)
 			case v.Status >= 400:
-				s.factory.Logger.Error("Web client error", fields...)
+				s.factory.Logger.Info("Web client error", fields...)
 			case v.Status >= 300:
 				s.factory.Logger.Info("Web server redirection", fields...)
 			default:
@@ -94,5 +99,13 @@ func (s *Server) Middleware() {
 			}
 			return nil
 		},
+	}))
+
+	// SPA web
+	s.factory.Webs.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+		Root:   "public",
+		Index:  "index.html",
+		Browse: false,
+		HTML5:  true,
 	}))
 }
