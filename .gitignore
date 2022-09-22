@@ -12,4 +12,4 @@
 *.out
 
 # Auto generated for debugging
-/cmd/swpoolcontroller-server/public
+/cmd/*/public
