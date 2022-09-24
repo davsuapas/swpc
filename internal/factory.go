@@ -31,7 +31,7 @@ type Factory struct {
 	Logger *zap.Logger
 }
 
-// NewFactory creates the factory of the app
+// NewFactory creates the horizontal services of the app
 func NewFactory() *Factory {
 	c := loadConfig()
 
