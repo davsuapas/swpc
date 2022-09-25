@@ -23,8 +23,13 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/gorilla/sessions"
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/swpoolcontroller/internal/crypto"
+	"github.com/swpoolcontroller/internal/web"
+	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -42,7 +47,7 @@ func NewServer(factory *Factory) *Server {
 // Start starts the graceful http server
 func (s *Server) Start() {
 
-	s.factory.Logger.Info("Starting the swimming pool controller server ...")
+	s.factory.Logger.Info("Starting the swimming pool controller server ...", zap.String("Config", s.factory.Config.String()))
 
 	// Start server
 	go func() {
@@ -101,6 +106,8 @@ func (s *Server) Middleware() {
 		},
 	}))
 
+	s.factory.Webs.Use(session.Middleware(sessions.NewCookieStore([]byte(crypto.Key))))
+
 	// SPA web
 	s.factory.Webs.Use(middleware.StaticWithConfig(middleware.StaticConfig{
 		Root:   "public",
@@ -108,4 +115,24 @@ func (s *Server) Middleware() {
 		Browse: false,
 		HTML5:  true,
 	}))
+}
+
+// Route sets the router of app so web as api
+func (s *Server) Route() {
+	s.webRoute()
+}
+
+func (s *Server) webRoute() {
+	// Public
+	wa := s.factory.Webs.Group("/web/auth")
+	wa.POST("/login", s.factory.WebHandler.Login.Submit)
+
+	// API Restricted by JWT
+	w := s.factory.Webs.Group("/web/api")
+	config := middleware.JWTConfig{
+		Claims:      &web.JWTCustomClaims{},
+		SigningKey:  []byte(crypto.Key),
+		TokenLookup: strings.Concat("cookie:", web.TokenName),
+	}
+	w.Use(middleware.JWTWithConfig(config))
 }

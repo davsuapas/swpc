@@ -31,14 +31,18 @@ const theme = createTheme();
 export default function Login() {
   let navigate = useNavigate();
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    console.log({
-      email: data.get('email'),
-      password: data.get('password'),
+
+    let res = await fetch("/web/auth/login", {
+      method: "POST",
+      body: data
     });
-    navigate("/piscina");
+
+    if (res.ok) {
+      navigate("/piscina");
+    }
   };
 
   return (

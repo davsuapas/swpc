@@ -15,14 +15,31 @@
  *   limitations under the License.
  */
 
-package main
+package crypto
 
-import "github.com/swpoolcontroller/internal"
+import (
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/base64"
+)
 
-func main() {
-	f := internal.NewFactory()
-	s := internal.NewServer(f)
-	s.Middleware()
-	s.Route()
-	s.Start()
+var bytes = []byte{35, 26, 17, 44, 85, 35, 25, 74, 87, 65, 88, 98, 68, 32, 44, 05}
+
+// Encrypt method is to encrypt or hide any classified text
+func Encrypt(text string, key string) (string, error) {
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return "", err
+	}
+
+	plainText := []byte(text)
+	cfb := cipher.NewCFBEncrypter(block, bytes)
+	cipherText := make([]byte, len(plainText))
+	cfb.XORKeyStream(cipherText, plainText)
+
+	return encode(cipherText), nil
+}
+
+func encode(b []byte) string {
+	return base64.StdEncoding.EncodeToString(b)
 }

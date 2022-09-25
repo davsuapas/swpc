@@ -83,3 +83,12 @@ func loadConfig() Config {
 
 	return cnf
 }
+
+// String returns struct as string
+func (c *Config) String() string {
+	r, err := json.Marshal(c)
+	if err != nil {
+		return ""
+	}
+	return string(r)
+}

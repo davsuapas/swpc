@@ -2,7 +2,7 @@
 
 # Build the spa ui for debugging
 
-PATH_PUBLIC=./cmd/swpoolcontroller-server/public
+PATH_PUBLIC=./cmd/swpc-server/public
 
 cd ui
 npm run build
