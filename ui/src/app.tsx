@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-import Login from "./Login/login";
+import Login from "./login/login";
 
 function App() {
   return <Login />;

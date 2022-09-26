@@ -136,7 +136,7 @@ function DashboardContent() {
                 </Paper>
               </Grid>
             </Grid>
-          </Container>            
+          </Container>
     </ThemeProvider>
   );
 }

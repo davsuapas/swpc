@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	tokenExpiration = 5
+	tokenExpiration = 10
 	TokenName       = "Authorization"
 )
 

@@ -25,25 +25,40 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useNavigate } from "react-router-dom"
+import Alert from '../support/alert';
+import { useRef } from 'react';
+import Fetch from '../net/fetch';
 
 const theme = createTheme();
 
 export default function Login() {
-  let navigate = useNavigate();
+  const navigate = useNavigate();
+  const alert = useRef<any>(null);
+  const fetch = new Fetch(alert);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
 
-    let res = await fetch("/web/auth/login", {
+    fetch.send("/web/auth/login", {
       method: "POST",
       body: data
+    },
+    (res: Response) => {
+      if (res.ok) {
+        navigate("/piscina");
+        return true;
+      }
+      if (res.status == 401) {
+        alert.current.content(
+          "Usuario no autorizado",
+          "Se ha producido un error de autenticación. Revise que su usuario o constraseña sean correctos y vuelva a intentarlo");
+        alert.current.open();
+        return true;
+      } 
+      return false;
     });
-
-    if (res.ok) {
-      navigate("/piscina");
-    }
-  };
+  }
 
   return (
     <ThemeProvider theme={theme}>
@@ -95,6 +110,7 @@ export default function Login() {
           </Box>
         </Box>
       </Container>
+      <Alert ref={alert}></Alert>
     </ThemeProvider>
   );
 }
