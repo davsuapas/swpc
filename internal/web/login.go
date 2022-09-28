@@ -22,8 +22,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/gorilla/sessions"
-	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/crypto"
 	pcrypto "github.com/swpoolcontroller/pkg/crypto"
@@ -33,6 +31,7 @@ import (
 const (
 	tokenExpiration = 10
 	TokenName       = "Authorization"
+	authCookie      = "IsAuth"
 )
 
 // Login controllers the access of the user
@@ -78,19 +77,25 @@ func (l *Login) Submit(c echo.Context) error {
 
 	// Save the security token in the cookies
 	// MaxAge is the same time than token expiration
-	sess, _ := session.Get("session", c)
-	sess.Options = &sessions.Options{
-		Path:     "/",
-		MaxAge:   60 * tokenExpiration,
-		HttpOnly: true,
-	}
-	sess.Values[TokenName] = token
-	if err := sess.Save(c.Request(), c.Response()); err != nil {
-		l.log.With(zap.Error(err)).Error("Error saving the session")
-		return c.NoContent(http.StatusInternalServerError)
-	}
+	expiration := time.Now().Add(time.Minute * tokenExpiration)
+	cookie := cookies(TokenName, token, true, expiration)
+	c.SetCookie(cookie)
+	cookie = cookies(authCookie, "true", false, expiration)
+	c.SetCookie(cookie)
 
 	return c.NoContent(http.StatusOK)
+}
+
+func cookies(name string, value string, httpOnly bool, expiration time.Time) *http.Cookie {
+	cookie := &http.Cookie{}
+	cookie.Name = name
+	cookie.Value = value
+	cookie.Path = "/"
+	cookie.Expires = expiration
+	cookie.HttpOnly = httpOnly
+	cookie.Secure = true
+	cookie.SameSite = http.SameSiteStrictMode
+	return cookie
 }
 
 // securityToken generates the jwt security token

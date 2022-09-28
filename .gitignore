@@ -13,3 +13,4 @@
 
 # Auto generated for debugging
 /cmd/*/public
+__debug_bin

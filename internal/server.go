@@ -23,8 +23,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/gorilla/sessions"
-	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/swpoolcontroller/internal/crypto"
@@ -105,8 +103,6 @@ func (s *Server) Middleware() {
 			return nil
 		},
 	}))
-
-	s.factory.Webs.Use(session.Middleware(sessions.NewCookieStore([]byte(crypto.Key))))
 
 	// SPA web
 	s.factory.Webs.Use(middleware.StaticWithConfig(middleware.StaticConfig{

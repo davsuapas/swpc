@@ -21,7 +21,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/swpoolcontroller/internal/crypto"
+	cryptoi "github.com/swpoolcontroller/internal/crypto"
+	"github.com/swpoolcontroller/pkg/crypto"
 )
 
 func main() {
@@ -32,7 +33,7 @@ func main() {
 		panic("The text must be filled in. Execute the command with -help option")
 	}
 
-	r, err := crypto.Encrypt(*text)
+	r, err := crypto.Encrypt(*text, cryptoi.Key)
 	if err != nil {
 		panic(err.Error())
 	}
