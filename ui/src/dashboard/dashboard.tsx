@@ -30,6 +30,7 @@ import ExitToAppIcon from '@mui/icons-material/ExitToApp'
 import { Assignment } from '@mui/icons-material';
 import Config from '../config/config';
 import { useRef } from 'react';
+import Tooltip from '@mui/material/Tooltip';
 
 const drawerWidth: number = 255;
 
@@ -61,12 +62,16 @@ function DashboardContent() {
               >
                 Métricas piscina
               </Typography>
-              <IconButton onClick={() => config.current.open()}>
+              <Tooltip title="Configuración">
+                <IconButton color="default" onClick={() => config.current.open()}>
                   <Assignment />
-              </IconButton>
-              <IconButton color="warning">
-                  <ExitToAppIcon />
-              </IconButton>
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Salir">
+                <IconButton color="warning">
+                    <ExitToAppIcon />
+                </IconButton>
+              </Tooltip>
             </Toolbar>
           </AppBar>
           <Container maxWidth="xl" sx={{ mt:5, mb: 5}}>
