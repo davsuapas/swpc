@@ -27,6 +27,9 @@ import Chart from './chart';
 import Meassure from './Meassure';
 import AppBar from '@mui/material/AppBar';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp'
+import { Assignment } from '@mui/icons-material';
+import Config from '../config/config';
+import { useRef } from 'react';
 
 const drawerWidth: number = 255;
 
@@ -42,6 +45,8 @@ const chlorineUnit = "mg/L";
 const mdTheme = createTheme();
 
 function DashboardContent() {
+  const config = useRef<any>(null);
+
   return (
     <ThemeProvider theme={mdTheme}>
           <CssBaseline />
@@ -56,6 +61,9 @@ function DashboardContent() {
               >
                 Métricas piscina
               </Typography>
+              <IconButton onClick={() => config.current.open()}>
+                  <Assignment />
+              </IconButton>
               <IconButton color="warning">
                   <ExitToAppIcon />
               </IconButton>
@@ -137,6 +145,7 @@ function DashboardContent() {
               </Grid>
             </Grid>
           </Container>
+          <Config ref={config} />
     </ThemeProvider>
   );
 }

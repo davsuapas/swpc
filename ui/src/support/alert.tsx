@@ -63,7 +63,6 @@ export default forwardRef( (props: any, ref: any) => {
             TransitionComponent={Transition}
             keepMounted
             onClose={close}
-            aria-describedby="alert-dialog-slide-description"
         >
             <DialogTitle>{title}</DialogTitle>
             <DialogContent>
