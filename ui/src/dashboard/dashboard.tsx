@@ -31,6 +31,9 @@ import { Assignment } from '@mui/icons-material';
 import Config from '../config/config';
 import { useRef } from 'react';
 import Tooltip from '@mui/material/Tooltip';
+import { CircularProgress } from '@mui/material';
+import { green } from '@mui/material/colors';
+import React from 'react';
 
 const drawerWidth: number = 255;
 
@@ -48,6 +51,8 @@ const mdTheme = createTheme();
 function DashboardContent() {
   const config = useRef<any>(null);
 
+  const [loadingConfig, setloadingConfig] = React.useState(false);
+
   return (
     <ThemeProvider theme={mdTheme}>
           <CssBaseline />
@@ -63,8 +68,18 @@ function DashboardContent() {
                 Métricas piscina
               </Typography>
               <Tooltip title="Configuración">
-                <IconButton color="default" onClick={() => config.current.open()}>
+                <IconButton color="default" onClick={() => config.current.open(setloadingConfig)}>
                   <Assignment />
+                  {loadingConfig && (
+                    <CircularProgress
+                      size={40}
+                      sx={{
+                        color: green[900],
+                        position: 'absolute',
+                        zIndex: 1,
+                      }}
+                    />
+                )}                  
                 </IconButton>
               </Tooltip>
               <Tooltip title="Salir">

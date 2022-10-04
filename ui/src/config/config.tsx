@@ -15,8 +15,9 @@
  *   limitations under the License.
  */
 
-import { FormGroup } from '@mui/material';
+import { Box, CircularProgress, FormGroup } from '@mui/material';
 import Button from '@mui/material/Button';
+import green from '@mui/material/colors/green';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -53,11 +54,14 @@ export default forwardRef( (props: any, ref: any) => {
     const [bufferValid, setBufferValid] = React.useState(true);
     const [bufferValue, setBufferValue] = React.useState(10);
 
+    const [saving, setSaving] = React.useState(false);
+
     function initControl() {
         setCheckSendValid(true);
         setTimeSendValid(true);
         setWakeUpValid(true);
         setBufferValid(true);
+        setSaving(false);
     }
 
     function valid(): boolean {
@@ -96,10 +100,12 @@ export default forwardRef( (props: any, ref: any) => {
         return valid;
     }
 
-    const open = () => {
+    const open = (setloadingConfig: any) => {
       // Llamar al servicio para obtener valores grabados
+      setloadingConfig(true);
       initControl()
       setOpenv(true);
+      setloadingConfig(false);
     };
   
     function close(save: boolean) {
@@ -110,7 +116,8 @@ export default forwardRef( (props: any, ref: any) => {
 
       if (valid()) {
         // Llamar al servicio para grabar la configuración
-        setOpenv(false);
+        setSaving(true);
+        // setOpenv(false);
       }
     };
 
@@ -123,7 +130,7 @@ export default forwardRef( (props: any, ref: any) => {
             open={openv}
             TransitionComponent={Transition}
             keepMounted
-            onClose={() => close(false)}
+            onClose={() => !saving && close(false)}
         >
             <DialogTitle>Configuración</DialogTitle>
             <DialogContent>
@@ -212,8 +219,23 @@ export default forwardRef( (props: any, ref: any) => {
                 </FormGroup>                    
             </DialogContent>
             <DialogActions>
-                <Button onClick={() => close(true)}>Guardar</Button>
-                <Button onClick={() => close(false)}>Cancelar</Button>
+                <Box sx={{ m: 1, position: 'relative' }}>
+                    <Button onClick={() => close(true)}>{saving ? "Guardando" : "Guardar"}</Button>
+                    {saving && (
+                        <CircularProgress
+                            size={24}
+                            sx={{
+                                color: green[900],
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                marginTop: '-12px',
+                                marginLeft: '-12px',
+                            }}
+                        />
+                    )}                
+                </Box>
+                <Button disabled={saving} onClick={() => close(false)}>Cancelar</Button>
             </DialogActions>
         </Dialog>
     </div>
