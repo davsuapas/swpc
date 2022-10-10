@@ -34,6 +34,7 @@ const Transition = React.forwardRef(function Transition(
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
+// Alert creates a component to display system alerts
 export default forwardRef( (props: any, ref: any) => {
     const [openv, setOpenv] = React.useState(false);
 

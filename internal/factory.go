@@ -19,6 +19,7 @@ package internal
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/web"
 	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
@@ -27,34 +28,44 @@ import (
 
 // WebHandler Web handler to router
 type WebHandler struct {
-	Login *web.Login
+	Login  *web.Login
+	Config *web.ConfigWeb
 }
 
 // Factory is the objects factory of the app
 type Factory struct {
-	Config Config
+	Config config.Config
 	Webs   *echo.Echo
-	Logger *zap.Logger
+	Log    *zap.Logger
 
 	WebHandler *WebHandler
 }
 
 // NewFactory creates the horizontal services of the app
 func NewFactory() *Factory {
-	c := loadConfig()
+	c := config.LoadConfig()
 
 	log := newLogger(c)
+
 	return &Factory{
 		Config: c,
 		Webs:   newWebServer(),
-		Logger: log,
+		Log:    log,
 		WebHandler: &WebHandler{
 			Login: web.NewLogin(log),
+			Config: &web.ConfigWeb{
+				Log: log,
+				Microc: &config.MicroConfig{
+					Log:      log,
+					DataPath: c.DataPath,
+				},
+				Cnf: c,
+			},
 		},
 	}
 }
 
-func newLogger(c Config) *zap.Logger {
+func newLogger(c config.Config) *zap.Logger {
 	var log zap.Config
 
 	if c.Development {

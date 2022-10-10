@@ -45,12 +45,12 @@ func NewServer(factory *Factory) *Server {
 // Start starts the graceful http server
 func (s *Server) Start() {
 
-	s.factory.Logger.Info("Starting the swimming pool controller server ...", zap.String("Config", s.factory.Config.String()))
+	s.factory.Log.Info("Starting the swimming pool controller server ...", zap.String("Config", s.factory.Config.String()))
 
 	// Start server
 	go func() {
 		if err := s.factory.Webs.Start(s.factory.Config.Address()); err != nil {
-			s.factory.Logger.Info("Shutting down the server")
+			s.factory.Log.Info("Shutting down the server")
 		}
 	}()
 
@@ -63,10 +63,10 @@ func (s *Server) Start() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := s.factory.Webs.Shutdown(ctx); err != nil {
-		s.factory.Logger.Error(err.Error())
+		s.factory.Log.Error(err.Error())
 	}
 
-	s.factory.Logger.Info("The server has been stopped")
+	s.factory.Log.Info("The server has been stopped")
 }
 
 // Middleware configure security and behaviour of http
@@ -92,13 +92,13 @@ func (s *Server) Middleware() {
 
 			switch {
 			case v.Status >= 500:
-				s.factory.Logger.Error("Web server error", fields...)
+				s.factory.Log.Error("Web server error", fields...)
 			case v.Status >= 400:
-				s.factory.Logger.Info("Web client error", fields...)
+				s.factory.Log.Info("Web client error", fields...)
 			case v.Status >= 300:
-				s.factory.Logger.Info("Web server redirection", fields...)
+				s.factory.Log.Info("Web server redirection", fields...)
 			default:
-				s.factory.Logger.Info("Web success server response", fields...)
+				s.factory.Log.Info("Web success server response", fields...)
 			}
 			return nil
 		},
@@ -131,4 +131,6 @@ func (s *Server) webRoute() {
 		TokenLookup: strings.Concat("cookie:", web.TokenName),
 	}
 	w.Use(middleware.JWTWithConfig(config))
+	w.GET("/config", s.factory.WebHandler.Config.Load)
+	w.POST("/config", s.factory.WebHandler.Config.Save)
 }

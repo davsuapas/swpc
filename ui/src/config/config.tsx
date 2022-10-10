@@ -26,7 +26,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Slide from '@mui/material/Slide';
 import TextField from '@mui/material/TextField';
 import { TransitionProps } from '@mui/material/transitions';
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useRef } from 'react';
+import Fetch from '../net/fetch';
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & {
@@ -37,31 +38,45 @@ const Transition = React.forwardRef(function Transition(
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
+const defaultCheckSend = 1;
+const defaultimeIniSend = "11:00";
+const defaultimeEndSend = "12:00";
+const defaultWakeUp = 20;
+const defaultBuffer = 10;
+
+// Config displays a configuration form
 export default forwardRef( (props: any, ref: any) => {
+    const fetch = new Fetch(props.alert);
+
     const [openv, setOpenv] = React.useState(false);
 
     const [checkSendValid, setCheckSendValid] = React.useState(true);
-    const [checkSendValue, setCheckSendValue] = React.useState(1);
+    const [checkSendValue, setCheckSendValue] = React.useState(defaultCheckSend);
 
     const [timeSendValid, setTimeSendValid] = React.useState(true);
 
-    const [timeIniSendValue, setTimeIniSendValue] = React.useState("11:00");
-    const [timeEndSendValue, setTimeEndSendValue] = React.useState("12:00");
+    const [timeIniSendValue, setTimeIniSendValue] = React.useState(defaultimeIniSend);
+    const [timeEndSendValue, setTimeEndSendValue] = React.useState(defaultimeEndSend);
 
     const [wakeUpValid, setWakeUpValid] = React.useState(true);
-    const [wakeUpValue, setWakeUpValue] = React.useState(20);
+    const [wakeUpValue, setWakeUpValue] = React.useState(defaultWakeUp);
 
     const [bufferValid, setBufferValid] = React.useState(true);
-    const [bufferValue, setBufferValue] = React.useState(10);
+    const [bufferValue, setBufferValue] = React.useState(defaultBuffer);
 
     const [saving, setSaving] = React.useState(false);
+
+    // init initializes the form when is invoked
+    function init() {
+        setSaving(false);
+        initControl();
+    }
 
     function initControl() {
         setCheckSendValid(true);
         setTimeSendValid(true);
         setWakeUpValid(true);
         setBufferValid(true);
-        setSaving(false);
     }
 
     function valid(): boolean {
@@ -74,8 +89,8 @@ export default forwardRef( (props: any, ref: any) => {
             valid = false;
         }
 
-        const timeIni = parseTime(timeIniSendValue)
-        const timeEnd = parseTime(timeEndSendValue)
+        const timeIni = parseTime(timeIniSendValue);
+        const timeEnd = parseTime(timeEndSendValue);
 
         if (!timeIni || !timeEnd) {
             setTimeSendValid(false);
@@ -100,27 +115,83 @@ export default forwardRef( (props: any, ref: any) => {
         return valid;
     }
 
-    const open = (setloadingConfig: any) => {
-      // Llamar al servicio para obtener valores grabados
-      setloadingConfig(true);
-      initControl()
-      setOpenv(true);
-      setloadingConfig(false);
+    // setControl sets the data configuration into input
+    function setControl(checkSend: number, timeIniSend: string, timeEndSend: string, setWakeUp: number, buffer: number) {
+        setCheckSendValue(checkSend);
+        setTimeIniSendValue(timeIniSend);
+        setTimeEndSendValue(timeEndSend);
+        setWakeUpValue(setWakeUp);
+        setBufferValue(buffer);
+    }
+
+    // open opens the configuration form with the datas send from server
+    const open = async (setloadingConfig: any) => {
+      init();
+
+      fetch.send("/web/api/config", {
+        method: "GET"
+      },
+      async (result: Response) => {
+        setloadingConfig(false);
+        if (result.ok) {
+            try {
+                const res = await result.json();
+                setControl(res.checkSend, res.timeIniSend, res.timeEndSend, res.wakeUp, res.buffer);
+                setOpenv(true);
+            }
+            catch {
+                props.alert.current.content(
+                    "Error interno",
+                    "Se ha producido un error al recuperar la configuración. Vuelva a intentarlo más tarde");
+                    props.alert.current.open();
+            }
+            return true;
+        }
+        if (result.status == 404) {
+            setControl(defaultCheckSend, defaultimeIniSend, defaultimeEndSend, defaultWakeUp, defaultBuffer);
+            setOpenv(true);
+            return true;
+        }
+        return false;
+      },
+      () => {
+        setloadingConfig(false);
+      });
     };
   
-    function close(save: boolean) {
+    // close saves the configuration in the server an close the window
+    async function close(save: boolean) {
       if (!save) {
         setOpenv(false);
         return
       } 
 
       if (valid()) {
-        // Llamar al servicio para grabar la configuración
         setSaving(true);
-        // setOpenv(false);
-      }
-    };
 
+        fetch.send("/web/api/config", {
+          method: "POST",
+          body: JSON.stringify({
+            "checkSend": checkSendValue,
+            "timeIniSend": timeIniSendValue,
+            "timeEndSend": timeEndSendValue,
+            "wakeUp": wakeUpValue,
+            "buffer": bufferValue
+          })
+        },
+        async (result: Response) => {
+          setOpenv(false);
+          if (result.ok) {
+            return true;
+          }
+          return false;
+        },
+        () => {
+            setOpenv(false);
+        });
+      }
+    }
+    
     // Export the function
     if (ref) ref.current = {open}
 
@@ -252,3 +323,4 @@ function parseTime(t: string): Date | null {
     d.setMinutes(parseInt(time[2]) || 0);
     return d;
  }
+ 

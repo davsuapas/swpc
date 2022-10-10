@@ -31,11 +31,13 @@ import Fetch from '../net/fetch';
 
 const theme = createTheme();
 
+// Login displays a login window
 export default function Login() {
   const navigate = useNavigate();
   const alert = useRef<any>(null);
   const fetch = new Fetch(alert);
 
+  // handleSubmit send credentials to validate. if the credentials are ok returns a token 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -44,7 +46,7 @@ export default function Login() {
       method: "POST",
       body: data
     },
-    (res: Response) => {
+    async (res: Response) => {
       if (res.ok) {
         navigate("/piscina");
         return true;

@@ -15,26 +15,37 @@
  *   limitations under the License.
  */
 
+// Fetch communicates using fetch and allows to handle the response through a function.
+// If not handled by the callback it displays alerts on screen
 export default class Fetch {
     constructor(private alert: any) {
     }
 
-    async send(url: string, props: {}, actions: (res: Response) => boolean) {
-
+    async send(url: string, props: {}, actions: (res: Response) => Promise<boolean>, error: any = null) {
         try {
-            const res = await fetch(url, props)
+            const res = await fetch(url, props);
+            const manejado = await actions(res);
 
-            if (!actions(res)) {
-                if (res.status == 500) {
-                    this.alert.current.content(
-                        "Error interno",
-                        "Se ha producido un error interno en el servidor. Vuelva a intentarlo más tarde");
-                    this.alert.current.open();
-                } else {
-                    this.alert.current.content(
-                        "Error no controlado",
-                        "Se ha producido un error no controlado. Consulte con el proveedor del servicio");
-                    this.alert.current.open();
+            if (!manejado) {
+                switch (res.status) {
+                    case 400:
+                        this.alert.current.content(
+                            "Error interno",
+                            "Se ha producido un error se solicitud errónea. Vuelva a intentarlo más tarde");
+                        this.alert.current.open();
+                        break;
+                    case 500:
+                        this.alert.current.content(
+                            "Error interno",
+                            "Se ha producido un error interno en el servidor. Vuelva a intentarlo más tarde");
+                        this.alert.current.open();
+                        break;
+                    default:
+                        this.alert.current.content(
+                            "Error no controlado",
+                            "Se ha producido un error no controlado. Consulte con el proveedor del servicio");
+                        this.alert.current.open();
+                        break;
                 }
             }
         } catch {
@@ -42,6 +53,10 @@ export default class Fetch {
                 "Error inesperado",
                 "Se ha producido un error inesperado al comunicar con el servidor. Vuelva a intentarlo más tarde");
             this.alert.current.open();
+            
+            if (typeof error === 'function') {
+                error();
+            }
         }
     }
 }

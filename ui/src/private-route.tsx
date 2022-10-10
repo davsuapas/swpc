@@ -34,7 +34,6 @@ function isAuthenticated()  {
 function getCookie(cname: string) {
   let name = cname + "=";
   let decodedCookie = decodeURIComponent(document.cookie);
-  console.log(decodedCookie)
   let ca = decodedCookie.split(';');
   for(let i = 0; i <ca.length; i++) {
     let c = ca[i];

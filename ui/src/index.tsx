@@ -18,6 +18,7 @@
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Dashboard from './dashboard/dashboard';
+import Login from './login/login';
 import PrivateRoute from './private-route'
 
 const rootElement = document.getElementById('root');
@@ -26,7 +27,7 @@ const root = createRoot(rootElement!);
 root.render(
     <BrowserRouter>
         <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Login />} />
             <Route path="piscina" element={
               <PrivateRoute>
                 <Dashboard />

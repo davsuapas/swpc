@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-package internal
+package config
 
 import (
 	"encoding/json"
@@ -52,10 +52,11 @@ type ZapConfig struct {
 type Config struct {
 	ServerConfig `json:"server,omitempty"`
 	ZapConfig    `json:"log,omitempty"`
+	DataPath     string `json:"dataPath,omitempty"`
 }
 
-// loadConfig loads the configuration from environment variable
-func loadConfig() Config {
+// LoadConfig loads the configuration from environment variable
+func LoadConfig() Config {
 	cnf := Config{
 		ServerConfig: ServerConfig{Port: 8080},
 		ZapConfig: ZapConfig{
@@ -63,6 +64,7 @@ func loadConfig() Config {
 			Level:       -1,
 			Encoding:    "console",
 		},
+		DataPath: "./data",
 	}
 
 	env := os.Getenv(envConfig)

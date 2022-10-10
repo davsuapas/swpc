@@ -52,6 +52,8 @@ func (l *Login) Submit(c echo.Context) error {
 	email := c.FormValue("email")
 	pass := c.FormValue("password")
 
+	l.log.Info("Login request", zap.String("user", email))
+
 	// Validate user
 	userPass, ok := l.users.get(email)
 	if !ok {
@@ -76,9 +78,13 @@ func (l *Login) Submit(c echo.Context) error {
 	}
 
 	// Save the security token in the cookies
-	// MaxAge is the same time than token expiration
+	// MaxAge is the same time than token expiration except expiration for jwt token.
+	// The expiration of the cookie with the token is kept 5 minutes longer than
+	// the internal expiration of the token, in case a new request is made from the browser.
+	// In this way, the server will return permission denied instead of bad request
+	// (this case would be because when the cookie expires the request would come without a token).
 	expiration := time.Now().Add(time.Minute * tokenExpiration)
-	cookie := cookies(TokenName, token, true, expiration)
+	cookie := cookies(TokenName, token, true, expiration.Add(5*time.Minute))
 	c.SetCookie(cookie)
 	cookie = cookies(authCookie, "true", false, expiration)
 	c.SetCookie(cookie)

@@ -34,6 +34,7 @@ import Tooltip from '@mui/material/Tooltip';
 import { CircularProgress } from '@mui/material';
 import { green } from '@mui/material/colors';
 import React from 'react';
+import Alert from '../support/alert';
 
 const drawerWidth: number = 255;
 
@@ -50,6 +51,7 @@ const mdTheme = createTheme();
 
 function DashboardContent() {
   const config = useRef<any>(null);
+  const alert = useRef<any>(null);
 
   const [loadingConfig, setloadingConfig] = React.useState(false);
 
@@ -165,7 +167,8 @@ function DashboardContent() {
               </Grid>
             </Grid>
           </Container>
-          <Config ref={config} />
+          <Alert ref={alert}></Alert>
+          <Config ref={config} alert={alert} />
     </ThemeProvider>
   );
 }
