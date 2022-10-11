@@ -34,47 +34,76 @@ const Transition = React.forwardRef(function Transition(
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
+interface AlertState {
+  title: string,
+  content: string,
+  open: boolean
+}
+
+interface AlertEvents {
+  closed: () => void
+}
+
 // Alert creates a component to display system alerts
-export default forwardRef( (props: any, ref: any) => {
-    const [openv, setOpenv] = React.useState(false);
+export default class Alert extends React.Component<any, AlertState> {
 
-    const [title, setTitle] = React.useState("");
-    const [contentv, setContentv] = React.useState("");
+  events: AlertEvents
 
-    const open = () => {
-      setOpenv(true);
+  constructor(props: any) {
+    super(props);
+    this.state = {
+      title: "",
+      content: "",
+      open: false
     };
-  
-    const close = () => {
-      setOpenv(false);
+    this.events = {
+      closed: () => {}
     };
+  }
 
-    const content = (title: string, content: string) => {
-      setTitle(title);
-      setContentv(content);
-    }
+  // content updates title and content properties
+  content(title: string, content: string) {
+    this.setState({
+      title: title,
+      content: content
+    });
+  }
 
-    // Export the function
-    if (ref) ref.current = {open, content}
+  // open opens the alert form
+  open() {
+    this.setState({open: true});
+  }
 
+  private close() {
+    this.setState({open: false});
+    this.events.closed();
+    this.iniClosedEvent();
+  }
+
+  private iniClosedEvent() {
+    this.events.closed = () => {};
+  }
+
+  render(): React.ReactNode {
     return (
-    <div>
-        <Dialog
-            open={openv}
-            TransitionComponent={Transition}
-            keepMounted
-            onClose={close}
-        >
-            <DialogTitle>{title}</DialogTitle>
-            <DialogContent>
-                <DialogContentText id="alert-dialog-slide-description">
-                    {contentv}
-                </DialogContentText>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={close}>Entendido</Button>
-            </DialogActions>
-        </Dialog>
-    </div>
-    );
-});
+      <div>
+          <Dialog
+              open={this.state.open}
+              TransitionComponent={Transition}
+              keepMounted
+              onClose={this.close.bind(this)}
+          >
+              <DialogTitle>{this.state.title}</DialogTitle>
+              <DialogContent>
+                  <DialogContentText id="alert-dialog-slide-description">
+                      {this.state.content}
+                  </DialogContentText>
+              </DialogContent>
+              <DialogActions>
+                  <Button onClick={this.close.bind(this)}>Entendido</Button>
+              </DialogActions>
+          </Dialog>
+      </div>
+      );    
+  }
+}

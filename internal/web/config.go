@@ -18,10 +18,8 @@
 package web
 
 import (
-	"errors"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/config"
@@ -37,15 +35,16 @@ type ConfigWeb struct {
 
 // Load loads the configuration saved into disk file
 func (cf *ConfigWeb) Load(c echo.Context) error {
-	data, err := cf.Microc.Read()
-	if errors.Is(err, os.ErrNotExist) {
-		return c.NoContent(http.StatusNotFound)
-	}
-	if err != nil {
-		cf.Log.Error("Loading configuration", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
-	}
-	return c.JSONBlob(http.StatusOK, data)
+	return c.NoContent(http.StatusUnauthorized)
+	// data, err := cf.Microc.Read()
+	// if errors.Is(err, os.ErrNotExist) {
+	// 	return c.NoContent(http.StatusNotFound)
+	// }
+	// if err != nil {
+	// 	cf.Log.Error("Loading configuration", zap.Error(err))
+	// 	return c.NoContent(http.StatusInternalServerError)
+	// }
+	// return c.JSONBlob(http.StatusOK, data)
 }
 
 // Save saves the configuration to disk

@@ -34,7 +34,7 @@ const theme = createTheme();
 // Login displays a login window
 export default function Login() {
   const navigate = useNavigate();
-  const alert = useRef<any>(null);
+  const alert = useRef<Alert>(null);
   const fetch = new Fetch(alert);
 
   // handleSubmit send credentials to validate. if the credentials are ok returns a token 
@@ -52,10 +52,10 @@ export default function Login() {
         return true;
       }
       if (res.status == 401) {
-        alert.current.content(
+        alert.current?.content(
           "Usuario no autorizado",
           "Se ha producido un error de autenticación. Revise que su usuario o constraseña sean correctos y vuelva a intentarlo");
-        alert.current.open();
+        alert.current?.open();
         return true;
       } 
       return false;

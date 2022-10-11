@@ -51,7 +51,7 @@ const mdTheme = createTheme();
 
 function DashboardContent() {
   const config = useRef<any>(null);
-  const alert = useRef<any>(null);
+  const alert = useRef<Alert>(null);
 
   const [loadingConfig, setloadingConfig] = React.useState(false);
 
