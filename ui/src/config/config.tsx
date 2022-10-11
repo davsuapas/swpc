@@ -17,7 +17,6 @@
 
 import { Box, CircularProgress, FormGroup } from '@mui/material';
 import Button from '@mui/material/Button';
-import green from '@mui/material/colors/green';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -26,8 +25,9 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Slide from '@mui/material/Slide';
 import TextField from '@mui/material/TextField';
 import { TransitionProps } from '@mui/material/transitions';
-import React, { forwardRef, useRef } from 'react';
+import React, { forwardRef } from 'react';
 import Fetch from '../net/fetch';
+import { colorPurple } from '../support/color';
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & {
@@ -126,6 +126,7 @@ export default forwardRef( (props: any, ref: any) => {
 
     // open opens the configuration form with the datas send from server
     const open = async (setloadingConfig: any) => {
+      setloadingConfig(true);
       init();
 
       fetch.send("/web/api/config", {
@@ -296,7 +297,7 @@ export default forwardRef( (props: any, ref: any) => {
                         <CircularProgress
                             size={24}
                             sx={{
-                                color: green[900],
+                                color: colorPurple,
                                 position: 'absolute',
                                 top: '50%',
                                 left: '50%',

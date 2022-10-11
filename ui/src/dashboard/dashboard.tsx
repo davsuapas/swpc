@@ -24,7 +24,7 @@ import Container from '@mui/material/Container';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Chart from './chart';
-import Meassure from './Meassure';
+import Meassure from './meassure';
 import AppBar from '@mui/material/AppBar';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp'
 import { Assignment } from '@mui/icons-material';
@@ -32,9 +32,9 @@ import Config from '../config/config';
 import { useRef } from 'react';
 import Tooltip from '@mui/material/Tooltip';
 import { CircularProgress } from '@mui/material';
-import { green } from '@mui/material/colors';
 import React from 'react';
 import Alert from '../support/alert';
+import { colorPurple } from '../support/color';
 
 const drawerWidth: number = 255;
 
@@ -70,13 +70,13 @@ function DashboardContent() {
                 Métricas piscina
               </Typography>
               <Tooltip title="Configuración">
-                <IconButton color="default" onClick={() => config.current.open(setloadingConfig)}>
+                <IconButton color="inherit" onClick={() => config.current.open(setloadingConfig)}>
                   <Assignment />
                   {loadingConfig && (
                     <CircularProgress
                       size={40}
                       sx={{
-                        color: green[900],
+                        color: colorPurple,
                         position: 'absolute',
                         zIndex: 1,
                       }}
@@ -85,7 +85,7 @@ function DashboardContent() {
                 </IconButton>
               </Tooltip>
               <Tooltip title="Salir">
-                <IconButton color="warning">
+                <IconButton color="inherit">
                     <ExitToAppIcon />
                 </IconButton>
               </Tooltip>

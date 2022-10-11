@@ -1,0 +1,1 @@
+export const colorPurple = "#800080";
