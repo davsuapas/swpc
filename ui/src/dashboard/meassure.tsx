@@ -27,20 +27,17 @@ interface MeassureProps {
   name: string;
   value: string;
   unitName: string;
+  src: string
 }
 
 export default function Meassure(props: MeassureProps) {
   return (
     <React.Fragment>
       <Title>{props.name}</Title>
-      <Typography component="p" variant="h4">
-        <br/>
+      <Typography component="p" variant="h4" sx={{marginTop: '25px', marginBottom: "20px"}}>
         {props.value} {props.unitName}
       </Typography>
-      <Typography sx={{ mb: 1.5 }} color="text.secondary">
-        <br/>
-        El indicador mide el valor actual que proporciona la piscina a través del controlador
-      </Typography>
+      <img src={props.src} width="80" height="80"></img>
     </React.Fragment>
   );
 }

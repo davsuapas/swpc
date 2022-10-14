@@ -93,7 +93,7 @@ function DashboardContent() {
           </AppBar>
           <Container maxWidth="xl" sx={{ mt:5, mb: 5}}>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={8} lg={9}>
+              <Grid item xs={12} md={9} lg={10}>
                 <Paper
                   sx={{
                     p: 2,
@@ -105,7 +105,7 @@ function DashboardContent() {
                   <Chart name={temperatureName} unitName={temperatureUnit} />
                 </Paper>
               </Grid>
-              <Grid item xs={12} md={4} lg={3}>
+              <Grid item xs={12} md={3} lg={2}>
                 <Paper
                   sx={{
                     p: 2,
@@ -114,10 +114,10 @@ function DashboardContent() {
                     height: drawerWidth,
                   }}
                 >
-                  <Meassure name={temperatureName} value='15' unitName={temperatureUnit} />
+                  <Meassure name={temperatureName} value='15' unitName={temperatureUnit} src="temp.png" />
                 </Paper>
               </Grid>
-              <Grid item xs={12} md={8} lg={9}>
+              <Grid item xs={12} md={9} lg={10}>
                 <Paper
                   sx={{
                     p: 2,
@@ -129,7 +129,7 @@ function DashboardContent() {
                   <Chart name={phName} unitName={phUnit} />
                 </Paper>
               </Grid>
-              <Grid item xs={12} md={4} lg={3}>
+              <Grid item xs={12} md={3} lg={2}>
                 <Paper
                   sx={{
                     p: 2,
@@ -138,10 +138,10 @@ function DashboardContent() {
                     height: drawerWidth,
                   }}
                 >
-                  <Meassure name={phName} value='1,4' unitName={phUnit} />
+                  <Meassure name={phName} value='1,4' unitName={phUnit} src="ph.png" />
                 </Paper>
               </Grid>
-              <Grid item xs={12} md={8} lg={9}>
+              <Grid item xs={12} md={9} lg={10}>
                 <Paper
                   sx={{
                     p: 2,
@@ -153,7 +153,7 @@ function DashboardContent() {
                   <Chart name={chlorineName} unitName={chlorineUnit} />
                 </Paper>
               </Grid>
-              <Grid item xs={12} md={4} lg={3}>
+              <Grid item xs={12} md={3} lg={2}>
                 <Paper
                   sx={{
                     p: 2,
@@ -162,7 +162,7 @@ function DashboardContent() {
                     height: drawerWidth,
                   }}
                 >
-                  <Meassure name={chlorineName} value='0,4' unitName={chlorineUnit} />
+                  <Meassure name={chlorineName} value='0,4' unitName={chlorineUnit} src="chlorine.png" />
                 </Paper>
               </Grid>
             </Grid>
