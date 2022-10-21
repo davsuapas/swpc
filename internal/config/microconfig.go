@@ -37,17 +37,21 @@ type MicroConfig struct {
 // Read reads the configuration saved in disk
 func (c MicroConfig) Read() ([]byte, error) {
 	file := path.Join(c.DataPath, fileName)
+
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return []byte{}, errors.Wrap(err, strings.Concat("Reading the configuration for the micro controller: ", file))
 	}
+
 	return data, nil
 }
 
 func (c MicroConfig) Save(data []byte) error {
 	file := path.Join(c.DataPath, fileName)
+
 	if err := os.WriteFile(file, data, os.FileMode(0664)); err != nil {
 		return errors.Wrap(err, strings.Concat("Saving the configuration for the micro controller: ", file))
 	}
+
 	return nil
 }

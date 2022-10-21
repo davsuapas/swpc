@@ -1,0 +1,31 @@
+run:
+  deadline: 5m
+linters:
+  enable-all: true
+  disable:
+    - golint
+    - varcheck
+    - deadcode
+    - interfacer
+    - maligned
+    - scopelint
+    - exhaustivestruct
+    - ifshort
+    - structcheck
+    - nosnakecase
+    - rowserrcheck
+    - sqlclosecheck
+    - wastedassign
+    - godot
+    - gomnd
+    - gofumpt
+    - forbidigo
+    - exhaustruct
+linters-settings:
+  lll:
+    line-length: 130
+  wrapcheck:
+    ignoreSigs:
+      - .NoContent(
+      - .JSONBlob(
+      - errors.Wrap( 

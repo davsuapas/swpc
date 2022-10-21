@@ -48,9 +48,9 @@ func NewLogin(log *zap.Logger) *Login {
 }
 
 // Submit validates the user, generates token and save session
-func (l *Login) Submit(c echo.Context) error {
-	email := c.FormValue("email")
-	pass := c.FormValue("password")
+func (l *Login) Submit(ctx echo.Context) error {
+	email := ctx.FormValue("email")
+	pass := ctx.FormValue("password")
 
 	l.log.Info("Login request", zap.String("user", email))
 
@@ -58,21 +58,25 @@ func (l *Login) Submit(c echo.Context) error {
 	userPass, ok := l.users.get(email)
 	if !ok {
 		l.log.Error("The user not found", zap.String("user", email))
-		return c.NoContent(http.StatusUnauthorized)
+
+		return ctx.NoContent(http.StatusUnauthorized)
 	}
 
-	ep, err := pcrypto.Encrypt(pass, crypto.Key)
+	passEncrypt, err := pcrypto.Encrypt(pass, crypto.Key)
 	if err != nil {
 		l.log.With(zap.Error(err)).Error("Error encrypt the pass")
-		return c.NoContent(http.StatusUnauthorized)
+
+		return ctx.NoContent(http.StatusUnauthorized)
 	}
-	if ep != userPass {
+
+	if passEncrypt != userPass {
 		l.log.Error("The pass is bad", zap.String("user", email))
-		return c.NoContent(http.StatusUnauthorized)
+
+		return ctx.NoContent(http.StatusUnauthorized)
 	}
 
 	// Security
-	token, err := l.securityToken(c, email)
+	token, err := l.securityToken(ctx, email)
 	if err != nil {
 		return err
 	}
@@ -85,11 +89,11 @@ func (l *Login) Submit(c echo.Context) error {
 	// (this case would be because when the cookie expires the request would come without a token).
 	expiration := time.Now().Add(time.Minute * tokenExpiration)
 	cookie := cookies(TokenName, token, true, expiration.Add(5*time.Minute))
-	c.SetCookie(cookie)
+	ctx.SetCookie(cookie)
 	cookie = cookies(authCookie, "true", false, expiration)
-	c.SetCookie(cookie)
+	ctx.SetCookie(cookie)
 
-	return c.NoContent(http.StatusOK)
+	return ctx.NoContent(http.StatusOK)
 }
 
 func cookies(name string, value string, httpOnly bool, expiration time.Time) *http.Cookie {
@@ -101,11 +105,12 @@ func cookies(name string, value string, httpOnly bool, expiration time.Time) *ht
 	cookie.HttpOnly = httpOnly
 	cookie.Secure = true
 	cookie.SameSite = http.SameSiteStrictMode
+
 	return cookie
 }
 
 // securityToken generates the jwt security token
-func (l *Login) securityToken(c echo.Context, email string) (string, error) {
+func (l *Login) securityToken(ctx echo.Context, email string) (string, error) {
 	// Set custom claims
 	claims := &JWTCustomClaims{
 		email,
@@ -118,12 +123,14 @@ func (l *Login) securityToken(c echo.Context, email string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Generate encoded token and send it as response.
-	t, err := token.SignedString([]byte(crypto.Key))
+	tsigned, err := token.SignedString([]byte(crypto.Key))
 	if err != nil {
 		l.log.With(zap.Error(err)).Error("Error signing token", zap.Error(err))
-		return "", c.NoContent(http.StatusInternalServerError)
+
+		return "", ctx.NoContent(http.StatusInternalServerError)
 	}
-	return t, nil
+
+	return tsigned, nil
 }
 
 // JWTCustomClaims are custom claims extending default ones.
@@ -148,5 +155,6 @@ func newUsersInMemory() users {
 // get gets the user. If the user is not found return ("", false)
 func (u *users) get(user string) (string, bool) {
 	value, ok := u.user[user]
+
 	return value, ok
 }

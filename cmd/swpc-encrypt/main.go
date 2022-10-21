@@ -37,5 +37,6 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Println(string(r))
+
+	fmt.Println(r)
 }

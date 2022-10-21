@@ -92,5 +92,6 @@ func (c *Config) String() string {
 	if err != nil {
 		return ""
 	}
+
 	return string(r)
 }

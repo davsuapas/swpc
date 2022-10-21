@@ -21,15 +21,17 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
+
+	"github.com/pkg/errors"
 )
 
-var bytes = []byte{35, 26, 17, 44, 85, 35, 25, 74, 87, 65, 88, 98, 68, 32, 44, 05}
-
-// Encrypt method is to encrypt or hide any classified text
+// Encrypt encrypts or hide any classified text
 func Encrypt(text string, key string) (string, error) {
+	var bytes = []byte{35, 26, 17, 44, 85, 35, 25, 74, 87, 65, 88, 98, 68, 32, 44, 05}
+
 	block, err := aes.NewCipher([]byte(key))
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "New cipher")
 	}
 
 	plainText := []byte(text)

@@ -36,31 +36,36 @@ type ConfigWeb struct {
 }
 
 // Load loads the configuration saved into disk file
-func (cf *ConfigWeb) Load(c echo.Context) error {
+func (cf *ConfigWeb) Load(ctx echo.Context) error {
 	data, err := cf.Microc.Read()
 	if errors.Is(err, os.ErrNotExist) {
-		return c.NoContent(http.StatusNotFound)
+		return ctx.NoContent(http.StatusNotFound)
 	}
+
 	if err != nil {
 		cf.Log.Error("Loading configuration", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+
+		return ctx.NoContent(http.StatusInternalServerError)
 	}
-	return c.JSONBlob(http.StatusOK, data)
+
+	return ctx.JSONBlob(http.StatusOK, data)
 }
 
 // Save saves the configuration to disk
-func (cf *ConfigWeb) Save(c echo.Context) error {
-	data, err := io.ReadAll(c.Request().Body)
+func (cf *ConfigWeb) Save(ctx echo.Context) error {
+	data, err := io.ReadAll(ctx.Request().Body)
 	if err != nil {
 		cf.Log.Error("Getting the configuration of the request body", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+
+		return ctx.NoContent(http.StatusBadRequest)
 	}
 
-	err = cf.Microc.Save([]byte(data))
+	err = cf.Microc.Save(data)
 	if err != nil {
 		cf.Log.Error("Saving request", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+
+		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.NoContent(http.StatusOK)
+	return ctx.NoContent(http.StatusOK)
 }

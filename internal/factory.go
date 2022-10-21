@@ -43,12 +43,12 @@ type Factory struct {
 
 // NewFactory creates the horizontal services of the app
 func NewFactory() *Factory {
-	c := config.LoadConfig()
+	cnf := config.LoadConfig()
 
-	log := newLogger(c)
+	log := newLogger(cnf)
 
 	return &Factory{
-		Config: c,
+		Config: cnf,
 		Webs:   newWebServer(),
 		Log:    log,
 		WebHandler: &WebHandler{
@@ -57,33 +57,36 @@ func NewFactory() *Factory {
 				Log: log,
 				Microc: &config.MicroConfig{
 					Log:      log,
-					DataPath: c.DataPath,
+					DataPath: cnf.DataPath,
 				},
-				Cnf: c,
+				Cnf: cnf,
 			},
 		},
 	}
 }
 
-func newLogger(c config.Config) *zap.Logger {
+func newLogger(ctx config.Config) *zap.Logger {
 	var log zap.Config
 
-	if c.Development {
+	if ctx.Development {
 		log = zap.NewDevelopmentConfig()
 	} else {
 		log = zap.NewProductionConfig()
 	}
-	log.Level = zap.NewAtomicLevelAt(zapcore.Level(c.Level))
-	log.Encoding = c.Encoding
+
+	log.Level = zap.NewAtomicLevelAt(zapcore.Level(ctx.Level))
+	log.Encoding = ctx.Encoding
 
 	l, err := log.Build()
 	if err != nil {
 		panic(strings.Concat("Error creating zap logger. Description: ", err.Error()))
 	}
+
 	return l
 }
 
 func newWebServer() *echo.Echo {
 	e := echo.New()
+
 	return e
 }

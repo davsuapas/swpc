@@ -19,6 +19,7 @@ package internal
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"time"
@@ -44,7 +45,6 @@ func NewServer(factory *Factory) *Server {
 
 // Start starts the graceful http server
 func (s *Server) Start() {
-
 	s.factory.Log.Info("Starting the swimming pool controller server ...", zap.String("Config", s.factory.Config.String()))
 
 	// Start server
@@ -62,6 +62,7 @@ func (s *Server) Start() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	if err := s.factory.Webs.Shutdown(ctx); err != nil {
 		s.factory.Log.Error(err.Error())
 	}
@@ -77,29 +78,30 @@ func (s *Server) Middleware() {
 	s.factory.Webs.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogURI:    true,
 		LogStatus: true,
-		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+		LogValuesFunc: func(ctx echo.Context, values middleware.RequestLoggerValues) error {
 			fields := []zapcore.Field{
-				zap.String("request_id", v.RequestID),
-				zap.String("remote_ip", v.RemoteIP),
-				zap.String("host", v.Host),
-				zap.String("Latency", v.Latency.String()),
-				zap.String("method", v.Method),
-				zap.String("request_uri", v.Method),
-				zap.Int("status", v.Status),
-				zap.Int64("response_size", v.ResponseSize),
-				zap.String("user_agent", v.UserAgent),
+				zap.String("request_id", values.RequestID),
+				zap.String("remote_ip", values.RemoteIP),
+				zap.String("host", values.Host),
+				zap.String("Latency", values.Latency.String()),
+				zap.String("method", values.Method),
+				zap.String("request_uri", values.Method),
+				zap.Int("status", values.Status),
+				zap.Int64("response_size", values.ResponseSize),
+				zap.String("user_agent", values.UserAgent),
 			}
 
 			switch {
-			case v.Status >= 500:
+			case values.Status >= http.StatusInternalServerError:
 				s.factory.Log.Error("Web server error", fields...)
-			case v.Status >= 400:
+			case values.Status >= http.StatusBadRequest:
 				s.factory.Log.Info("Web client error", fields...)
-			case v.Status >= 300:
+			case values.Status >= http.StatusMultipleChoices:
 				s.factory.Log.Info("Web server redirection", fields...)
 			default:
 				s.factory.Log.Info("Web success server response", fields...)
 			}
+
 			return nil
 		},
 	}))
@@ -124,13 +126,13 @@ func (s *Server) webRoute() {
 	wa.POST("/login", s.factory.WebHandler.Login.Submit)
 
 	// API Restricted by JWT
-	w := s.factory.Webs.Group("/web/api")
+	wapi := s.factory.Webs.Group("/web/api")
 	config := middleware.JWTConfig{
 		Claims:      &web.JWTCustomClaims{},
 		SigningKey:  []byte(crypto.Key),
 		TokenLookup: strings.Concat("cookie:", web.TokenName),
 	}
-	w.Use(middleware.JWTWithConfig(config))
-	w.GET("/config", s.factory.WebHandler.Config.Load)
-	w.POST("/config", s.factory.WebHandler.Config.Save)
+	wapi.Use(middleware.JWTWithConfig(config))
+	wapi.GET("/config", s.factory.WebHandler.Config.Load)
+	wapi.POST("/config", s.factory.WebHandler.Config.Save)
 }
