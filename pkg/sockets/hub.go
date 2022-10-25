@@ -32,21 +32,25 @@ const (
 	Active Status = iota
 	// Break the socket is break
 	Break
-	// InactiveComm the socket is running and the communication between the micro and server is inactive
+	// InactiveComm the socket is running but the communication between the micro and server is inactive
 	InactiveComm
-	// StoppedComm the socket is running and the communication between the micro and server is temporarily broken
-	StoppedComm
-	// BreakComm the socket is running and the communication between the micro and server is break
+	// BreakComm the socket is running but the communication between the micro and server is break
 	BreakComm
 )
 
+// Client identifies a connection socket. If the client expire, the client
+// will be removed of the hub
 type Client struct {
 	id         string
 	conn       *websocket.Conn
 	status     Status
 	expiration time.Time
+	// lastMessage the time when the last messages is sended
+	lastMessage time.Time
 }
 
+// NewClient builds client struct. id identifies the session. The client expires
+// depending of the expiration parameter
 func NewClient(id string, conn *websocket.Conn, expiration time.Duration) Client {
 	return Client{
 		id:         id,
@@ -56,28 +60,72 @@ func NewClient(id string, conn *websocket.Conn, expiration time.Duration) Client
 	}
 }
 
+// Hub manages the socket pool. The hub registers clients across of the reg channel, unregisters
+// clients, broadcast messages and returns errors to the sender. Also the hub checks communication
+// status, socket, etc. The hub works in a goroutine
 type Hub struct {
-	checkExp time.Duration
-	client   []Client
-	reg      chan Client
-	unreg    chan string
-	send     chan []byte
-	errors   chan []error
+	client []Client
+
+	reg       chan Client
+	unreg     chan string
+	send      chan []byte
+	errors    chan []error
+	reqStatus chan string
+	resStatus chan Status
+
+	inactiveCommTime time.Duration
+	breakComm        time.Duration
 }
 
+// NewHub builds Hub struct. The hub checks clients expiration or client status.
+// The inactiveCommTime checks each when the communication between
+// the micro and server is inactive and breakComm parameter cheks each when the communication
+// between the micro and server is break
+// The errors channel receives al errors into the hub
+func NewHub(
+	inactiveCommTime time.Duration,
+	breakComm time.Duration,
+	errors chan []error) *Hub {
+	return &Hub{
+		client:           []Client{},
+		reg:              make(chan Client),
+		unreg:            make(chan string),
+		send:             make(chan []byte),
+		errors:           errors,
+		reqStatus:        make(chan string),
+		resStatus:        make(chan Status),
+		inactiveCommTime: inactiveCommTime,
+		breakComm:        breakComm,
+	}
+}
+
+// Run starts the hub process in a goroutine
+func (h *Hub) Run() {
+	go h.run()
+}
+
+// Register registers client into the hub
 func (h *Hub) Register(client Client) {
 	h.reg <- client
 }
 
+// Unregister unregisters client into the hub
 func (h *Hub) Unregister(id string) {
 	h.unreg <- id
 }
 
+// Send sends message to the all clients into hub
 func (h *Hub) Send(message []byte) {
 	h.send <- message
 }
 
-func (h *Hub) Run() {
+// Status returns the client status
+func (h *Hub) Status(id string) Status {
+	h.reqStatus = id
+}
+
+// run registers and unregisters clients, sends messages and remove died clients
+func (h *Hub) run() {
 	select {
 	case client := <-h.reg:
 		h.client = append(h.client, client)
@@ -87,11 +135,13 @@ func (h *Hub) Run() {
 		}
 	case message := <-h.send:
 		h.sendMessage(message)
-	case <-time.After(h.checkExp):
+	case <-time.After(h.inactiveCommTime):
+		h.updateClientStatus()
 		h.removeDeadClient()
 	}
 }
 
+// sendMessage send message to the all clients registered
 func (h *Hub) sendMessage(message []byte) {
 	var errs []error
 
@@ -100,7 +150,11 @@ func (h *Hub) sendMessage(message []byte) {
 			h.client[i].status = Break
 
 			errs = append(errs, errors.Wrap(err, strings.Concat("Sending message to: ", c.id)))
+
+			continue
 		}
+
+		h.client[i].lastMessage = time.Now()
 	}
 
 	if len(errs) > 0 {
@@ -108,6 +162,7 @@ func (h *Hub) sendMessage(message []byte) {
 	}
 }
 
+// removeDeadClient removes died clients
 func (h *Hub) removeDeadClient() {
 	var errs []error
 
@@ -124,6 +179,7 @@ func (h *Hub) removeDeadClient() {
 	}
 }
 
+// removeClient removes client by id
 func (h *Hub) removeClient(clientID string) error {
 	pos := -1
 
@@ -139,4 +195,21 @@ func (h *Hub) removeClient(clientID string) error {
 	h.client = h.client[:len(h.client)-1]
 
 	return errors.Wrap(err, strings.Concat("Removing client ID:", clientID))
+}
+
+// updateClientStatus updates the client status
+func (h *Hub) updateClientStatus() {
+	for i, c := range h.client {
+		if c.lastMessage.Add(h.inactiveCommTime).After(time.Now()) {
+			h.client[i].status = InactiveComm
+
+			continue
+		}
+
+		if c.lastMessage.Add(h.breakComm).After(time.Now()) {
+			h.client[i].status = BreakComm
+
+			continue
+		}
+	}
 }
