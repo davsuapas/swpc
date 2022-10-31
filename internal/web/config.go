@@ -28,7 +28,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Config manages the web configuration
+// ConfigWeb manages the web configuration
 type ConfigWeb struct {
 	Log    *zap.Logger
 	Microc *config.MicroConfig

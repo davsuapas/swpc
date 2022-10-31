@@ -37,6 +37,16 @@ func (s *ServerConfig) Address() string {
 	return strings.Concat(":", strconv.Itoa(s.Port))
 }
 
+// WebConfig describes the web configuration
+type WebConfig struct {
+	// SessionExpiration defines the session expiration in minutes
+	SessionExpiration int `json:"expirationSession"`
+	// InactiveCommTime establishes each time the communication between the micro and server is inactive, in seconds
+	InactiveCommTime int `json:"inactiveCommTime"`
+	// BreakCommTime breakComm parameter establishes each time the communication between the micro and server is break, in seconds
+	BreakCommTime int `json:"breakCommTime"`
+}
+
 // ZapConfig defines the configuration for log framework
 type ZapConfig struct {
 	// Development mode. Common value: false
@@ -52,6 +62,7 @@ type ZapConfig struct {
 type Config struct {
 	ServerConfig `json:"server,omitempty"`
 	ZapConfig    `json:"log,omitempty"`
+	WebConfig    `json:"session,omitempty"`
 	DataPath     string `json:"dataPath,omitempty"`
 }
 
@@ -63,6 +74,11 @@ func LoadConfig() Config {
 			Development: true,
 			Level:       -1,
 			Encoding:    "console",
+		},
+		WebConfig: WebConfig{
+			SessionExpiration: 15,
+			InactiveCommTime:  10,
+			BreakCommTime:     20,
 		},
 		DataPath: "./data",
 	}

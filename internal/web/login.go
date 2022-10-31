@@ -23,27 +23,29 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
+	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/crypto"
 	pcrypto "github.com/swpoolcontroller/pkg/crypto"
 	"go.uber.org/zap"
 )
 
 const (
-	tokenExpiration = 10
-	TokenName       = "Authorization"
-	authCookie      = "IsAuth"
+	TokenName  = "Authorization"
+	authCookie = "IsAuth"
 )
 
 // Login controllers the access of the user
 type Login struct {
-	log   *zap.Logger
-	users users
+	log      *zap.Logger
+	sessionc config.WebConfig
+	users    users
 }
 
-func NewLogin(log *zap.Logger) *Login {
+func NewLogin(log *zap.Logger, sc config.WebConfig) *Login {
 	return &Login{
-		log:   log,
-		users: newUsersInMemory(),
+		log:      log,
+		sessionc: sc,
+		users:    newUsersInMemory(),
 	}
 }
 
@@ -87,7 +89,7 @@ func (l *Login) Submit(ctx echo.Context) error {
 	// the internal expiration of the token, in case a new request is made from the browser.
 	// In this way, the server will return permission denied instead of bad request
 	// (this case would be because when the cookie expires the request would come without a token).
-	expiration := time.Now().Add(time.Minute * tokenExpiration)
+	expiration := time.Now().Add(time.Duration(l.sessionc.SessionExpiration) * time.Minute)
 	cookie := cookies(TokenName, token, true, expiration.Add(5*time.Minute))
 	ctx.SetCookie(cookie)
 	cookie = cookies(authCookie, "true", false, expiration)
@@ -115,7 +117,7 @@ func (l *Login) securityToken(ctx echo.Context, email string) (string, error) {
 	claims := &JWTCustomClaims{
 		email,
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * tokenExpiration).Unix(),
+			ExpiresAt: time.Now().Add(time.Duration(l.sessionc.SessionExpiration) * time.Minute).Unix(),
 		},
 	}
 

@@ -18,9 +18,12 @@
 package internal
 
 import (
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/web"
+	"github.com/swpoolcontroller/pkg/sockets"
 	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -30,6 +33,7 @@ import (
 type WebHandler struct {
 	Login  *web.Login
 	Config *web.ConfigWeb
+	WS     *web.WS
 }
 
 // Factory is the objects factory of the app
@@ -37,6 +41,9 @@ type Factory struct {
 	Config config.Config
 	Webs   *echo.Echo
 	Log    *zap.Logger
+
+	Hubt *HubTrace
+	Hub  *sockets.Hub
 
 	WebHandler *WebHandler
 }
@@ -47,12 +54,21 @@ func NewFactory() *Factory {
 
 	log := newLogger(cnf)
 
+	hubt := NewHubTrace(log)
+	hub := sockets.NewHub(
+		time.Duration(cnf.InactiveCommTime)*time.Second,
+		time.Duration(cnf.BreakCommTime)*time.Second,
+		hubt.Info,
+		hubt.Errors)
+
 	return &Factory{
 		Config: cnf,
 		Webs:   newWebServer(),
 		Log:    log,
+		Hubt:   hubt,
+		Hub:    hub,
 		WebHandler: &WebHandler{
-			Login: web.NewLogin(log),
+			Login: web.NewLogin(log, cnf.WebConfig),
 			Config: &web.ConfigWeb{
 				Log: log,
 				Microc: &config.MicroConfig{
@@ -61,6 +77,7 @@ func NewFactory() *Factory {
 				},
 				Cnf: cnf,
 			},
+			WS: web.NewWS(log, cnf.WebConfig, hub),
 		},
 	}
 }

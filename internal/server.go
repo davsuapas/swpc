@@ -43,15 +43,18 @@ func NewServer(factory *Factory) *Server {
 	}
 }
 
-// Start starts the graceful http server
+// Start starts the graceful http server and services
 func (s *Server) Start() {
 	s.factory.Log.Info("Starting the swimming pool controller server ...", zap.String("Config", s.factory.Config.String()))
 
 	// Start server
 	go func() {
 		if err := s.factory.Webs.Start(s.factory.Config.Address()); err != nil {
-			s.factory.Log.Info("Shutting down the server")
+			s.factory.Log.Panic("Shutting down the server")
 		}
+
+		s.factory.Hubt.Register()
+		s.factory.Hub.Run()
 	}()
 
 	// Wait for interrupt signal to gracefully shutdown the server with
@@ -63,9 +66,16 @@ func (s *Server) Start() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	s.factory.Log.Info("The web server is stopping ...")
+
 	if err := s.factory.Webs.Shutdown(ctx); err != nil {
 		s.factory.Log.Error(err.Error())
 	}
+
+	s.factory.Log.Info("The hub is stopping ...")
+
+	s.factory.Hub.Stop()
+	s.factory.Hubt.Close()
 
 	s.factory.Log.Info("The server has been stopped")
 }
@@ -135,4 +145,6 @@ func (s *Server) webRoute() {
 	wapi.Use(middleware.JWTWithConfig(config))
 	wapi.GET("/config", s.factory.WebHandler.Config.Load)
 	wapi.POST("/config", s.factory.WebHandler.Config.Save)
+
+	wapi.GET("/ws", s.factory.WebHandler.WS.Register)
 }

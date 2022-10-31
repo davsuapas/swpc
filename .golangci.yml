@@ -21,6 +21,7 @@ linters:
     - gofumpt
     - forbidigo
     - exhaustruct
+    - varnamelen
 linters-settings:
   lll:
     line-length: 130
