@@ -43,7 +43,8 @@ type WebConfig struct {
 	SessionExpiration int `json:"expirationSession"`
 	// InactiveCommTime establishes each time the communication between the micro and server is inactive, in seconds
 	InactiveCommTime int `json:"inactiveCommTime"`
-	// BreakCommTime breakComm parameter establishes each time the communication between the micro and server is break, in seconds
+	// BreakCommTime breakComm parameter establishes each time the communication
+	// between the micro and server is break, in seconds
 	BreakCommTime int `json:"breakCommTime"`
 }
 
@@ -76,7 +77,7 @@ func LoadConfig() Config {
 			Encoding:    "console",
 		},
 		WebConfig: WebConfig{
-			SessionExpiration: 15,
+			SessionExpiration: 1,
 			InactiveCommTime:  10,
 			BreakCommTime:     20,
 		},
@@ -96,7 +97,8 @@ func LoadConfig() Config {
 	}
 
 	if !(cnf.Level >= -1 && cnf.Level <= 5) {
-		panic("The log level param must be configured to (-1: debug, 0: info, 1: Warn, 2: Error, 3: DPanic, 4: Panic, 5: Fatal)")
+		panic("The log level param must be configured to " +
+			"(-1: debug, 0: info, 1: Warn, 2: Error, 3: DPanic, 4: Panic, 5: Fatal)")
 	}
 
 	return cnf

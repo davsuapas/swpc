@@ -22,7 +22,7 @@ import "go.uber.org/zap"
 // HubTrace manages the info and errors sent by the hub. This info and errors are write into log
 type HubTrace struct {
 	log    *zap.Logger
-	Info   chan string
+	Infos  chan []string
 	Errors chan []error
 	close  chan struct{}
 }
@@ -31,7 +31,7 @@ type HubTrace struct {
 func NewHubTrace(log *zap.Logger) *HubTrace {
 	return &HubTrace{
 		log:    log,
-		Info:   make(chan string),
+		Infos:  make(chan []string),
 		Errors: make(chan []error),
 		close:  make(chan struct{}),
 	}
@@ -39,6 +39,8 @@ func NewHubTrace(log *zap.Logger) *HubTrace {
 
 // Run registers errors generated into the hub into the log. Launches a gouroutine
 func (h *HubTrace) Register() {
+	h.log.Info("Iniciando el proceso para registrar trazas del hub")
+
 	go func() {
 		for {
 			select {
@@ -46,8 +48,10 @@ func (h *HubTrace) Register() {
 				for _, e := range errors {
 					h.log.Error("Problems generated into the hub", zap.Error(e))
 				}
-			case infos := <-h.Info:
-				h.log.Info(infos)
+			case infos := <-h.Infos:
+				for _, i := range infos {
+					h.log.Info(i)
+				}
 			case <-h.close:
 				return
 			}

@@ -58,7 +58,7 @@ func NewFactory() *Factory {
 	hub := sockets.NewHub(
 		time.Duration(cnf.InactiveCommTime)*time.Second,
 		time.Duration(cnf.BreakCommTime)*time.Second,
-		hubt.Info,
+		hubt.Infos,
 		hubt.Errors)
 
 	return &Factory{

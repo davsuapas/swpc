@@ -11,10 +11,11 @@
     "@types/react-dom": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-router-dom": "latest",
     "react-scripts": "latest",
     "recharts": "^2.1.14",
     "typescript": "latest",
-    "react-router-dom": "latest"
+    "websocket-ts": "^1.1.1"
   },
   "scripts": {
     "start": "react-scripts start",

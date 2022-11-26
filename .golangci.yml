@@ -24,9 +24,14 @@ linters:
     - varnamelen
 linters-settings:
   lll:
-    line-length: 130
+    line-length: 120
   wrapcheck:
     ignoreSigs:
       - .NoContent(
       - .JSONBlob(
       - errors.Wrap( 
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - funlen

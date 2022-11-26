@@ -18,18 +18,20 @@
 package sockets
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
+	"github.com/swpoolcontroller/pkg/arrays"
 	"github.com/swpoolcontroller/pkg/strings"
 )
 
 type clientStatus int
 
 const (
-	// active the socket is running and the communication between the micro and server is active
-	active clientStatus = iota
+	// activeComm the socket is running and the communication between the micro and server is activeComm
+	activeComm clientStatus = iota
 	// inactiveComm the socket is running but the communication between the micro and server is inactive
 	inactiveComm
 	// breakComm the socket is running but the communication between the micro and server is break
@@ -44,6 +46,8 @@ type Client struct {
 	expiration time.Time
 	// lastMessage the time when the last messages is sended
 	lastMessage time.Time
+	// brokenComm the communication between the micro and server is break
+	brokenComm bool
 }
 
 // NewClient builds client struct. id identifies the session. The client expires
@@ -61,40 +65,40 @@ func NewClient(id string, conn *websocket.Conn, expiration time.Duration) Client
 // clients, broadcast messages and returns errors to the sender. Also the hub checks communication
 // status, socket, etc. The hub works in a goroutine
 type Hub struct {
-	client []Client
+	clients []Client
 
 	reg    chan Client
 	unreg  chan string
 	send   chan []byte
-	info   chan string
+	infos  chan []string
 	errors chan []error
 	close  chan struct{}
 
 	inactiveCommTime time.Duration
-	breakComm        time.Duration
+	breakCommTime    time.Duration
 }
 
 // NewHub builds Hub service.
 // The inactiveCommTime establishes each time the communication between
 // the micro and server is inactive and breakComm parameter establishes each time the communication
 // between the micro and server is break
-// The info channel receives all infos into the hub
+// The infos channel receives all infos into the hub
 // The errors channel receives all errors into the hub
 func NewHub(
 	inactiveCommTime time.Duration,
 	breakCommTime time.Duration,
-	info chan string,
+	infos chan []string,
 	errors chan []error) *Hub {
 	return &Hub{
-		client:           []Client{},
+		clients:          []Client{},
 		reg:              make(chan Client),
 		unreg:            make(chan string),
 		send:             make(chan []byte),
-		info:             info,
+		infos:            infos,
 		errors:           errors,
 		close:            make(chan struct{}),
 		inactiveCommTime: inactiveCommTime,
-		breakComm:        breakCommTime,
+		breakCommTime:    breakCommTime,
 	}
 }
 
@@ -121,23 +125,41 @@ func (h *Hub) Stop() {
 // Run registers and unregisters clients, sends messages and remove died clients. Launches a gouroutine
 func (h *Hub) Run() {
 	go func() {
+		check := time.NewTimer(h.inactiveCommTime)
+
 		for {
 			select {
 			case client := <-h.reg:
-				h.client = append(h.client, client)
-				h.info <- strings.Concat("Client registered: ", client.id)
+				h.registerClient(client, check)
 			case id := <-h.unreg:
 				if err := h.removeClient(id); err != nil {
-					h.errors <- []error{errors.Wrap(err, strings.Concat("Unregistering client: ", id))}
+					h.errors <- []error{errors.Wrap(
+						err, strings.Concat(
+							"Hub. Unregistering client: ", id,
+							", count: ", strconv.Itoa(len(h.clients))))}
 				}
-				h.info <- strings.Concat("Client unregisted: ", id)
+				h.infos <- []string{strings.Concat("Hub. Client unregisted: ", id)}
 			case message := <-h.send:
 				h.sendMessage(message)
-			case <-time.After(h.inactiveCommTime):
+			case <-check.C:
 				h.sendInactiveClientStatus()
 				h.removeDeadClient()
+
+				// If there are no clients, the timer is not activated and the CPU is saved.
+				if len(h.clients) > 0 {
+					check.Reset(h.inactiveCommTime)
+				} else {
+					h.infos <- []string{
+						strings.Concat(
+							"Hub. The check timer is deactivated because there are no clients")}
+				}
+
 			case <-h.close:
 				h.closeh()
+
+				if !check.Stop() {
+					<-check.C
+				}
 
 				return
 			}
@@ -145,54 +167,176 @@ func (h *Hub) Run() {
 	}()
 }
 
+func (h *Hub) registerClient(client Client, check *time.Timer) {
+	h.clients = append(h.clients, client)
+	h.infos <- []string{
+		strings.Concat(
+			"Hub. Client registered: ", client.id,
+			", count: ", strconv.Itoa(len(h.clients)))}
+
+	// If there is a customer, it means that the timer was not activated before
+	// and therefore I activate it.
+	if len(h.clients) == 1 {
+		check.Reset(h.inactiveCommTime)
+	}
+}
+
 // sendMessage send message to the all clients registered. If sending the message throw a error, the client is removed
 func (h *Hub) sendMessage(message []byte) {
 	var errs []error
 
-	var clientsBreak []int
+	var brokenclients []uint16
 
-	for i, c := range h.client {
-		if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-			clientsBreak = append(clientsBreak, i)
-
-			errs = append(errs, errors.Wrap(err, strings.Concat("Sending message to: ", c.id)))
-		} else {
-			h.client[i].lastMessage = time.Now()
+	for i, c := range h.clients {
+		if c.brokenComm {
+			continue
 		}
-	}
 
-	for _, poscb := range clientsBreak {
-		if err := h.removeClientByPos(poscb); err != nil {
-			errs = append(errs, errors.Wrap(err, "Removing client after sending a message"))
+		if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+			brokenclients = append(brokenclients, uint16(i))
+
+			if err := h.closeClient(uint16(i)); err != nil {
+				errs = append(errs, errors.Wrap(err, "Hub. Sending a message"))
+			}
+
+			errs = append(
+				errs,
+				errors.Wrap(
+					err,
+					strings.Concat("Hub. Sending message to: ", c.id, ". The client will be removed")))
+		} else {
+			h.clients[i].lastMessage = time.Now()
 		}
 	}
 
 	if len(errs) > 0 {
 		h.errors <- errs
+	}
+
+	if len(brokenclients) > 0 {
+		h.clients = arrays.Remove(h.clients, brokenclients...)
+	}
+}
+
+// sendInactiveClientStatus send the client status when is inactive.
+// If sending the message throw a error, the client is removed
+func (h *Hub) sendInactiveClientStatus() {
+	var (
+		infos []string
+		errs  []error
+	)
+
+	var brokenclients []uint16
+
+	for i, client := range h.clients {
+		if client.brokenComm {
+			continue
+		}
+
+		status := h.commStatus(client)
+		if status == activeComm {
+			continue
+		}
+
+		if status == breakComm {
+			h.clients[i].brokenComm = true
+		}
+
+		if err := client.conn.WriteMessage(websocket.TextMessage, []byte{byte(status)}); err != nil {
+			brokenclients = append(brokenclients, uint16(i))
+
+			if err := h.closeClient(uint16(i)); err != nil {
+				errs = append(errs, errors.Wrap(err, "Hub. Sending inactive/break client status"))
+			}
+
+			errs = append(
+				errs,
+				errors.Wrap(
+					err,
+					strings.Concat(
+						"Hub. Sending inactive/break client status: ", client.id+". The client will be removed")))
+		} else {
+			infos = append(
+				infos,
+				strings.Concat(
+					"Hub. Sending inactive client status: ", client.id,
+					", status: ", strconv.Itoa(int(status)),
+					", Last message date: ", client.lastMessage.String(),
+					", Actual date: ", time.Now().String()))
+		}
+	}
+
+	if len(brokenclients) > 0 {
+		h.clients = arrays.Remove(h.clients, brokenclients...)
+	}
+
+	if len(errs) > 0 {
+		infos = append(
+			infos,
+			strings.Concat("Hub. Size of the client array after sending inactive client status: ",
+				strconv.Itoa(len(h.clients))))
+		h.errors <- errs
+	}
+
+	if len(infos) > 0 {
+		h.infos <- infos
 	}
 }
 
 // removeDeadClient removes died clients
 func (h *Hub) removeDeadClient() {
-	var errs []error
+	var (
+		infos []string
+		errs  []error
+	)
 
-	for _, c := range h.client {
-		if c.expiration.After(time.Now()) {
-			if err := h.removeClient(c.id); err != nil {
-				errs = append(errs, errors.Wrap(err, strings.Concat("Removing died client by expiration: ", c.id)))
+	var deadClients []uint16
+
+	for i, c := range h.clients {
+		if c.expiration.Before(time.Now()) {
+			deadClients = append(deadClients, uint16(i))
+
+			clientID := h.clients[i].id
+
+			if err := h.closeClient(uint16(i)); err != nil {
+				errs = append(
+					errs,
+					errors.Wrap(
+						err,
+						strings.Concat(
+							"Hub. Removing died client by expiration: ", clientID+". The client will be removed")))
 			}
-			h.info <- strings.Concat("Client died by expiration: ", c.id)
+
+			infos = append(
+				infos,
+				strings.Concat(
+					"Hub. Client died by expiration: ", clientID,
+					", Expiration date: ", c.expiration.String(),
+					", Actual date: ", time.Now().String()))
 		}
 	}
 
 	if len(errs) > 0 {
 		h.errors <- errs
 	}
+
+	if len(deadClients) > 0 {
+		h.clients = arrays.Remove(h.clients, deadClients...)
+	}
+
+	if len(infos) > 0 {
+		infos = append(
+			infos,
+			strings.Concat(
+				"Hub. Size of the client array after removing expired clients: ",
+				strconv.Itoa(len(h.clients))))
+		h.infos <- infos
+	}
 }
 
 // findClient seeks a client by ID. If the client is not found returns -1
 func (h *Hub) findClient(clientID string) int {
-	for i, c := range h.client {
+	for i, c := range h.clients {
 		if c.id == clientID {
 			return i
 		}
@@ -208,65 +352,41 @@ func (h *Hub) removeClient(clientID string) error {
 		return nil
 	}
 
-	return h.removeClientByPos(pos)
+	posr := uint16(pos)
+
+	if err := h.closeClient(posr); err != nil {
+		return err
+	}
+
+	h.clients = arrays.Remove(h.clients, posr)
+
+	return nil
 }
 
-// removeClientByPos removes client by position
-func (h *Hub) removeClientByPos(pos int) error {
-	clientID := h.client[pos].id
+// closeClient closes socket client
+func (h *Hub) closeClient(pos uint16) error {
+	clientID := h.clients[pos].id
 
-	err := h.client[pos].conn.Close()
-
-	h.client[pos] = h.client[len(h.client)-1]
-	h.client = h.client[:len(h.client)-1]
-
-	if err != nil {
-		return errors.Wrap(err, strings.Concat("Removing client ID:", clientID))
+	if err := h.clients[pos].conn.Close(); err != nil {
+		return errors.Wrap(err, strings.Concat("Hub. Closing client:", clientID))
 	}
 
 	return nil
 }
 
-// sendInactiveClientStatus send the client status when is inactive. If sending the message throw a error, the client is removed
-func (h *Hub) sendInactiveClientStatus() {
-	var errs []error
-
-	var clientsBreak []int
-
-	for i, c := range h.client {
-		status := active
-
-		if c.lastMessage.Add(h.inactiveCommTime).After(time.Now()) {
-			status = inactiveComm
-		} else if c.lastMessage.Add(h.breakComm).After(time.Now()) {
-			status = breakComm
-		}
-
-		if status != active {
-			if err := c.conn.WriteMessage(websocket.TextMessage, []byte{byte(status)}); err != nil {
-				clientsBreak = append(clientsBreak, i)
-
-				errs = append(errs, errors.Wrap(err, strings.Concat("Sending inactive client status: ", c.id)))
-			} else {
-				h.info <- strings.Concat("Sending inactive client status: ", c.id)
-			}
-		}
+func (h *Hub) commStatus(c Client) clientStatus {
+	if c.lastMessage.Add(h.breakCommTime).Before(time.Now()) {
+		return breakComm
+	} else if c.lastMessage.Add(h.inactiveCommTime).Before(time.Now()) {
+		return inactiveComm
 	}
 
-	for _, poscb := range clientsBreak {
-		if err := h.removeClientByPos(poscb); err != nil {
-			errs = append(errs, errors.Wrap(err, "Removing client after sending a inactive client status"))
-		}
-	}
-
-	if len(errs) > 0 {
-		h.errors <- errs
-	}
+	return activeComm
 }
 
 // closeh closes all the clients socket
 func (h *Hub) closeh() {
-	for _, c := range h.client {
+	for _, c := range h.clients {
 		c.conn.Close()
 	}
 }

@@ -49,12 +49,14 @@ func (s *Server) Start() {
 
 	// Start server
 	go func() {
+		s.factory.Hubt.Register()
+
+		s.factory.Log.Info("Iniciando el hub")
+		s.factory.Hub.Run()
+
 		if err := s.factory.Webs.Start(s.factory.Config.Address()); err != nil {
 			s.factory.Log.Panic("Shutting down the server")
 		}
-
-		s.factory.Hubt.Register()
-		s.factory.Hub.Run()
 	}()
 
 	// Wait for interrupt signal to gracefully shutdown the server with

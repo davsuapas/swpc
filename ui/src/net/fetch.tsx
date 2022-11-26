@@ -19,8 +19,7 @@ import { RefObject } from "react";
 import { useNavigate } from "react-router-dom";
 import Alert from "../support/alert";
 
-// Fetch communicates using fetch and allows to handle the response through a function.
-// If not handled by the callback it displays alerts on screen
+// Fetch communicates using fetch
 export default class Fetch {
 
     private navigate = useNavigate();
@@ -28,6 +27,8 @@ export default class Fetch {
     constructor(private alert: RefObject<Alert>) {
     }
 
+    // send sends http request and allows to handle the response through a function.
+    // If not handled by the callback it displays alerts on screen
     async send(url: string, props: {}, actions: (res: Response) => Promise<boolean>, error: any = null) {
         try {
             const res = await fetch(url, props);
@@ -38,13 +39,13 @@ export default class Fetch {
                     case 400:
                         this.alert.current?.content(
                             "Error interno",
-                            "Se ha producido un error se solicitud errónea. Vuelva a intentarlo más tarde");
+                            "Se ha producido un error se solicitud errónea. Vuelva a intentarlo más tarde.");
                         this.alert.current?.open();
                         break;
                     case 401:
                         this.alert.current?.content(
                             "Error de seguridad",
-                            "La sessión ha caducado. Se procederá a cerrar la sessión de trabajo");
+                            "La sessión ha caducado. Se procederá a cerrar la sessión de trabajo.");
                         if (this.alert.current) {    
                             this.alert.current.events.closed = () => {
                                 this.navigate("/");
@@ -55,13 +56,13 @@ export default class Fetch {
                     case 500:
                         this.alert.current?.content(
                             "Error interno",
-                            "Se ha producido un error interno en el servidor. Vuelva a intentarlo más tarde");
+                            "Se ha producido un error interno en el servidor. Vuelva a intentarlo más tarde.");
                         this.alert.current?.open();
                         break;
                     default:
                         this.alert.current?.content(
                             "Error no controlado",
-                            "Se ha producido un error no controlado. Consulte con el proveedor del servicio");
+                            "Se ha producido un error no controlado. Consulte con el proveedor del servicio.");
                         this.alert.current?.open();
                         break;
                 }
@@ -69,7 +70,7 @@ export default class Fetch {
         } catch {
             this.alert.current?.content(
                 "Error inesperado",
-                "Se ha producido un error inesperado al comunicar con el servidor. Vuelva a intentarlo más tarde");
+                "Se ha producido un error inesperado al comunicar con el servidor. Vuelva a intentarlo más tarde.");
             this.alert.current?.open();
             
             if (typeof error === 'function') {

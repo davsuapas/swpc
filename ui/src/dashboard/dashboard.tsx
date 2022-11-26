@@ -35,6 +35,7 @@ import { CircularProgress } from '@mui/material';
 import React from 'react';
 import Alert from '../support/alert';
 import { colorPurple } from '../support/color';
+import SocketFactory from '../net/socket';
 
 const drawerWidth: number = 255;
 
@@ -55,6 +56,8 @@ function DashboardContent() {
 
   const [loadingConfig, setloadingConfig] = React.useState(false);
 
+  const socket = new SocketFactory(alert).open();
+  
   return (
     <ThemeProvider theme={mdTheme}>
           <CssBaseline />
