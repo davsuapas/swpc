@@ -27,6 +27,7 @@ linters-settings:
     line-length: 120
   wrapcheck:
     ignoreSigs:
+      - .String(
       - .NoContent(
       - .JSONBlob(
       - errors.Wrap( 

@@ -26,6 +26,7 @@ import (
 	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/crypto"
 	pcrypto "github.com/swpoolcontroller/pkg/crypto"
+	"github.com/swpoolcontroller/pkg/sockets"
 	"go.uber.org/zap"
 )
 
@@ -36,17 +37,40 @@ const (
 
 // Login controllers the access of the user
 type Login struct {
-	log      *zap.Logger
-	sessionc config.WebConfig
-	users    users
+	log   *zap.Logger
+	hub   *sockets.Hub
+	webc  config.WebConfig
+	users users
 }
 
-func NewLogin(log *zap.Logger, sc config.WebConfig) *Login {
+func NewLogin(log *zap.Logger, wc config.WebConfig, hub *sockets.Hub) *Login {
 	return &Login{
-		log:      log,
-		sessionc: sc,
-		users:    newUsersInMemory(),
+		log:   log,
+		webc:  wc,
+		users: newUsersInMemory(),
+		hub:   hub,
 	}
+}
+
+// Logoff removes cookies and it un-registers the socket
+func (l *Login) Logoff(ctx echo.Context) error {
+	cookie := cookies(TokenName, "", true, time.Time{})
+	cookie.MaxAge = 0 // Remove cookie
+	ctx.SetCookie(cookie)
+	cookie = cookies(authCookie, "", false, time.Time{})
+	cookie.MaxAge = 0 // Remove cookie
+	ctx.SetCookie(cookie)
+
+	sess, err := ctx.Cookie(TokenName)
+	if err != nil {
+		l.log.Error("Logoff. Getting auth token from web request", zap.Error(err))
+
+		return ctx.NoContent(http.StatusInternalServerError)
+	}
+
+	l.hub.Unregister(sess.Value)
+
+	return ctx.NoContent(http.StatusOK)
 }
 
 // Submit validates the user, generates token and save session
@@ -59,20 +83,20 @@ func (l *Login) Submit(ctx echo.Context) error {
 	// Validate user
 	userPass, ok := l.users.get(email)
 	if !ok {
-		l.log.Error("The user not found", zap.String("user", email))
+		l.log.Error("Login. The user not found", zap.String("user", email))
 
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
 
 	passEncrypt, err := pcrypto.Encrypt(pass, crypto.Key)
 	if err != nil {
-		l.log.With(zap.Error(err)).Error("Error encrypt the pass")
+		l.log.With(zap.Error(err)).Error("Login. Error encrypt the pass")
 
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
 
 	if passEncrypt != userPass {
-		l.log.Error("The pass is bad", zap.String("user", email))
+		l.log.Error("Login. The pass is bad", zap.String("user", email))
 
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
@@ -89,7 +113,7 @@ func (l *Login) Submit(ctx echo.Context) error {
 	// the internal expiration of the token, in case a new request is made from the browser.
 	// In this way, the server will return permission denied instead of bad request
 	// (this case would be because when the cookie expires the request would come without a token).
-	expiration := time.Now().Add(time.Duration(l.sessionc.SessionExpiration) * time.Minute)
+	expiration := time.Now().Add(time.Duration(l.webc.SessionExpiration) * time.Minute)
 	cookie := cookies(TokenName, token, true, expiration.Add(5*time.Minute))
 	ctx.SetCookie(cookie)
 	cookie = cookies(authCookie, "true", false, expiration)
@@ -117,7 +141,7 @@ func (l *Login) securityToken(ctx echo.Context, email string) (string, error) {
 	claims := &JWTCustomClaims{
 		email,
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Duration(l.sessionc.SessionExpiration) * time.Minute).Unix(),
+			ExpiresAt: time.Now().Add(time.Duration(l.webc.SessionExpiration) * time.Minute).Unix(),
 		},
 	}
 
@@ -127,7 +151,7 @@ func (l *Login) securityToken(ctx echo.Context, email string) (string, error) {
 	// Generate encoded token and send it as response.
 	tsigned, err := token.SignedString([]byte(crypto.Key))
 	if err != nil {
-		l.log.With(zap.Error(err)).Error("Error signing token", zap.Error(err))
+		l.log.With(zap.Error(err)).Error("Login. Error signing token", zap.Error(err))
 
 		return "", ctx.NoContent(http.StatusInternalServerError)
 	}

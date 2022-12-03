@@ -39,14 +39,14 @@ func NewHubTrace(log *zap.Logger) *HubTrace {
 
 // Run registers errors generated into the hub into the log. Launches a gouroutine
 func (h *HubTrace) Register() {
-	h.log.Info("Iniciando el proceso para registrar trazas del hub")
+	h.log.Info("Starting the process to register hub traces")
 
 	go func() {
 		for {
 			select {
 			case errors := <-h.Errors:
 				for _, e := range errors {
-					h.log.Error("Problems generated into the hub", zap.Error(e))
+					h.log.Error("Hub errors", zap.Error(e))
 				}
 			case infos := <-h.Infos:
 				for _, i := range infos {

@@ -16,15 +16,16 @@
  */
 
 import { RefObject } from "react";
-import { useNavigate } from "react-router-dom";
+import User from "../login/user";
 import Alert from "../support/alert";
 
 // Fetch communicates using fetch
 export default class Fetch {
 
-    private navigate = useNavigate();
+    private user: User
 
     constructor(private alert: RefObject<Alert>) {
+        this.user = new User()
     }
 
     // send sends http request and allows to handle the response through a function.
@@ -43,15 +44,15 @@ export default class Fetch {
                         this.alert.current?.open();
                         break;
                     case 401:
-                        this.alert.current?.content(
-                            "Error de seguridad",
-                            "La sessión ha caducado. Se procederá a cerrar la sessión de trabajo.");
                         if (this.alert.current) {    
+                            this.alert.current.content(
+                                "Error de seguridad",
+                                "La sessión ha caducado. Se procederá a cerrar la sessión de trabajo.");
                             this.alert.current.events.closed = () => {
-                                this.navigate("/");
+                                this.user.logoff()
                             };
+                            this.alert.current.open();
                         }
-                        this.alert.current?.open();
                         break;
                     case 500:
                         this.alert.current?.content(
@@ -67,7 +68,9 @@ export default class Fetch {
                         break;
                 }
             }
-        } catch {
+        } catch (ex) {
+            console.log("Fetch. Web request error: " + ex);
+
             this.alert.current?.content(
                 "Error inesperado",
                 "Se ha producido un error inesperado al comunicar con el servidor. Vuelva a intentarlo más tarde.");

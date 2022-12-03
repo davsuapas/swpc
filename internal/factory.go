@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/swpoolcontroller/internal/api"
 	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/web"
 	"github.com/swpoolcontroller/pkg/sockets"
@@ -29,7 +30,12 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// WebHandler Web handler to router
+// APIHandler Micro API handler
+type APIHandler struct {
+	OAuth api.OAuth
+}
+
+// WebHandler Web handler
 type WebHandler struct {
 	Login  *web.Login
 	Config *web.ConfigWeb
@@ -46,6 +52,7 @@ type Factory struct {
 	Hub  *sockets.Hub
 
 	WebHandler *WebHandler
+	APIHandler *APIHandler
 }
 
 // NewFactory creates the horizontal services of the app
@@ -68,7 +75,7 @@ func NewFactory() *Factory {
 		Hubt:   hubt,
 		Hub:    hub,
 		WebHandler: &WebHandler{
-			Login: web.NewLogin(log, cnf.WebConfig),
+			Login: web.NewLogin(log, cnf.WebConfig, hub),
 			Config: &web.ConfigWeb{
 				Log: log,
 				Microc: &config.MicroConfig{
@@ -78,6 +85,9 @@ func NewFactory() *Factory {
 				Cnf: cnf,
 			},
 			WS: web.NewWS(log, cnf.WebConfig, hub),
+		},
+		APIHandler: &APIHandler{
+			OAuth: *api.NewOAuth(log, cnf.APIConfig),
 		},
 	}
 }

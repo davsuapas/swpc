@@ -26,6 +26,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/swpoolcontroller/internal/api"
 	"github.com/swpoolcontroller/internal/crypto"
 	"github.com/swpoolcontroller/internal/web"
 	"github.com/swpoolcontroller/pkg/strings"
@@ -51,7 +52,7 @@ func (s *Server) Start() {
 	go func() {
 		s.factory.Hubt.Register()
 
-		s.factory.Log.Info("Iniciando el hub")
+		s.factory.Log.Info("Starting the hub")
 		s.factory.Hub.Run()
 
 		if err := s.factory.Webs.Start(s.factory.Config.Address()); err != nil {
@@ -134,10 +135,14 @@ func (s *Server) Route() {
 
 func (s *Server) webRoute() {
 	// Public
-	wa := s.factory.Webs.Group("/web/auth")
+	wa := s.factory.Webs.Group("/auth")
 	wa.POST("/login", s.factory.WebHandler.Login.Submit)
+	wa.GET("/logoff", s.factory.WebHandler.Login.Logoff)
+	wa.GET(strings.Concat("/token/:", api.SName), s.factory.APIHandler.OAuth.Token)
 
 	// API Restricted by JWT
+
+	// Web
 	wapi := s.factory.Webs.Group("/web/api")
 	config := middleware.JWTConfig{
 		Claims:      &web.JWTCustomClaims{},
@@ -149,4 +154,11 @@ func (s *Server) webRoute() {
 	wapi.POST("/config", s.factory.WebHandler.Config.Save)
 
 	wapi.GET("/ws", s.factory.WebHandler.WS.Register)
+
+	// Micro controller API
+	mapi := s.factory.Webs.Group("/micro/api")
+	config = middleware.JWTConfig{
+		SigningKey: []byte(crypto.Key),
+	}
+	mapi.Use(middleware.JWTWithConfig(config))
 }

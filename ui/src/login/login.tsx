@@ -42,7 +42,7 @@ export default function Login() {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
 
-    fetch.send("/web/auth/login", {
+    fetch.send("/auth/login", {
       method: "POST",
       body: data
     },

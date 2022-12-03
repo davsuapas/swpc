@@ -207,7 +207,7 @@ export default forwardRef( (props: any, ref: any) => {
             <DialogTitle>Configuración</DialogTitle>
             <DialogContent>
                 <DialogContentText id="alert-dialog-slide-description">
-                    El micro conrolador encargado de medir los valores de la piscina, puede consumir bastante batería.
+                    El micro controlador encargado de medir los valores de la piscina, puede consumir bastante batería.
                     Para salvaguardar la bateria, es conveniente configurar las horas de emisión de las métricas
                     por parte del micro. En esta sección se le pedirá dos grupos de configuración.
                     El primero consiste en configurar, cada cuantas horas el micro chequea entre que horas emitirá

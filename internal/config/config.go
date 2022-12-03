@@ -37,6 +37,11 @@ func (s *ServerConfig) Address() string {
 	return strings.Concat(":", strconv.Itoa(s.Port))
 }
 
+type APIConfig struct {
+	// SessionExpiration defines the session expiration in minutes
+	SessionExpiration int `json:"expirationSession"`
+}
+
 // WebConfig describes the web configuration
 type WebConfig struct {
 	// SessionExpiration defines the session expiration in minutes
@@ -63,7 +68,8 @@ type ZapConfig struct {
 type Config struct {
 	ServerConfig `json:"server,omitempty"`
 	ZapConfig    `json:"log,omitempty"`
-	WebConfig    `json:"session,omitempty"`
+	WebConfig    `json:"web,omitempty"`
+	APIConfig    `json:"api,omitempty"`
 	DataPath     string `json:"dataPath,omitempty"`
 }
 
@@ -77,9 +83,12 @@ func LoadConfig() Config {
 			Encoding:    "console",
 		},
 		WebConfig: WebConfig{
-			SessionExpiration: 1,
+			SessionExpiration: 10,
 			InactiveCommTime:  10,
-			BreakCommTime:     20,
+			BreakCommTime:     40,
+		},
+		APIConfig: APIConfig{
+			SessionExpiration: 60,
 		},
 		DataPath: "./data",
 	}
@@ -99,6 +108,10 @@ func LoadConfig() Config {
 	if !(cnf.Level >= -1 && cnf.Level <= 5) {
 		panic("The log level param must be configured to " +
 			"(-1: debug, 0: info, 1: Warn, 2: Error, 3: DPanic, 4: Panic, 5: Fatal)")
+	}
+
+	if cnf.InactiveCommTime > cnf.BreakCommTime {
+		panic("The InactiveCommTime cannot be greater than BreakCommTime")
 	}
 
 	return cnf

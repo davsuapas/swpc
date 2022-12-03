@@ -31,7 +31,7 @@ import { Assignment } from '@mui/icons-material';
 import Config from '../config/config';
 import { useRef } from 'react';
 import Tooltip from '@mui/material/Tooltip';
-import { CircularProgress } from '@mui/material';
+import { Backdrop, CircularProgress } from '@mui/material';
 import React from 'react';
 import Alert from '../support/alert';
 import { colorPurple } from '../support/color';
@@ -55,8 +55,9 @@ function DashboardContent() {
   const alert = useRef<Alert>(null);
 
   const [loadingConfig, setloadingConfig] = React.useState(false);
+  const [wait, setwait] = React.useState(true);
 
-  const socket = new SocketFactory(alert).open();
+  const socket = new SocketFactory(alert, setwait).open();
   
   return (
     <ThemeProvider theme={mdTheme}>
@@ -172,6 +173,11 @@ function DashboardContent() {
           </Container>
           <Alert ref={alert}></Alert>
           <Config ref={config} alert={alert} />
+          <Backdrop
+              sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+              open={wait}>
+            <CircularProgress color="inherit" />
+        </Backdrop>          
     </ThemeProvider>
   );
 }

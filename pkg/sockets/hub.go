@@ -46,8 +46,8 @@ type Client struct {
 	expiration time.Time
 	// lastMessage the time when the last messages is sended
 	lastMessage time.Time
-	// brokenComm the communication between the micro and server is break
-	brokenComm bool
+	// status is the communication status between the micro and server
+	status clientStatus
 }
 
 // NewClient builds client struct. id identifies the session. The client expires
@@ -58,6 +58,7 @@ func NewClient(id string, conn *websocket.Conn, expiration time.Duration) Client
 		conn:        conn,
 		expiration:  time.Now().Add(expiration),
 		lastMessage: time.Now(),
+		status:      activeComm,
 	}
 }
 
@@ -138,7 +139,9 @@ func (h *Hub) Run() {
 							"Hub. Unregistering client: ", id,
 							", count: ", strconv.Itoa(len(h.clients))))}
 				}
-				h.infos <- []string{strings.Concat("Hub. Client unregisted: ", id)}
+				h.infos <- []string{strings.Concat(
+					"Hub. Client unregisted: ", id,
+					", count: ", strconv.Itoa(len(h.clients)))}
 			case message := <-h.send:
 				h.sendMessage(message)
 			case <-check.C:
@@ -188,7 +191,7 @@ func (h *Hub) sendMessage(message []byte) {
 	var brokenclients []uint16
 
 	for i, c := range h.clients {
-		if c.brokenComm {
+		if c.status == breakComm {
 			continue
 		}
 
@@ -206,6 +209,7 @@ func (h *Hub) sendMessage(message []byte) {
 					strings.Concat("Hub. Sending message to: ", c.id, ". The client will be removed")))
 		} else {
 			h.clients[i].lastMessage = time.Now()
+			h.clients[i].status = activeComm
 		}
 	}
 
@@ -229,20 +233,14 @@ func (h *Hub) sendInactiveClientStatus() {
 	var brokenclients []uint16
 
 	for i, client := range h.clients {
-		if client.brokenComm {
+		status, send := h.commStatus(client)
+		if !send {
 			continue
 		}
 
-		status := h.commStatus(client)
-		if status == activeComm {
-			continue
-		}
+		h.clients[i].status = status
 
-		if status == breakComm {
-			h.clients[i].brokenComm = true
-		}
-
-		if err := client.conn.WriteMessage(websocket.TextMessage, []byte{byte(status)}); err != nil {
+		if err := client.conn.WriteMessage(websocket.TextMessage, controlMessage(status)); err != nil {
 			brokenclients = append(brokenclients, uint16(i))
 
 			if err := h.closeClient(uint16(i)); err != nil {
@@ -281,6 +279,29 @@ func (h *Hub) sendInactiveClientStatus() {
 	if len(infos) > 0 {
 		h.infos <- infos
 	}
+}
+
+func controlMessage(status clientStatus) []byte {
+	return []byte(strings.Concat("0:", strconv.Itoa(int(status))))
+}
+
+// commStatus gets the next status and decides whether to send it to the customer
+func (h *Hub) commStatus(c Client) (clientStatus, bool) {
+	if c.status == activeComm {
+		if c.lastMessage.Add(h.inactiveCommTime).Before(time.Now()) {
+			return inactiveComm, true
+		}
+
+		return activeComm, false
+	} else if c.status == inactiveComm {
+		if c.lastMessage.Add(h.breakCommTime).Before(time.Now()) {
+			return breakComm, true
+		}
+
+		return inactiveComm, false
+	}
+
+	return breakComm, false
 }
 
 // removeDeadClient removes died clients
@@ -348,7 +369,7 @@ func (h *Hub) findClient(clientID string) int {
 // removeClient removes client by id
 func (h *Hub) removeClient(clientID string) error {
 	pos := h.findClient(clientID)
-	if pos != -1 {
+	if pos == -1 {
 		return nil
 	}
 
@@ -372,16 +393,6 @@ func (h *Hub) closeClient(pos uint16) error {
 	}
 
 	return nil
-}
-
-func (h *Hub) commStatus(c Client) clientStatus {
-	if c.lastMessage.Add(h.breakCommTime).Before(time.Now()) {
-		return breakComm
-	} else if c.lastMessage.Add(h.inactiveCommTime).Before(time.Now()) {
-		return inactiveComm
-	}
-
-	return activeComm
 }
 
 // closeh closes all the clients socket

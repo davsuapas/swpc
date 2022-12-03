@@ -16,49 +16,106 @@
  */
 
 import { RefObject } from "react";
-import { useNavigate } from "react-router-dom";
 import { Websocket, WebsocketBuilder } from "websocket-ts/lib";
+import User from "../login/user";
 import Alert from "../support/alert";
+
+enum CommStatus {
+    inactiveComm,
+    breakComm
+}
 
 export default class SocketFactory {
 
-    private navigate = useNavigate();
+    private user: User
 
-    private ws: WebsocketBuilder
+    private ws: WebsocketBuilder;
 
-    constructor(private alert: RefObject<Alert>) {
+    constructor(private alert: RefObject<Alert>, private wait: React.Dispatch<React.SetStateAction<boolean>>) {
         const protocol = location.protocol == "https:" ? "wss" : "ws";
         this.ws = new WebsocketBuilder(protocol + "://" + document.location.host + "/web/api/ws");
+        this.user = new User()
     }
 
     // start opens socket connection, registers in server and controls events
     open(): Websocket {
         return this.ws.onClose((_, ev) => {
-            console.log("El socket se ha cerrado con el código: " + ev.code + ", motivo: " + ev.reason);
+            console.log("El socket se ha cerrado con el código: " + ev.code);
 
-            this.alert.current?.content(
-                "Conexión cerrada",
-                "Puede ser que haya caducado la sesión o se haya producido un problema de comunicación," +
-                "inténtelo más tarde. " +
-                "Se procederá a cerrar la sessión de trabajo.");
             if (this.alert.current) {
+                this.alert.current.content(
+                    "Conexión cerrada",
+                    "Puede ser que haya caducado la sesión o se haya producido un problema de comunicación," +
+                    "inténtelo más tarde. " +
+                    "Se procederá a cerrar la sessión de trabajo.");
                 this.alert.current.events.closed = () => {
-                    this.navigate("/");
+                    this.user.logoff();
                 };
+                this.alert.current.open();
             }
-            this.alert.current?.open();
         })
         .onError((_ , ev) => {
-            this.alert.current?.content(
-                "Error de conexión",
-                "Se ha producido un error con la conexión en tiempo real. " +
-                "Se procederá a cerrar la sessión de trabajo.");
             if (this.alert.current) {
+                this.alert.current.content(
+                    "Error de conexión",
+                    "Se ha producido un error con la conexión en tiempo real. " +
+                    "Se procederá a cerrar la sessión de trabajo.");
                 this.alert.current.events.closed = () => {
-                    this.navigate("/");
+                    this.user.logoff()
                 };
+                this.alert.current.open();
             }
-            this.alert.current?.open();
+        })
+        .onMessage((socket , ev) => {
+            const message = new MessageFactory(ev.data)
+
+            if (message.messageType == MessageType.control ) {
+                const status = message.controlMessage();
+
+                if (status == CommStatus.inactiveComm) {
+                    if (this.alert.current) {
+                        this.alert.current.content(
+                            "Comunicación con el micro controlador sin respuesta",
+                            "No se detecta ningún envío de métricas del micro controlador, seguiremos " +
+                            "intentado reestablecer la comunicación.");
+                        this.alert.current.open();
+                        this.wait(true)
+                    }
+                } else {
+                    if (this.alert.current) {
+                        this.alert.current.content(
+                            "Parece que la comunicación con el micro controlador se encuentra caída",
+                            "Demsasiado tiempo sin respuesta, asegúrese que el micro controlador " +
+                            "se encuentra encedido y que la comunicación se encuentra habilitada. " + 
+                            "Se procederá a cerrar la sessión de trabajo.");
+                        this.alert.current.events.closed = () => {
+                            socket.close();
+                            this.user.logoff();
+                        };
+                        this.alert.current.open();
+                    }
+                }
+            }
         }).build();
+    }
+}
+
+enum MessageType {
+    control,
+    meassure  
+}
+
+class MessageFactory {
+    messageType: MessageType;
+    private rawMessage: string;
+
+    constructor(msg: string) {
+        const tokens = msg.split(":")
+        this.messageType = tokens[0] == "0" ? MessageType.control : MessageType.meassure
+        this.rawMessage = tokens[1]
+    }
+
+    controlMessage(): CommStatus {
+        return Number.parseInt(this.rawMessage) == 1 ? CommStatus.inactiveComm : CommStatus.breakComm
     }
 }
