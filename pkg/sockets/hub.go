@@ -217,7 +217,7 @@ func (h *Hub) register(client Client, check *time.Timer) {
 		strings.Concat(
 			"Hub-> Client registered: ", client.id,
 			", count: ", strconv.Itoa(len(h.clients)),
-			", hub status: ", strconv.Itoa(int(h.status)))}
+			", hub status: ", statusString(h.status))}
 }
 
 func (h *Hub) unregister(id string) {
@@ -235,7 +235,7 @@ func (h *Hub) unregister(id string) {
 	h.infos <- []string{strings.Concat(
 		"Hub-> Client unregisted: ", id,
 		", count: ", strconv.Itoa(len(h.clients)),
-		", hub status: ", strconv.Itoa(int(h.status)))}
+		", hub status: ", statusString(h.status))}
 }
 
 // sendMessage send message to the all clients registered. If sending the message throw a error, the client is removed
@@ -267,8 +267,7 @@ func (h *Hub) sendMessage(message []byte) {
 	h.lastMessage = time.Now()
 	if h.status != Streaming {
 		h.infos <- []string{
-			strings.Concat("Hub-> The hub is set to active. Previous status: ",
-				strconv.Itoa(int(h.status)))}
+			strings.Concat("Hub-> The hub is set to active. Previous status: ", statusString(h.status))}
 
 		h.status = Streaming
 	}
@@ -320,7 +319,7 @@ func (h *Hub) removeDeadClient() {
 					errors.Wrap(
 						err,
 						strings.Concat(
-							"Hub-> Removing died client by expiration: ", clientID+". The client will be removed")))
+							"Hub-> Removing died client by expiration: ", clientID, ". The client will be removed")))
 			}
 
 			infos = append(
@@ -404,4 +403,21 @@ func (h *Hub) closeh() {
 	for _, c := range h.clients {
 		c.conn.Close()
 	}
+}
+
+func statusString(s Status) string {
+	switch s {
+	case Deactivated:
+		return "Deactivated"
+	case Active:
+		return "Active"
+	case Streaming:
+		return "Streaming"
+	case Inactive:
+		return "Inactive"
+	case Closed:
+		return "Closed"
+	}
+
+	return "None"
 }
