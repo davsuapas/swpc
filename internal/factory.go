@@ -23,6 +23,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/api"
 	"github.com/swpoolcontroller/internal/config"
+	"github.com/swpoolcontroller/internal/micro"
 	"github.com/swpoolcontroller/internal/web"
 	"github.com/swpoolcontroller/pkg/sockets"
 	"github.com/swpoolcontroller/pkg/strings"
@@ -66,10 +67,17 @@ func NewFactory() *Factory {
 	hub := sockets.NewHub(
 		sockets.Config{
 			CommLatency: time.Duration(cnf.CommLatencyTime) * time.Second,
-			Buffer:      10 * time.Second,
+			Buffer:      5 * time.Second,
 		},
 		hubt.Infos,
 		hubt.Errors)
+
+	mcontrol := &micro.Controller{
+		Log:            log,
+		Hub:            hub,
+		Config:         config.MicroConfig{},
+		CheckTransTime: uint8(cnf.CheckTransTime),
+	}
 
 	return &Factory{
 		Config: cnf,
@@ -92,7 +100,7 @@ func NewFactory() *Factory {
 		},
 		APIHandler: &APIHandler{
 			OAuth:  api.NewOAuth(log, cnf.APIConfig),
-			Stream: api.NewStream(log, hub),
+			Stream: api.NewStream(mcontrol),
 		},
 	}
 }

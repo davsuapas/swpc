@@ -32,7 +32,7 @@ const fileName = "micro-config.dat"
 type MicroConfig struct {
 	IniSendTime string `json:"iniSendTime,omitempty"`
 	EndSendTime string `json:"endSendTime,omitempty"`
-	CheckSend   uint8  `json:"checkSend,omitempty"`
+	Wakeup      uint8  `json:"wakeup,omitempty"`
 	Buffer      uint8  `json:"buffer,omitempty"`
 }
 

@@ -38,10 +38,10 @@ const Transition = React.forwardRef(function Transition(
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const defaultCheckSend = 1;
+const defaultWakeup = 30;
 const defaultimeIniSend = "11:00";
 const defaultimeEndSend = "12:00";
-const defaultBuffer = 10;
+const defaultBuffer = 5;
 
 // Config displays a configuration form
 export default forwardRef( (props: any, ref: any) => {
@@ -49,8 +49,8 @@ export default forwardRef( (props: any, ref: any) => {
 
     const [openv, setOpenv] = React.useState(false);
 
-    const [checkSendValid, setCheckSendValid] = React.useState(true);
-    const [checkSendValue, setCheckSendValue] = React.useState(defaultCheckSend);
+    const [wakeupValid, setWakeupValid] = React.useState(true);
+    const [wakeupValue, setWakeupValue] = React.useState(defaultWakeup);
 
     const [timeSendValid, setTimeSendValid] = React.useState(true);
 
@@ -69,7 +69,7 @@ export default forwardRef( (props: any, ref: any) => {
     }
 
     function initControl() {
-        setCheckSendValid(true);
+        setWakeupValid(true);
         setTimeSendValid(true);
         setBufferValid(true);
     }
@@ -79,8 +79,8 @@ export default forwardRef( (props: any, ref: any) => {
 
         let valid = true;
 
-        if (!(checkSendValue >= 1 && checkSendValue <= 10)) {
-            setCheckSendValid(false);
+        if (!(wakeupValue >= 1 && wakeupValue <= 10)) {
+            setWakeupValid(false);
             valid = false;
         }
 
@@ -106,8 +106,8 @@ export default forwardRef( (props: any, ref: any) => {
     }
 
     // setControl sets the data configuration into input
-    function setControl(checkSend: number, timeIniSend: string, timeEndSend: string, buffer: number) {
-        setCheckSendValue(checkSend);
+    function setControl(wakeup: number, timeIniSend: string, timeEndSend: string, buffer: number) {
+        setWakeupValue(wakeup);
         setTimeIniSendValue(timeIniSend);
         setTimeEndSendValue(timeEndSend);
         setBufferValue(buffer);
@@ -126,7 +126,7 @@ export default forwardRef( (props: any, ref: any) => {
         if (result.ok) {
             try {
                 const res = await result.json();
-                setControl(res.checkSend, res.timeIniSend, res.timeEndSend, res.buffer);
+                setControl(res.wakeup, res.timeIniSend, res.timeEndSend, res.buffer);
                 setOpenv(true);
             }
             catch {
@@ -138,7 +138,7 @@ export default forwardRef( (props: any, ref: any) => {
             return true;
         }
         if (result.status == 404) {
-            setControl(defaultCheckSend, defaultimeIniSend, defaultimeEndSend, defaultBuffer);
+            setControl(defaultWakeup, defaultimeIniSend, defaultimeEndSend, defaultBuffer);
             setOpenv(true);
             return true;
         }
@@ -165,7 +165,7 @@ export default forwardRef( (props: any, ref: any) => {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            "checkSend": checkSendValue,
+            "wakeup": wakeupValue,
             "iniSendTime": timeIniSendValue,
             "endSendTime": timeEndSendValue,
             "buffer": bufferValue
@@ -201,24 +201,24 @@ export default forwardRef( (props: any, ref: any) => {
                     El micro controlador encargado de medir los valores de la piscina, puede consumir bastante batería.
                     Para salvaguardar la bateria, es conveniente configurar las horas de emisión de las métricas
                     por parte del micro. En esta sección se le pedirá dos grupos de configuración.
-                    El primero consiste en configurar, cada cuantas horas el micro chequea entre que horas emitirá
+                    El primero consiste en configurar, cada cuantos minutos el micro chequea entre que horas emitirá
                     métricas y en el segundo se configurará tres valores, entre que horas se emitirán los valores
                     de las métricas y cada cuantos segundos almacena el micro las métricas antes de enviarlas. 
                     Cuanto más tiempo tiene la web abierta para recibir métricas mayor debería ser este buffer.
                 </DialogContentText>
                 <TextField
-                    id="checkSend"
+                    id="wakeup"
                     sx={{marginTop:"30px"}}
                     label="Chequeo emisión"
                     type="number"
-                    value={checkSendValue}
-                    onChange={event => setCheckSendValue(parseInt(event.target.value))}
-                    InputProps={{ inputProps: { min: 1, max: 10 } }}
+                    value={wakeupValue}
+                    onChange={event => setWakeupValue(parseInt(event.target.value))}
+                    InputProps={{ inputProps: { min: 15, max: 120 } }}
                     size="small"
-                    error={!checkSendValid}
-                    helperText={checkSendValid ?
-                         "Cada cuantas horas chequa entre que horas emite" :
-                         "El valor debe estar entre 1 y 10 minutos"}
+                    error={!wakeupValid}
+                    helperText={wakeupValid ?
+                         "Cada cuantos minutos chequa entre que horas emite" :
+                         "El valor debe estar entre 15 y 120 minutos"}
                 />                
                 <FormGroup row sx={{marginTop:"30px"}}>
                     <TextField
@@ -255,12 +255,12 @@ export default forwardRef( (props: any, ref: any) => {
                         type="number"
                         value={bufferValue}
                         onChange={event => setBufferValue(parseInt(event.target.value))}
-                        InputProps={{ inputProps: { min: 3, max: 60 } }}
+                        InputProps={{ inputProps: { min: 3, max: 20 } }}
                         size="small"
                         error={!bufferValid}
                         helperText={bufferValid ?
                             "Tiempo que almacena el micro las métricas antes de enviar (buffer)" :
-                            "El valor debe estar entre 3 y 60 segundos"}
+                            "El valor debe estar entre 3 y 20 segundos"}
                     />                
                 </FormGroup>                    
             </DialogContent>

@@ -164,7 +164,7 @@ func (h *Hub) Run() {
 			case cnf := <-h.sconfig:
 				h.config = cnf
 			case <-check.C:
-				h.statusController()
+				h.controllerStatus()
 				h.removeDeadClient()
 				h.tryResetTimer(check)
 			case <-h.closec:
@@ -282,8 +282,8 @@ func (h *Hub) sendMessage(message []byte) {
 	}
 }
 
-// statusController controls the life cycle if the hub
-func (h *Hub) statusController() {
+// controllerStatus controls the life cycle if the hub
+func (h *Hub) controllerStatus() {
 	if h.status == Streaming {
 		// The idle time is the sum of the time it takes for the sender to create the buffer
 		// and a possible latency time

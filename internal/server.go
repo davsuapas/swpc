@@ -159,6 +159,6 @@ func (s *Server) webRoute() {
 		SigningKey: []byte(crypto.Key),
 	}
 	mapi.Use(middleware.JWTWithConfig(config))
-	mapi.GET("/config", s.factory.WebHandler.Config.Load)
+	mapi.GET("/status", s.factory.APIHandler.Stream.Status)
 	mapi.POST("/download", s.factory.APIHandler.Stream.Download)
 }

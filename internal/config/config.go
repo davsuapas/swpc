@@ -40,8 +40,11 @@ func (s *ServerConfig) Address() string {
 type APIConfig struct {
 	// SessionExpiration defines the session expiration in minutes
 	SessionExpiration int `json:"expirationSession"`
-	// CommLatencyTime Sets the possible communication latency between the device and the hub, in seconds
+	// CommLatencyTime sets the possible communication latency between the device and the hub, in seconds
 	CommLatencyTime int `json:"commLatencyTime"`
+	// CheckTransTime defines When the microphone is in the time window to transmit in case there are no clients,
+	// every so often it checks when to transmit
+	CheckTransTime int `json:"checkTransTime"`
 }
 
 // WebConfig describes the web configuration
@@ -85,6 +88,7 @@ func LoadConfig() Config {
 		APIConfig: APIConfig{
 			SessionExpiration: 60,
 			CommLatencyTime:   10,
+			CheckTransTime:    5,
 		},
 		DataPath: "./data",
 	}

@@ -21,33 +21,28 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/swpoolcontroller/pkg/sockets"
-	"go.uber.org/zap"
+	"github.com/swpoolcontroller/internal/micro"
 )
 
 // Stream exchanges information with the micro controller
 type Stream struct {
-	log *zap.Logger
-	hub *sockets.Hub
+	control *micro.Controller
 }
 
-func NewStream(log *zap.Logger, hub *sockets.Hub) *Stream {
+func NewStream(control *micro.Controller) *Stream {
 	return &Stream{
-		log: log,
-		hub: hub,
+		control: control,
 	}
 }
 
-// Status returns information on how the micro controller should behave
+// Status gets information on how the micro controller should behave
 func (s *Stream) Status(ctx echo.Context) error {
-	return ctx.NoContent(http.StatusOK)
+	return ctx.JSON(http.StatusOK, s.control.Status())
 }
 
 // Download transfers the metrics between micro controller and the web
 func (s *Stream) Download(ctx echo.Context) error {
-	metrics := ctx.FormValue("metrics")
+	s.control.Download(ctx.FormValue("metrics"))
 
-	s.hub.Send([]byte(metrics))
-
-	return ctx.NoContent(http.StatusOK)
+	return ctx.JSON(http.StatusOK, s.control.Status())
 }

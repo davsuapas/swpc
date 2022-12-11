@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-package api
+package micro
 
 import (
 	"sync"
@@ -32,79 +32,99 @@ const (
 )
 
 // status are the status communication between the device and server
-type Status int
+type status int
 
 const (
-	// Sleep puts the micro controller to sleep. There is nothing to transmit
-	Sleep Status = iota
-	// Transmit puts the micro controller to transmit metrics
-	Transmit
-	// Heartbeat puts the micro controller to check socket clients status
-	Heartbeat
+	// sleep puts the micro controller to sleep. There is nothing to transmit
+	sleep status = iota
+	// transmit puts the micro controller to transmit metrics
+	transmit
+	// checkTransmission puts the micro controller to check transmission status
+	checkTransmission
 )
 
-type InfoStatus struct {
-	WakeUpTime    uint8
-	HeartbeatTime uint8
-	Status        Status
+type Behavior struct {
+	// WakeUpTime is the time set to wake up the micro-controller.
+	WakeUpTime uint8
+	// CheckTransTime is the time set for the micro to check the status of the clients
+	// and whether or not it has to transmit metric
+	CheckTransTime uint8
+	Status         uint8
 }
 
 // Controller controllers the information status on how the micro controller should behave
 type Controller struct {
-	Log           *zap.Logger
-	Hub           *sockets.Hub
-	Config        config.MicroConfig
-	HeartbeatTime time.Duration
+	Log            *zap.Logger
+	Hub            *sockets.Hub
+	Config         config.MicroConfig
+	CheckTransTime uint8
 
 	lock sync.RWMutex
 }
 
 // SetConfig updates the micro config into the service
-func (s *Controller) SetConfig(conf config.MicroConfig) {
-	s.lock.Lock()
-	s.Config = conf
-	s.lock.Unlock()
+func (c *Controller) SetConfig(conf config.MicroConfig) {
+	c.lock.Lock()
+	c.Config = conf
+	c.lock.Unlock()
 }
 
-func (s *Controller) tryConfig() config.MicroConfig {
+func (c *Controller) tryConfig() config.MicroConfig {
 	var conf config.MicroConfig
 
-	s.lock.RLock()
-	conf = s.Config
-	s.lock.RUnlock()
+	c.lock.RLock()
+	conf = c.Config
+	c.lock.RUnlock()
 
 	return conf
 }
 
-// Status gets the status on how the micro controller should behave
-func (s *Controller) Status() Status {
+// Download transfers the metrics between micro controller and the hub
+// Download also returns the conduct to be taken by the micro-controller
+func (c *Controller) Download(metrics string) Behavior {
+	c.Hub.Send([]byte(metrics))
+
+	return c.Status()
+}
+
+// Status gets the conduct to be taken by the micro-controller
+func (c *Controller) Status() Behavior {
+	return Behavior{
+		WakeUpTime:     c.tryConfig().Wakeup,
+		CheckTransTime: c.CheckTransTime,
+		Status:         uint8(c.status()),
+	}
+}
+
+// status gets the status on how the micro controller should behave
+func (c *Controller) status() status {
 	resp := make(chan sockets.Status)
-	s.Hub.Status(resp)
+	c.Hub.Status(resp)
 	hstatus := <-resp
 
 	if hstatus == sockets.Closed {
-		return Sleep
+		return sleep
 	}
 
 	if hstatus != sockets.Deactivated {
 		// All states other than deactivated and closed are susceptible to transmission
-		return Transmit
+		return transmit
 	}
 
-	conf := s.tryConfig()
+	conf := c.tryConfig()
 
 	iniTime, err := time.Parse("15:04", conf.IniSendTime)
 	if err != nil {
-		s.Log.Fatal(parseStartTimeError, zap.Error(err))
+		c.Log.Fatal(parseStartTimeError, zap.Error(err))
 
-		return Sleep
+		return sleep
 	}
 
 	endTime, err := time.Parse("15:04", conf.EndSendTime)
 	if err != nil {
-		s.Log.Fatal(parseEndTimeError, zap.Error(err))
+		c.Log.Fatal(parseEndTimeError, zap.Error(err))
 
-		return Sleep
+		return sleep
 	}
 
 	n := time.Now()
@@ -126,9 +146,9 @@ func (s *Controller) Status() Status {
 
 	// It is on schedule but there are no clients (the hub is deactivated)
 	if transWindow {
-		return Heartbeat
+		return checkTransmission
 	}
 
 	// It is not on schedule and there are no clients (the hub is deactivated)
-	return Sleep
+	return sleep
 }
