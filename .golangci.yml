@@ -29,7 +29,7 @@ linters-settings:
     ignoreSigs:
       - .String(
       - .NoContent(
-      - .JSONBlob(
+      - .JSON(
       - errors.Wrap( 
 issues:
   exclude-rules:

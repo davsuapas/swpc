@@ -24,7 +24,6 @@ type HubTrace struct {
 	log    *zap.Logger
 	Infos  chan []string
 	Errors chan []error
-	close  chan struct{}
 }
 
 // NewHubTrace builds HubError service
@@ -33,7 +32,6 @@ func NewHubTrace(log *zap.Logger) *HubTrace {
 		log:    log,
 		Infos:  make(chan []string),
 		Errors: make(chan []error),
-		close:  make(chan struct{}),
 	}
 }
 
@@ -52,14 +50,7 @@ func (h *HubTrace) Register() {
 				for _, i := range infos {
 					h.log.Info(i)
 				}
-			case <-h.close:
-				return
 			}
 		}
 	}()
-}
-
-// Close finishes the recorder
-func (h *HubTrace) Close() {
-	close(h.close)
 }

@@ -32,7 +32,8 @@ import (
 
 // APIHandler Micro API handler
 type APIHandler struct {
-	OAuth api.OAuth
+	OAuth  *api.OAuth
+	Stream *api.Stream
 }
 
 // WebHandler Web handler
@@ -63,8 +64,10 @@ func NewFactory() *Factory {
 
 	hubt := NewHubTrace(log)
 	hub := sockets.NewHub(
-		time.Duration(cnf.InactiveCommTime)*time.Second,
-		time.Duration(cnf.BreakCommTime)*time.Second,
+		sockets.Config{
+			CommLatency: time.Duration(cnf.CommLatencyTime) * time.Second,
+			Buffer:      10 * time.Second,
+		},
 		hubt.Infos,
 		hubt.Errors)
 
@@ -78,16 +81,18 @@ func NewFactory() *Factory {
 			Login: web.NewLogin(log, cnf.WebConfig, hub),
 			Config: &web.ConfigWeb{
 				Log: log,
-				Microc: &config.MicroConfig{
+				Hub: hub,
+				Microc: &config.MicroConfigController{
 					Log:      log,
 					DataPath: cnf.DataPath,
 				},
-				Cnf: cnf,
+				Config: cnf,
 			},
 			WS: web.NewWS(log, cnf.WebConfig, hub),
 		},
 		APIHandler: &APIHandler{
-			OAuth: *api.NewOAuth(log, cnf.APIConfig),
+			OAuth:  api.NewOAuth(log, cnf.APIConfig),
+			Stream: api.NewStream(log, hub),
 		},
 	}
 }

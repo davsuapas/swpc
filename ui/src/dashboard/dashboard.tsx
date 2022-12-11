@@ -31,7 +31,7 @@ import { Assignment } from '@mui/icons-material';
 import Config from '../config/config';
 import { useRef } from 'react';
 import Tooltip from '@mui/material/Tooltip';
-import { Backdrop, CircularProgress } from '@mui/material';
+import { CircularProgress } from '@mui/material';
 import React from 'react';
 import Alert from '../support/alert';
 import { colorPurple } from '../support/color';
@@ -95,89 +95,95 @@ function DashboardContent() {
               </Tooltip>
             </Toolbar>
           </AppBar>
-          <Container maxWidth="xl" sx={{ mt:5, mb: 5}}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={9} lg={10}>
-                <Paper
-                  sx={{
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: drawerWidth,
-                  }}
-                >
-                  <Chart name={temperatureName} unitName={temperatureUnit} />
-                </Paper>
+            <Container maxWidth="xl" sx={{ mt:5, mb: 5, position: "relative"}}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={9} lg={10}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: drawerWidth,
+                    }}
+                  >
+                    <Chart name={temperatureName} unitName={temperatureUnit} />
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={3} lg={2}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: drawerWidth,
+                    }}
+                  >
+                    <Meassure name={temperatureName} value='15' unitName={temperatureUnit} src="temp.png" />
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={9} lg={10}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: drawerWidth,
+                    }}
+                  >
+                    <Chart name={phName} unitName={phUnit} />
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={3} lg={2}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: drawerWidth,
+                    }}
+                  >
+                    <Meassure name={phName} value='1,4' unitName={phUnit} src="ph.png" />
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={9} lg={10}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: drawerWidth,
+                    }}
+                  >
+                    <Chart name={chlorineName} unitName={chlorineUnit} />
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={3} lg={2}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: drawerWidth,
+                    }}
+                  >
+                    <Meassure name={chlorineName} value='0,4' unitName={chlorineUnit} src="chlorine.png" />
+                  </Paper>
+                </Grid>
               </Grid>
-              <Grid item xs={12} md={3} lg={2}>
-                <Paper
-                  sx={{
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: drawerWidth,
-                  }}
-                >
-                  <Meassure name={temperatureName} value='15' unitName={temperatureUnit} src="temp.png" />
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={9} lg={10}>
-                <Paper
-                  sx={{
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: drawerWidth,
-                  }}
-                >
-                  <Chart name={phName} unitName={phUnit} />
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={3} lg={2}>
-                <Paper
-                  sx={{
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: drawerWidth,
-                  }}
-                >
-                  <Meassure name={phName} value='1,4' unitName={phUnit} src="ph.png" />
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={9} lg={10}>
-                <Paper
-                  sx={{
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: drawerWidth,
-                  }}
-                >
-                  <Chart name={chlorineName} unitName={chlorineUnit} />
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={3} lg={2}>
-                <Paper
-                  sx={{
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: drawerWidth,
-                  }}
-                >
-                  <Meassure name={chlorineName} value='0,4' unitName={chlorineUnit} src="chlorine.png" />
-                </Paper>
-              </Grid>
-            </Grid>
-          </Container>
+              <div style={{position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)"}}>
+                <CircularProgress 
+                    size={80}
+                    sx={{
+                      color: colorPurple,
+                      position: 'absolute',
+                      zIndex: 1,
+                      margin: "0 auto"
+                    }}
+                  />
+              </div>              
+            </Container>
           <Alert ref={alert}></Alert>
           <Config ref={config} alert={alert} />
-          <Backdrop
-              sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
-              open={wait}>
-            <CircularProgress color="inherit" />
-        </Backdrop>          
     </ThemeProvider>
   );
 }

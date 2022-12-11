@@ -18,6 +18,7 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"path"
 
@@ -28,28 +29,46 @@ import (
 
 const fileName = "micro-config.dat"
 
-// MicroConfig manages the micro controller configuration
 type MicroConfig struct {
+	IniSendTime string `json:"iniSendTime,omitempty"`
+	EndSendTime string `json:"endSendTime,omitempty"`
+	CheckSend   uint8  `json:"checkSend,omitempty"`
+	Buffer      uint8  `json:"buffer,omitempty"`
+}
+
+// MicroConfigController manages the micro controller configuration
+type MicroConfigController struct {
 	Log      *zap.Logger
 	DataPath string
 }
 
 // Read reads the configuration saved in disk
-func (c MicroConfig) Read() ([]byte, error) {
+func (c MicroConfigController) Read() (MicroConfig, error) {
 	file := path.Join(c.DataPath, fileName)
 
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return []byte{}, errors.Wrap(err, strings.Concat("Reading the configuration for the micro controller: ", file))
+		return MicroConfig{}, errors.Wrap(err, strings.Concat("Reading the configuration of the micro controller: ", file))
 	}
 
-	return data, nil
+	var mc MicroConfig
+
+	if err := json.Unmarshal(data, &mc); err != nil {
+		return MicroConfig{}, errors.Wrap(err, strings.Concat("Unmarshal the configuration of the micro controller: ", file))
+	}
+
+	return mc, nil
 }
 
-func (c MicroConfig) Save(data []byte) error {
+func (c MicroConfigController) Save(data MicroConfig) error {
 	file := path.Join(c.DataPath, fileName)
 
-	if err := os.WriteFile(file, data, os.FileMode(0664)); err != nil {
+	conf, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrap(err, strings.Concat("Marshalling the configuration of the micro controller: ", file))
+	}
+
+	if err := os.WriteFile(file, conf, os.FileMode(0664)); err != nil {
 		return errors.Wrap(err, strings.Concat("Saving the configuration for the micro controller: ", file))
 	}
 

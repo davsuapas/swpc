@@ -19,20 +19,22 @@ package web
 
 import (
 	"errors"
-	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/config"
+	"github.com/swpoolcontroller/pkg/sockets"
 	"go.uber.org/zap"
 )
 
 // ConfigWeb manages the web configuration
 type ConfigWeb struct {
 	Log    *zap.Logger
-	Microc *config.MicroConfig
-	Cnf    config.Config
+	Microc *config.MicroConfigController
+	Hub    *sockets.Hub
+	Config config.Config
 }
 
 // Load loads the configuration saved into disk file
@@ -48,24 +50,29 @@ func (cf *ConfigWeb) Load(ctx echo.Context) error {
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	return ctx.JSONBlob(http.StatusOK, data)
+	return ctx.JSON(http.StatusOK, data)
 }
 
 // Save saves the configuration to disk
 func (cf *ConfigWeb) Save(ctx echo.Context) error {
-	data, err := io.ReadAll(ctx.Request().Body)
-	if err != nil {
+	var conf config.MicroConfig
+
+	if err := ctx.Bind(&conf); err != nil {
 		cf.Log.Error("Getting the configuration of the request body", zap.Error(err))
 
 		return ctx.NoContent(http.StatusBadRequest)
 	}
 
-	err = cf.Microc.Save(data)
-	if err != nil {
-		cf.Log.Error("Saving request", zap.Error(err))
+	if err := cf.Microc.Save(conf); err != nil {
+		cf.Log.Error("Saving config request", zap.Error(err))
 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
+
+	cf.Hub.Config(sockets.Config{
+		CommLatency: time.Duration(cf.Config.CommLatencyTime),
+		Buffer:      time.Duration(conf.Buffer),
+	})
 
 	return ctx.NoContent(http.StatusOK)
 }

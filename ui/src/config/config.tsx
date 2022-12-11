@@ -41,7 +41,6 @@ const Transition = React.forwardRef(function Transition(
 const defaultCheckSend = 1;
 const defaultimeIniSend = "11:00";
 const defaultimeEndSend = "12:00";
-const defaultWakeUp = 20;
 const defaultBuffer = 10;
 
 // Config displays a configuration form
@@ -58,9 +57,6 @@ export default forwardRef( (props: any, ref: any) => {
     const [timeIniSendValue, setTimeIniSendValue] = React.useState(defaultimeIniSend);
     const [timeEndSendValue, setTimeEndSendValue] = React.useState(defaultimeEndSend);
 
-    const [wakeUpValid, setWakeUpValid] = React.useState(true);
-    const [wakeUpValue, setWakeUpValue] = React.useState(defaultWakeUp);
-
     const [bufferValid, setBufferValid] = React.useState(true);
     const [bufferValue, setBufferValue] = React.useState(defaultBuffer);
 
@@ -75,7 +71,6 @@ export default forwardRef( (props: any, ref: any) => {
     function initControl() {
         setCheckSendValid(true);
         setTimeSendValid(true);
-        setWakeUpValid(true);
         setBufferValid(true);
     }
 
@@ -102,11 +97,6 @@ export default forwardRef( (props: any, ref: any) => {
             }
         }
 
-        if (!(wakeUpValue >= 5 && wakeUpValue <= 120)) {
-            setWakeUpValid(false);
-            valid = false;
-        }
-
         if (!(bufferValue >= 3 && bufferValue <= 60)) {
             setBufferValid(false);
             valid = false;
@@ -116,11 +106,10 @@ export default forwardRef( (props: any, ref: any) => {
     }
 
     // setControl sets the data configuration into input
-    function setControl(checkSend: number, timeIniSend: string, timeEndSend: string, setWakeUp: number, buffer: number) {
+    function setControl(checkSend: number, timeIniSend: string, timeEndSend: string, buffer: number) {
         setCheckSendValue(checkSend);
         setTimeIniSendValue(timeIniSend);
         setTimeEndSendValue(timeEndSend);
-        setWakeUpValue(setWakeUp);
         setBufferValue(buffer);
     }
 
@@ -137,7 +126,7 @@ export default forwardRef( (props: any, ref: any) => {
         if (result.ok) {
             try {
                 const res = await result.json();
-                setControl(res.checkSend, res.timeIniSend, res.timeEndSend, res.wakeUp, res.buffer);
+                setControl(res.checkSend, res.timeIniSend, res.timeEndSend, res.buffer);
                 setOpenv(true);
             }
             catch {
@@ -149,7 +138,7 @@ export default forwardRef( (props: any, ref: any) => {
             return true;
         }
         if (result.status == 404) {
-            setControl(defaultCheckSend, defaultimeIniSend, defaultimeEndSend, defaultWakeUp, defaultBuffer);
+            setControl(defaultCheckSend, defaultimeIniSend, defaultimeEndSend, defaultBuffer);
             setOpenv(true);
             return true;
         }
@@ -172,11 +161,13 @@ export default forwardRef( (props: any, ref: any) => {
 
         fetch.send("/web/api/config", {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
             "checkSend": checkSendValue,
-            "timeIniSend": timeIniSendValue,
-            "timeEndSend": timeEndSendValue,
-            "wakeUp": wakeUpValue,
+            "iniSendTime": timeIniSendValue,
+            "endSendTime": timeEndSendValue,
             "buffer": bufferValue
           })
         },
@@ -211,12 +202,9 @@ export default forwardRef( (props: any, ref: any) => {
                     Para salvaguardar la bateria, es conveniente configurar las horas de emisión de las métricas
                     por parte del micro. En esta sección se le pedirá dos grupos de configuración.
                     El primero consiste en configurar, cada cuantas horas el micro chequea entre que horas emitirá
-                    métricas y en el segundo se configurará cuatro valores, entre que horas se emitirán los valores
-                    de las métricas y en caso de que no exista ningún receptor para recibir métricas, cada cuantos segundos
-                    se despierta el micro para comprobar cuando hay un receptor o receptores disponibles,
-                    siempre teniendo en cuenta las horas establecidas. También se establece cuantos segundos almacena
-                    el micro las métricas antes de enviarlas. Cuanto más tiempo tiene la web abierta
-                    para recibir métricas mayor debería ser este buffer.
+                    métricas y en el segundo se configurará tres valores, entre que horas se emitirán los valores
+                    de las métricas y cada cuantos segundos almacena el micro las métricas antes de enviarlas. 
+                    Cuanto más tiempo tiene la web abierta para recibir métricas mayor debería ser este buffer.
                 </DialogContentText>
                 <TextField
                     id="checkSend"
@@ -259,20 +247,6 @@ export default forwardRef( (props: any, ref: any) => {
                             "Hora que finaliza la emisión de las métricas" :
                             "El valor debe ser una hora y debe ser menor la hora inicio de la de fín"}
                     />                
-                    <TextField
-                        id="wakeUp"
-                        sx={{marginTop:"20px"}}
-                        label="Chequeo receptores"
-                        type="number"
-                        value={wakeUpValue}
-                        onChange={event => setWakeUpValue(parseInt(event.target.value))}
-                        InputProps={{ inputProps: { min: 5, max: 120 } }}
-                        size="small"
-                        error={!wakeUpValid}
-                        helperText={wakeUpValid ?
-                            "Cada cuantas segundos se despierta el micro" :
-                            "El valor debe estar entre 5 y 120 segundos"}
-                    />
                 </FormGroup>                                        
                 <FormGroup row sx={{marginTop:"20px"}}>
                     <TextField
@@ -285,7 +259,7 @@ export default forwardRef( (props: any, ref: any) => {
                         size="small"
                         error={!bufferValid}
                         helperText={bufferValid ?
-                            "Tiempo que almacena el micro las métricas antes de enviar" :
+                            "Tiempo que almacena el micro las métricas antes de enviar (buffer)" :
                             "El valor debe estar entre 3 y 60 segundos"}
                     />                
                 </FormGroup>                    

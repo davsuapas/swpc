@@ -40,17 +40,14 @@ func (s *ServerConfig) Address() string {
 type APIConfig struct {
 	// SessionExpiration defines the session expiration in minutes
 	SessionExpiration int `json:"expirationSession"`
+	// CommLatencyTime Sets the possible communication latency between the device and the hub, in seconds
+	CommLatencyTime int `json:"commLatencyTime"`
 }
 
 // WebConfig describes the web configuration
 type WebConfig struct {
 	// SessionExpiration defines the session expiration in minutes
 	SessionExpiration int `json:"expirationSession"`
-	// InactiveCommTime establishes each time the communication between the micro and server is inactive, in seconds
-	InactiveCommTime int `json:"inactiveCommTime"`
-	// BreakCommTime breakComm parameter establishes each time the communication
-	// between the micro and server is break, in seconds
-	BreakCommTime int `json:"breakCommTime"`
 }
 
 // ZapConfig defines the configuration for log framework
@@ -84,11 +81,10 @@ func LoadConfig() Config {
 		},
 		WebConfig: WebConfig{
 			SessionExpiration: 10,
-			InactiveCommTime:  10,
-			BreakCommTime:     40,
 		},
 		APIConfig: APIConfig{
 			SessionExpiration: 60,
+			CommLatencyTime:   10,
 		},
 		DataPath: "./data",
 	}
@@ -108,10 +104,6 @@ func LoadConfig() Config {
 	if !(cnf.Level >= -1 && cnf.Level <= 5) {
 		panic("The log level param must be configured to " +
 			"(-1: debug, 0: info, 1: Warn, 2: Error, 3: DPanic, 4: Panic, 5: Fatal)")
-	}
-
-	if cnf.InactiveCommTime > cnf.BreakCommTime {
-		panic("The InactiveCommTime cannot be greater than BreakCommTime")
 	}
 
 	return cnf

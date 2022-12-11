@@ -77,7 +77,8 @@ export default class SocketFactory {
                         this.alert.current.content(
                             "Comunicación con el micro controlador sin respuesta",
                             "No se detecta ningún envío de métricas del micro controlador, seguiremos " +
-                            "intentado reestablecer la comunicación.");
+                            "intentado reestablecer la comunicación. No cierre ninguna vetana mientras " + 
+                            "se restablece la comunicación");
                         this.alert.current.open();
                         this.wait(true)
                     }
@@ -87,6 +88,9 @@ export default class SocketFactory {
                             "Parece que la comunicación con el micro controlador se encuentra caída",
                             "Demsasiado tiempo sin respuesta, asegúrese que el micro controlador " +
                             "se encuentra encedido y que la comunicación se encuentra habilitada. " + 
+                            "También puede ser debido, a que no se encuentra dentro del horario establecido " +
+                            "para la recepción de las métricas o simplemente hay un retraso en las comunicaciones. " +
+                            "En este caso último, inténtelo más tarde. " +
                             "Se procederá a cerrar la sessión de trabajo.");
                         this.alert.current.events.closed = () => {
                             socket.close();

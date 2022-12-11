@@ -76,9 +76,7 @@ func (s *Server) Start() {
 	}
 
 	s.factory.Log.Info("The hub is stopping ...")
-
 	s.factory.Hub.Stop()
-	s.factory.Hubt.Close()
 
 	s.factory.Log.Info("The server has been stopped")
 }
@@ -161,4 +159,6 @@ func (s *Server) webRoute() {
 		SigningKey: []byte(crypto.Key),
 	}
 	mapi.Use(middleware.JWTWithConfig(config))
+	mapi.GET("/config", s.factory.WebHandler.Config.Load)
+	mapi.POST("/download", s.factory.APIHandler.Stream.Download)
 }
