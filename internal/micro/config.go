@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-package config
+package micro
 
 import (
 	"encoding/json"
@@ -29,38 +29,67 @@ import (
 
 const fileName = "micro-config.dat"
 
-type MicroConfig struct {
+const (
+	errorReadConfig   = "Reading the configuration of the micro controller from config file"
+	errorUnmarsConfig = "Unmarshalling the configuration of the micro controller from config file"
+)
+
+type Config struct {
 	IniSendTime string `json:"iniSendTime,omitempty"`
 	EndSendTime string `json:"endSendTime,omitempty"`
 	Wakeup      uint8  `json:"wakeup,omitempty"`
 	Buffer      uint8  `json:"buffer,omitempty"`
 }
 
-// MicroConfigController manages the micro controller configuration
-type MicroConfigController struct {
+func configDefault() Config {
+	return Config{
+		IniSendTime: "11:00",
+		EndSendTime: "12:00",
+		Wakeup:      30,
+		Buffer:      5,
+	}
+}
+
+// ConfigRead reads the micro controller configuration
+type ConfigRead struct {
 	Log      *zap.Logger
 	DataPath string
 }
 
-// Read reads the configuration saved in disk
-func (c MicroConfigController) Read() (MicroConfig, error) {
+// ConfigWrite writes the micro controller configuration
+type ConfigWrite struct {
+	Log      *zap.Logger
+	MControl *Controller
+	DataPath string
+}
+
+// Read reads the configuration saved in disk. If the file not exists returns config default
+func (c ConfigRead) Read() (Config, error) {
 	file := path.Join(c.DataPath, fileName)
 
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return MicroConfig{}, errors.Wrap(err, strings.Concat("Reading the configuration of the micro controller: ", file))
+		c.Log.Error(errorReadConfig, zap.String("file", file), zap.Error(err))
+
+		if errors.Is(err, os.ErrNotExist) {
+			return configDefault(), nil
+		}
+
+		return Config{}, nil
 	}
 
-	var mc MicroConfig
+	var mc Config
 
 	if err := json.Unmarshal(data, &mc); err != nil {
-		return MicroConfig{}, errors.Wrap(err, strings.Concat("Unmarshal the configuration of the micro controller: ", file))
+		c.Log.Error(errorUnmarsConfig, zap.String("file", file), zap.Error(err))
+
+		return Config{}, nil
 	}
 
 	return mc, nil
 }
 
-func (c MicroConfigController) Save(data MicroConfig) error {
+func (c ConfigWrite) Save(data Config) error {
 	file := path.Join(c.DataPath, fileName)
 
 	conf, err := json.Marshal(data)
@@ -71,6 +100,9 @@ func (c MicroConfigController) Save(data MicroConfig) error {
 	if err := os.WriteFile(file, conf, os.FileMode(0664)); err != nil {
 		return errors.Wrap(err, strings.Concat("Saving the configuration for the micro controller: ", file))
 	}
+
+	// it updates the controller with new configuration
+	c.MControl.SetConfig(data)
 
 	return nil
 }

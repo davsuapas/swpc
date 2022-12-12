@@ -38,10 +38,6 @@ const Transition = React.forwardRef(function Transition(
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const defaultWakeup = 30;
-const defaultimeIniSend = "11:00";
-const defaultimeEndSend = "12:00";
-const defaultBuffer = 5;
 
 // Config displays a configuration form
 export default forwardRef( (props: any, ref: any) => {
@@ -50,15 +46,15 @@ export default forwardRef( (props: any, ref: any) => {
     const [openv, setOpenv] = React.useState(false);
 
     const [wakeupValid, setWakeupValid] = React.useState(true);
-    const [wakeupValue, setWakeupValue] = React.useState(defaultWakeup);
+    const [wakeupValue, setWakeupValue] = React.useState(0);
 
     const [timeSendValid, setTimeSendValid] = React.useState(true);
 
-    const [timeIniSendValue, setTimeIniSendValue] = React.useState(defaultimeIniSend);
-    const [timeEndSendValue, setTimeEndSendValue] = React.useState(defaultimeEndSend);
+    const [timeIniSendValue, setTimeIniSendValue] = React.useState("");
+    const [timeEndSendValue, setTimeEndSendValue] = React.useState("");
 
     const [bufferValid, setBufferValid] = React.useState(true);
-    const [bufferValue, setBufferValue] = React.useState(defaultBuffer);
+    const [bufferValue, setBufferValue] = React.useState(0);
 
     const [saving, setSaving] = React.useState(false);
 
@@ -135,11 +131,6 @@ export default forwardRef( (props: any, ref: any) => {
                     "Se ha producido un error al recuperar la configuración. Vuelva a intentarlo más tarde");
                     props.alert.current.open();
             }
-            return true;
-        }
-        if (result.status == 404) {
-            setControl(defaultWakeup, defaultimeIniSend, defaultimeEndSend, defaultBuffer);
-            setOpenv(true);
             return true;
         }
         return false;

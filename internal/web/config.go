@@ -18,13 +18,12 @@
 package web
 
 import (
-	"errors"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/config"
+	"github.com/swpoolcontroller/internal/micro"
 	"github.com/swpoolcontroller/pkg/sockets"
 	"go.uber.org/zap"
 )
@@ -32,18 +31,15 @@ import (
 // ConfigWeb manages the web configuration
 type ConfigWeb struct {
 	Log    *zap.Logger
-	Microc *config.MicroConfigController
+	MicroR *micro.ConfigRead
+	MicroW *micro.ConfigWrite
 	Hub    *sockets.Hub
 	Config config.Config
 }
 
 // Load loads the configuration saved into disk file
 func (cf *ConfigWeb) Load(ctx echo.Context) error {
-	data, err := cf.Microc.Read()
-	if errors.Is(err, os.ErrNotExist) {
-		return ctx.NoContent(http.StatusNotFound)
-	}
-
+	data, err := cf.MicroR.Read()
 	if err != nil {
 		cf.Log.Error("Loading configuration", zap.Error(err))
 
@@ -55,7 +51,7 @@ func (cf *ConfigWeb) Load(ctx echo.Context) error {
 
 // Save saves the configuration to disk
 func (cf *ConfigWeb) Save(ctx echo.Context) error {
-	var conf config.MicroConfig
+	var conf micro.Config
 
 	if err := ctx.Bind(&conf); err != nil {
 		cf.Log.Error("Getting the configuration of the request body", zap.Error(err))
@@ -63,7 +59,7 @@ func (cf *ConfigWeb) Save(ctx echo.Context) error {
 		return ctx.NoContent(http.StatusBadRequest)
 	}
 
-	if err := cf.Microc.Save(conf); err != nil {
+	if err := cf.MicroW.Save(conf); err != nil {
 		cf.Log.Error("Saving config request", zap.Error(err))
 
 		return ctx.NoContent(http.StatusInternalServerError)

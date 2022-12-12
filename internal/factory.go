@@ -31,6 +31,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+const (
+	errorReadConfig = "Reading the configuration of the micro controller from config file"
+)
+
 // APIHandler Micro API handler
 type APIHandler struct {
 	OAuth  *api.OAuth
@@ -59,15 +63,25 @@ type Factory struct {
 
 // NewFactory creates the horizontal services of the app
 func NewFactory() *Factory {
-	cnf := config.LoadConfig()
+	config := config.LoadConfig()
 
-	log := newLogger(cnf)
+	log := newLogger(config)
+
+	mconfigRead := &micro.ConfigRead{
+		Log:      log,
+		DataPath: config.DataPath,
+	}
+
+	configm, err := mconfigRead.Read()
+	if err != nil {
+		log.Panic(errorReadConfig)
+	}
 
 	hubt := NewHubTrace(log)
 	hub := sockets.NewHub(
 		sockets.Config{
-			CommLatency: time.Duration(cnf.CommLatencyTime) * time.Second,
-			Buffer:      5 * time.Second,
+			CommLatency: time.Duration(config.CommLatencyTime) * time.Second,
+			Buffer:      time.Duration(configm.Buffer) * time.Second,
 		},
 		hubt.Infos,
 		hubt.Errors)
@@ -75,31 +89,35 @@ func NewFactory() *Factory {
 	mcontrol := &micro.Controller{
 		Log:            log,
 		Hub:            hub,
-		Config:         config.MicroConfig{},
-		CheckTransTime: uint8(cnf.CheckTransTime),
+		Config:         configm,
+		CheckTransTime: uint8(config.CheckTransTime),
+	}
+
+	mconfigWrite := &micro.ConfigWrite{
+		Log:      log,
+		MControl: mcontrol,
+		DataPath: config.DataPath,
 	}
 
 	return &Factory{
-		Config: cnf,
+		Config: config,
 		Webs:   newWebServer(),
 		Log:    log,
 		Hubt:   hubt,
 		Hub:    hub,
 		WebHandler: &WebHandler{
-			Login: web.NewLogin(log, cnf.WebConfig, hub),
+			Login: web.NewLogin(log, config.WebConfig, hub),
 			Config: &web.ConfigWeb{
-				Log: log,
-				Hub: hub,
-				Microc: &config.MicroConfigController{
-					Log:      log,
-					DataPath: cnf.DataPath,
-				},
-				Config: cnf,
+				Log:    log,
+				Hub:    hub,
+				MicroR: mconfigRead,
+				MicroW: mconfigWrite,
+				Config: config,
 			},
-			WS: web.NewWS(log, cnf.WebConfig, hub),
+			WS: web.NewWS(log, config.WebConfig, hub),
 		},
 		APIHandler: &APIHandler{
-			OAuth:  api.NewOAuth(log, cnf.APIConfig),
+			OAuth:  api.NewOAuth(log, config.APIConfig),
 			Stream: api.NewStream(mcontrol),
 		},
 	}

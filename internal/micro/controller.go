@@ -21,7 +21,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/pkg/sockets"
 	"go.uber.org/zap"
 )
@@ -56,21 +55,21 @@ type Behavior struct {
 type Controller struct {
 	Log            *zap.Logger
 	Hub            *sockets.Hub
-	Config         config.MicroConfig
+	Config         Config
 	CheckTransTime uint8
 
 	lock sync.RWMutex
 }
 
 // SetConfig updates the micro config into the service
-func (c *Controller) SetConfig(conf config.MicroConfig) {
+func (c *Controller) SetConfig(conf Config) {
 	c.lock.Lock()
 	c.Config = conf
 	c.lock.Unlock()
 }
 
-func (c *Controller) tryConfig() config.MicroConfig {
-	var conf config.MicroConfig
+func (c *Controller) tryConfig() Config {
+	var conf Config
 
 	c.lock.RLock()
 	conf = c.Config
