@@ -343,7 +343,7 @@ func (h *Hub) removeDeadClient() {
 		infos = append(
 			infos,
 			strings.Concat(
-				"Hub-> Size of the client array after removing expired clients: ",
+				"Hub-> Array size after removing expired clients: ",
 				strconv.Itoa(len(h.clients))))
 		h.infos <- infos
 	}

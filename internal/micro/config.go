@@ -35,10 +35,10 @@ const (
 )
 
 type Config struct {
-	IniSendTime string `json:"iniSendTime,omitempty"`
-	EndSendTime string `json:"endSendTime,omitempty"`
-	Wakeup      uint8  `json:"wakeup,omitempty"`
-	Buffer      uint8  `json:"buffer,omitempty"`
+	IniSendTime string `json:"iniSendTime"`
+	EndSendTime string `json:"endSendTime"`
+	Wakeup      uint8  `json:"wakeup"`
+	Buffer      uint8  `json:"buffer"`
 }
 
 func configDefault() Config {

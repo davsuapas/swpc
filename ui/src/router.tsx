@@ -15,8 +15,9 @@
  *   limitations under the License.
  */
 
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
+// PrivateRoute creates un protected component
 export default function PrivateRoute({ children }: { children: JSX.Element }) {
   const  location = useLocation();
   

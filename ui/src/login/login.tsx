@@ -28,6 +28,7 @@ import { useNavigate } from "react-router-dom"
 import Alert from '../support/alert';
 import { useRef } from 'react';
 import Fetch from '../net/fetch';
+import User from './user';
 
 const theme = createTheme();
 
@@ -35,7 +36,7 @@ const theme = createTheme();
 export default function Login() {
   const navigate = useNavigate();
   const alert = useRef<Alert>(null);
-  const fetch = new Fetch(alert);
+  const fetch = new Fetch(alert, new User());
 
   // handleSubmit send credentials to validate. if the credentials are ok returns a token 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

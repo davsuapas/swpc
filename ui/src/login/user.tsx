@@ -15,14 +15,22 @@
  *   limitations under the License.
  */
 
-import { RefObject } from "react";
 import { useNavigate } from "react-router-dom";
+import { Actions } from "../dashboard/dashboard";
 
 export default class User {
 
-    private navigate = useNavigate();
+    constructor(private nav: Actions | null = null) {
+    }
 
-    constructor() {
+    private shutdown() {
+        if (this.nav) {
+            // To navigate in class based component
+            this.nav.shutdown();
+        } else {
+            // To navigate in function based component
+            useNavigate()("/");    
+        }
     }
 
     // logoff ends the session
@@ -37,12 +45,10 @@ export default class User {
             if (res.status != 200) {
                 console.log("logoff. Web request status: " + res.status.toString());
             }
-
-            this.navigate("/");
         } catch (ex) {
             console.log("logoff. Web request error: " + ex);
         } finally {
-            this.navigate("/");
+            this.shutdown();
         }
     }
 }

@@ -23,7 +23,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Slide from '@mui/material/Slide';
 import { TransitionProps } from '@mui/material/transitions';
-import React, { forwardRef } from 'react';
+import React from 'react';
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & {

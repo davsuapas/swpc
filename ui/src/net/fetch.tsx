@@ -22,10 +22,7 @@ import Alert from "../support/alert";
 // Fetch communicates using fetch
 export default class Fetch {
 
-    private user: User
-
-    constructor(private alert: RefObject<Alert>) {
-        this.user = new User()
+    constructor(private alert: RefObject<Alert>, private user: User) {
     }
 
     // send sends http request and allows to handle the response through a function.

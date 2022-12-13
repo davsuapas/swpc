@@ -17,6 +17,7 @@
 
 import { RefObject } from "react";
 import { Websocket, WebsocketBuilder } from "websocket-ts/lib";
+import { Actions } from "../dashboard/dashboard";
 import User from "../login/user";
 import Alert from "../support/alert";
 
@@ -27,14 +28,14 @@ enum CommStatus {
 
 export default class SocketFactory {
 
+    private ws: WebsocketBuilder;
     private user: User
 
-    private ws: WebsocketBuilder;
-
-    constructor(private alert: RefObject<Alert>, private wait: React.Dispatch<React.SetStateAction<boolean>>) {
+    constructor(private alert: RefObject<Alert>, private actions: Actions) {
         const protocol = location.protocol == "https:" ? "wss" : "ws";
         this.ws = new WebsocketBuilder(protocol + "://" + document.location.host + "/web/api/ws");
-        this.user = new User()
+
+        this.user = new User(actions);
     }
 
     // start opens socket connection, registers in server and controls events
@@ -80,7 +81,7 @@ export default class SocketFactory {
                             "intentado reestablecer la comunicación. No cierre ninguna vetana mientras " + 
                             "se restablece la comunicación");
                         this.alert.current.open();
-                        this.wait(true)
+                        this.actions.activeStandby(true)
                     }
                 } else {
                     if (this.alert.current) {
