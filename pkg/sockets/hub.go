@@ -27,6 +27,30 @@ import (
 	"github.com/swpoolcontroller/pkg/strings"
 )
 
+const (
+	errSendingMsg         = "Hub-> Sending a message"
+	errClientRemoved      = ". The client will be removed"
+	errRemovingDiedClient = "Hub-> Removing died client by expiration: "
+	errClosingClient      = "Hub-> Closing client:"
+)
+
+const (
+	infCheckerDes     = "Hub-> The check timer is deactivated because there are no clients"
+	infClientReg      = "Hub-> Client registered: "
+	infClientUnReg    = "Hub-> Unregistering client: "
+	infClientUnRegd   = "Hub-> Client unregisted: "
+	infHubActive      = "Hub-> The hub is set to active. Previous status: "
+	infHubInactive    = "Hub-> The hub is set to inactive. Previous status: active"
+	infBufferLatency  = ", buffer + comm latency: "
+	infLastMsgDate    = ", last message date: "
+	infCount          = ", count: "
+	infHubStatus      = ", hub status: "
+	infClientDied     = "Hub-> Client died by expiration: "
+	infExpirationDate = ", Expiration date: "
+	infActualDate     = ", Actual date: "
+	infArraySize      = "Hub-> Array size after removing expired clients: "
+)
+
 // Status are the communication status between the sender and the hub
 type Status int
 
@@ -191,8 +215,7 @@ func (h *Hub) tryResetTimer(check *time.Timer) {
 		check.Reset(h.config.CommLatency)
 	} else {
 		h.infos <- []string{
-			strings.Concat(
-				"Hub-> The check timer is deactivated because there are no clients")}
+			strings.Concat(infCheckerDes)}
 	}
 }
 
@@ -215,9 +238,9 @@ func (h *Hub) register(client Client, check *time.Timer) {
 
 	h.infos <- []string{
 		strings.Concat(
-			"Hub-> Client registered: ", client.id,
-			", count: ", strconv.Itoa(len(h.clients)),
-			", hub status: ", statusString(h.status))}
+			infClientReg, client.id,
+			infCount, strconv.Itoa(len(h.clients)),
+			infHubStatus, statusString(h.status))}
 }
 
 func (h *Hub) unregister(id string) {
@@ -227,15 +250,13 @@ func (h *Hub) unregister(id string) {
 
 	if err := h.removeClient(id); err != nil {
 		h.errors <- []error{errors.Wrap(
-			err, strings.Concat(
-				"Hub-> Unregistering client: ", id,
-				", count: ", strconv.Itoa(len(h.clients))))}
+			err, strings.Concat(infClientUnReg, id, infCount, strconv.Itoa(len(h.clients))))}
 	}
 
 	h.infos <- []string{strings.Concat(
-		"Hub-> Client unregisted: ", id,
-		", count: ", strconv.Itoa(len(h.clients)),
-		", hub status: ", statusString(h.status))}
+		infClientUnRegd, id,
+		infCount, strconv.Itoa(len(h.clients)),
+		infHubStatus, statusString(h.status))}
 }
 
 // sendMessage send message to the all clients registered. If sending the message throw a error, the client is removed
@@ -253,21 +274,18 @@ func (h *Hub) sendMessage(message []byte) {
 			brokenclients = append(brokenclients, uint16(i))
 
 			if err := h.closeClient(uint16(i)); err != nil {
-				errs = append(errs, errors.Wrap(err, "Hub-> Sending a message"))
+				errs = append(errs, errors.Wrap(err, errSendingMsg))
 			}
 
 			errs = append(
 				errs,
-				errors.Wrap(
-					err,
-					strings.Concat("Hub-> Sending message to: ", c.id, ". The client will be removed")))
+				errors.Wrap(err, strings.Concat(errSendingMsg, c.id, errClientRemoved)))
 		}
 	}
 
 	h.lastMessage = time.Now()
 	if h.status != Streaming {
-		h.infos <- []string{
-			strings.Concat("Hub-> The hub is set to active. Previous status: ", statusString(h.status))}
+		h.infos <- []string{strings.Concat(infHubActive, statusString(h.status))}
 
 		h.status = Streaming
 	}
@@ -291,9 +309,9 @@ func (h *Hub) controllerStatus() {
 			h.status = Inactive
 			h.infos <- []string{
 				strings.Concat(
-					"Hub-> The hub is set to inactive. Previous status: active",
-					", last message date: ", h.lastMessage.String(),
-					", buffer + comm latency: ", idleTime.String())}
+					infHubInactive,
+					infLastMsgDate, h.lastMessage.String(),
+					infBufferLatency, idleTime.String())}
 		}
 	}
 }
@@ -318,16 +336,15 @@ func (h *Hub) removeDeadClient() {
 					errs,
 					errors.Wrap(
 						err,
-						strings.Concat(
-							"Hub-> Removing died client by expiration: ", clientID, ". The client will be removed")))
+						strings.Concat(errRemovingDiedClient, clientID, errClientRemoved)))
 			}
 
 			infos = append(
 				infos,
 				strings.Concat(
-					"Hub-> Client died by expiration: ", clientID,
-					", Expiration date: ", c.expiration.String(),
-					", Actual date: ", time.Now().String()))
+					infClientDied, clientID,
+					infExpirationDate, c.expiration.String(),
+					infActualDate, time.Now().String()))
 		}
 	}
 
@@ -342,9 +359,7 @@ func (h *Hub) removeDeadClient() {
 	if len(infos) > 0 {
 		infos = append(
 			infos,
-			strings.Concat(
-				"Hub-> Array size after removing expired clients: ",
-				strconv.Itoa(len(h.clients))))
+			strings.Concat(infArraySize, strconv.Itoa(len(h.clients))))
 		h.infos <- infos
 	}
 }
@@ -392,7 +407,7 @@ func (h *Hub) closeClient(pos uint16) error {
 	clientID := h.clients[pos].id
 
 	if err := h.clients[pos].conn.Close(); err != nil {
-		return errors.Wrap(err, strings.Concat("Hub-> Closing client:", clientID))
+		return errors.Wrap(err, strings.Concat(errClosingClient, clientID))
 	}
 
 	return nil

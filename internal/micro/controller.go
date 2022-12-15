@@ -30,6 +30,8 @@ const (
 	parseEndTimeError   = "MicroController.Status-> Parser start time. The micro-controller is set sleep status"
 )
 
+const layaoutTime = "15:04"
+
 // status are the status communication between the device and server
 type status int
 
@@ -112,14 +114,14 @@ func (c *Controller) status() status {
 
 	conf := c.tryConfig()
 
-	iniTime, err := time.Parse("15:04", conf.IniSendTime)
+	iniTime, err := time.Parse(layaoutTime, conf.IniSendTime)
 	if err != nil {
 		c.Log.Fatal(parseStartTimeError, zap.Error(err))
 
 		return sleep
 	}
 
-	endTime, err := time.Parse("15:04", conf.EndSendTime)
+	endTime, err := time.Parse(layaoutTime, conf.EndSendTime)
 	if err != nil {
 		c.Log.Fatal(parseEndTimeError, zap.Error(err))
 

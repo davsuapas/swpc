@@ -15,20 +15,24 @@
  *   limitations under the License.
  */
 
-package internal
+package hub
 
 import "go.uber.org/zap"
 
-// HubTrace manages the info and errors sent by the hub. This info and errors are write into log
-type HubTrace struct {
+const (
+	infRegTraces = "Starting the process to register hub traces"
+)
+
+// Trace manages the info and errors sent by the hub. This info and errors are write into log
+type Trace struct {
 	log    *zap.Logger
 	Infos  chan []string
 	Errors chan []error
 }
 
-// NewHubTrace builds HubError service
-func NewHubTrace(log *zap.Logger) *HubTrace {
-	return &HubTrace{
+// NewTrace builds HubError service
+func NewTrace(log *zap.Logger) *Trace {
+	return &Trace{
 		log:    log,
 		Infos:  make(chan []string),
 		Errors: make(chan []error),
@@ -36,8 +40,8 @@ func NewHubTrace(log *zap.Logger) *HubTrace {
 }
 
 // Run registers errors generated into the hub into the log. Launches a gouroutine
-func (h *HubTrace) Register() {
-	h.log.Info("Starting the process to register hub traces")
+func (h *Trace) Register() {
+	h.log.Info(infRegTraces)
 
 	go func() {
 		for {

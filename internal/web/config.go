@@ -28,6 +28,12 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	errloadConfig    = "Loading configuration"
+	errGettingConfig = "Getting the configuration of the request body"
+	errSavingConfig  = "Saving config request"
+)
+
 // ConfigWeb manages the web configuration
 type ConfigWeb struct {
 	Log    *zap.Logger
@@ -41,7 +47,7 @@ type ConfigWeb struct {
 func (cf *ConfigWeb) Load(ctx echo.Context) error {
 	data, err := cf.MicroR.Read()
 	if err != nil {
-		cf.Log.Error("Loading configuration", zap.Error(err))
+		cf.Log.Error(errloadConfig, zap.Error(err))
 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
@@ -54,13 +60,13 @@ func (cf *ConfigWeb) Save(ctx echo.Context) error {
 	var conf micro.Config
 
 	if err := ctx.Bind(&conf); err != nil {
-		cf.Log.Error("Getting the configuration of the request body", zap.Error(err))
+		cf.Log.Error(errGettingConfig, zap.Error(err))
 
 		return ctx.NoContent(http.StatusBadRequest)
 	}
 
 	if err := cf.MicroW.Save(conf); err != nil {
-		cf.Log.Error("Saving config request", zap.Error(err))
+		cf.Log.Error(errSavingConfig, zap.Error(err))
 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}

@@ -34,6 +34,18 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+const (
+	errShutdown = "Shutting down the server"
+)
+
+const (
+	infStartingServer = "Starting the swimming pool controller server ..."
+	infStartHub       = "Starting the hub"
+	infStoppingServer = "The web server is stopping ..."
+	infStoppingHub    = "The hub is stopping ..."
+	infStoppedServer  = "The server has been stopped"
+)
+
 type Server struct {
 	factory *Factory
 }
@@ -46,17 +58,17 @@ func NewServer(factory *Factory) *Server {
 
 // Start starts the graceful http server and services
 func (s *Server) Start() {
-	s.factory.Log.Info("Starting the swimming pool controller server ...", zap.String("Config", s.factory.Config.String()))
+	s.factory.Log.Info(infStartingServer, zap.String("Config", s.factory.Config.String()))
 
 	// Start server
 	go func() {
 		s.factory.Hubt.Register()
 
-		s.factory.Log.Info("Starting the hub")
+		s.factory.Log.Info(infStartHub)
 		s.factory.Hub.Run()
 
 		if err := s.factory.Webs.Start(s.factory.Config.Address()); err != nil {
-			s.factory.Log.Panic("Shutting down the server")
+			s.factory.Log.Panic(errShutdown)
 		}
 	}()
 
@@ -69,16 +81,16 @@ func (s *Server) Start() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	s.factory.Log.Info("The web server is stopping ...")
+	s.factory.Log.Info(infStoppingServer)
 
 	if err := s.factory.Webs.Shutdown(ctx); err != nil {
 		s.factory.Log.Error(err.Error())
 	}
 
-	s.factory.Log.Info("The hub is stopping ...")
+	s.factory.Log.Info(infStoppingHub)
 	s.factory.Hub.Stop()
 
-	s.factory.Log.Info("The server has been stopped")
+	s.factory.Log.Info(infStoppedServer)
 }
 
 // Middleware configure security and behaviour of http

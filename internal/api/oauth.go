@@ -33,6 +33,11 @@ const (
 	sid   = "sw3kf$fekdy56dfh"
 )
 
+const (
+	errIDBad = "OAuth.Token. The secretID is bad"
+	errSign  = "OAuth.Token. Error signing token"
+)
+
 // OAuth controllers the access of the API
 type OAuth struct {
 	log *zap.Logger
@@ -51,7 +56,7 @@ func (o *OAuth) Token(ctx echo.Context) error {
 	sID := ctx.Param(SName)
 
 	if sID != sid {
-		o.log.Error("OAuth.Token. The scretID is bad")
+		o.log.Error(errIDBad)
 
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
@@ -66,7 +71,7 @@ func (o *OAuth) Token(ctx echo.Context) error {
 	// Generate encoded token and send it as response.
 	token, err := t.SignedString([]byte(crypto.Key))
 	if err != nil {
-		o.log.With(zap.Error(err)).Error("OAuth.Token. Error signing token", zap.Error(err))
+		o.log.With(zap.Error(err)).Error(errSign, zap.Error(err))
 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}

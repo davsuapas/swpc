@@ -23,6 +23,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/api"
 	"github.com/swpoolcontroller/internal/config"
+	"github.com/swpoolcontroller/internal/hub"
 	"github.com/swpoolcontroller/internal/micro"
 	"github.com/swpoolcontroller/internal/web"
 	"github.com/swpoolcontroller/pkg/sockets"
@@ -32,7 +33,8 @@ import (
 )
 
 const (
-	errorReadConfig = "Reading the configuration of the micro controller from config file"
+	errReadConfig = "Reading the configuration of the micro controller from config file"
+	errCreateZap  = "Error creating zap logger. Description: "
 )
 
 // APIHandler Micro API handler
@@ -54,7 +56,7 @@ type Factory struct {
 	Webs   *echo.Echo
 	Log    *zap.Logger
 
-	Hubt *HubTrace
+	Hubt *hub.Trace
 	Hub  *sockets.Hub
 
 	WebHandler *WebHandler
@@ -74,10 +76,10 @@ func NewFactory() *Factory {
 
 	configm, err := mconfigRead.Read()
 	if err != nil {
-		log.Panic(errorReadConfig)
+		log.Panic(errReadConfig)
 	}
 
-	hubt := NewHubTrace(log)
+	hubt := hub.NewTrace(log)
 	hub := sockets.NewHub(
 		sockets.Config{
 			CommLatency: time.Duration(config.CommLatencyTime) * time.Second,
@@ -137,7 +139,7 @@ func newLogger(ctx config.Config) *zap.Logger {
 
 	l, err := log.Build()
 	if err != nil {
-		panic(strings.Concat("Error creating zap logger. Description: ", err.Error()))
+		panic(strings.Concat(errCreateZap, err.Error()))
 	}
 
 	return l

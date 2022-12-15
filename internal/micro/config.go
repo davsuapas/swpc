@@ -30,15 +30,21 @@ import (
 const fileName = "micro-config.dat"
 
 const (
-	errorReadConfig   = "Reading the configuration of the micro controller from config file"
-	errorUnmarsConfig = "Unmarshalling the configuration of the micro controller from config file"
+	errReadConfig     = "Reading the configuration of the micro controller from config file"
+	errUnmarsConfig   = "Unmarshalling the configuration of the micro controller from config file"
+	errMarshallConfig = "Marshalling the configuration of the micro controller: "
+	errSaveConfig     = "Saving the configuration for the micro controller: "
 )
 
 type Config struct {
+	// IniSendTime is the range for initiating metric sends
 	IniSendTime string `json:"iniSendTime"`
+	// EndSendTime is the range for ending metric sends
 	EndSendTime string `json:"endSendTime"`
-	Wakeup      uint8  `json:"wakeup"`
-	Buffer      uint8  `json:"buffer"`
+	// Wakeup is how often in minutes the micro-controller wakes up to check for sending
+	Wakeup uint8 `json:"wakeup"`
+	// Buffer is the buffer in seconds to store metrics int the micro-controller
+	Buffer uint8 `json:"buffer"`
 }
 
 func configDefault() Config {
@@ -69,7 +75,7 @@ func (c ConfigRead) Read() (Config, error) {
 
 	data, err := os.ReadFile(file)
 	if err != nil {
-		c.Log.Error(errorReadConfig, zap.String("file", file), zap.Error(err))
+		c.Log.Error(errReadConfig, zap.String("file", file), zap.Error(err))
 
 		if errors.Is(err, os.ErrNotExist) {
 			return configDefault(), nil
@@ -81,7 +87,7 @@ func (c ConfigRead) Read() (Config, error) {
 	var mc Config
 
 	if err := json.Unmarshal(data, &mc); err != nil {
-		c.Log.Error(errorUnmarsConfig, zap.String("file", file), zap.Error(err))
+		c.Log.Error(errUnmarsConfig, zap.String("file", file), zap.Error(err))
 
 		return Config{}, nil
 	}
@@ -94,11 +100,11 @@ func (c ConfigWrite) Save(data Config) error {
 
 	conf, err := json.Marshal(data)
 	if err != nil {
-		return errors.Wrap(err, strings.Concat("Marshalling the configuration of the micro controller: ", file))
+		return errors.Wrap(err, strings.Concat(errMarshallConfig, file))
 	}
 
 	if err := os.WriteFile(file, conf, os.FileMode(0664)); err != nil {
-		return errors.Wrap(err, strings.Concat("Saving the configuration for the micro controller: ", file))
+		return errors.Wrap(err, strings.Concat(errSaveConfig, file))
 	}
 
 	// it updates the controller with new configuration

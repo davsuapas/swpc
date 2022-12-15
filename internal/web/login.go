@@ -35,6 +35,16 @@ const (
 	authCookie = "IsAuth"
 )
 
+const (
+	errGettingToken = "Logoff. Getting auth token from web request"
+	errUserNotFound = "Login. The user not found"
+	errEncrypt      = "Login. Error encrypt the pass"
+	errBadKey       = "Login. The pass is bad"
+	errSign         = "Login. Error signing token"
+)
+
+const infLoginRequest = "Login request"
+
 // Login controllers the access of the user
 type Login struct {
 	log   *zap.Logger
@@ -63,7 +73,7 @@ func (l *Login) Logoff(ctx echo.Context) error {
 
 	sess, err := ctx.Cookie(TokenName)
 	if err != nil {
-		l.log.Error("Logoff. Getting auth token from web request", zap.Error(err))
+		l.log.Error(errGettingToken, zap.Error(err))
 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
@@ -78,25 +88,25 @@ func (l *Login) Submit(ctx echo.Context) error {
 	email := ctx.FormValue("email")
 	pass := ctx.FormValue("password")
 
-	l.log.Info("Login request", zap.String("user", email))
+	l.log.Info(infLoginRequest, zap.String("user", email))
 
 	// Validate user
 	userPass, ok := l.users.get(email)
 	if !ok {
-		l.log.Error("Login. The user not found", zap.String("user", email))
+		l.log.Error(errUserNotFound, zap.String("user", email))
 
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
 
 	passEncrypt, err := pcrypto.Encrypt(pass, crypto.Key)
 	if err != nil {
-		l.log.With(zap.Error(err)).Error("Login. Error encrypt the pass")
+		l.log.With(zap.Error(err)).Error(errEncrypt)
 
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
 
 	if passEncrypt != userPass {
-		l.log.Error("Login. The pass is bad", zap.String("user", email))
+		l.log.Error(errBadKey, zap.String("user", email))
 
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
@@ -151,7 +161,7 @@ func (l *Login) securityToken(ctx echo.Context, email string) (string, error) {
 	// Generate encoded token and send it as response.
 	tsigned, err := token.SignedString([]byte(crypto.Key))
 	if err != nil {
-		l.log.With(zap.Error(err)).Error("Login. Error signing token", zap.Error(err))
+		l.log.With(zap.Error(err)).Error(errSign, zap.Error(err))
 
 		return "", ctx.NoContent(http.StatusInternalServerError)
 	}

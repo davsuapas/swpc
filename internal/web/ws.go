@@ -28,6 +28,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	errGenSocket   = "WS. Generating socket from web request"
+	errGettingAuth = "WS. Getting auth token from web request"
+)
+
 // WS register sockets
 type WS struct {
 	log      *zap.Logger
@@ -53,14 +58,14 @@ func NewWS(log *zap.Logger, sessionc config.WebConfig, hub *sockets.Hub) *WS {
 func (w *WS) Register(ctx echo.Context) error {
 	ws, err := w.upgrader.Upgrade(ctx.Response(), ctx.Request(), nil)
 	if err != nil {
-		w.log.Error("WS. Generating socket from web request", zap.Error(err))
+		w.log.Error(errGenSocket, zap.Error(err))
 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
 	sess, err := ctx.Cookie(TokenName)
 	if err != nil {
-		w.log.Error("WS. Getting auth token from web request", zap.Error(err))
+		w.log.Error(errGettingAuth, zap.Error(err))
 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
