@@ -27,6 +27,13 @@ import (
 
 const envConfig = "SW_POOL_CONTROLLER_CONFIG"
 
+const (
+	errEnvConfig   = "Environment configuration variable cannot be loaded"
+	errLogEncoding = "The log encoding param must be configured to ('json' or 'console')"
+	errLogLevel    = "The log level param must be configured to " +
+		"(-1: debug, 0: info, 1: Warn, 2: Error, 3: DPanic, 4: Panic, 5: Fatal)"
+)
+
 // Server describes the http configuration
 type ServerConfig struct {
 	Port int `json:"port"`
@@ -97,17 +104,16 @@ func LoadConfig() Config {
 
 	if len(env) != 0 {
 		if err := json.Unmarshal([]byte(env), &cnf); err != nil {
-			panic(strings.Concat("Configuration environment variable cannot be loaded. Description ", err.Error()))
+			panic(strings.Format(errEnvConfig, strings.FMTValue("Description", err.Error())))
 		}
 	}
 
 	if cnf.Encoding != "json" && cnf.Encoding != "console" {
-		panic("The log encoding param must be configured to ('json' or 'console')")
+		panic(errLogEncoding)
 	}
 
 	if !(cnf.Level >= -1 && cnf.Level <= 5) {
-		panic("The log level param must be configured to " +
-			"(-1: debug, 0: info, 1: Warn, 2: Error, 3: DPanic, 4: Panic, 5: Fatal)")
+		panic(errLogLevel)
 	}
 
 	return cnf

@@ -33,3 +33,43 @@ func Concat(params ...string) string {
 
 	return builder.String()
 }
+
+// FormatValue defines the variables values to format
+type FormatValue struct {
+	key   string
+	value string
+}
+
+// FMTValue builds the variables values to format
+func FMTValue(key string, value string) FormatValue {
+	return FormatValue{
+		key:   key,
+		value: value,
+	}
+}
+
+// Format formats the text with variables values without escape to heap
+func Format(text string, fmtValues ...FormatValue) string {
+	var builder strings.Builder
+
+	builder.Grow(len(text) + (len(fmtValues) * 5))
+
+	builder.WriteString(text)
+
+	if len(fmtValues) > 0 {
+		builder.WriteString(" (")
+	}
+
+	for _, fv := range fmtValues {
+		builder.WriteString(fv.key)
+		builder.WriteString(": ")
+		builder.WriteString(fv.value)
+		builder.WriteString(", ")
+	}
+
+	if len(fmtValues) > 0 {
+		builder.WriteString(")")
+	}
+
+	return builder.String()
+}

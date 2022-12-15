@@ -28,27 +28,28 @@ import (
 )
 
 const (
-	errSendingMsg         = "Hub-> Sending a message"
-	errClientRemoved      = ". The client will be removed"
-	errRemovingDiedClient = "Hub-> Removing died client by expiration: "
-	errClosingClient      = "Hub-> Closing client:"
+	errSendingMsg         = "Hub-> Sending a message. The client will be removed"
+	errRemovingDiedClient = "Hub-> Removing died client by expiration"
+	errClosingClient      = "Hub-> Closing client"
 )
 
 const (
 	infCheckerDes     = "Hub-> The check timer is deactivated because there are no clients"
-	infClientReg      = "Hub-> Client registered: "
-	infClientUnReg    = "Hub-> Unregistering client: "
-	infClientUnRegd   = "Hub-> Client unregisted: "
-	infHubActive      = "Hub-> The hub is set to active. Previous status: "
+	infClientReg      = "Hub-> Client registered"
+	infClientUnReg    = "Hub-> Unregistering client"
+	infClientUnRegd   = "Hub-> Client unregisted"
+	infHubActive      = "Hub-> The hub is set to active"
 	infHubInactive    = "Hub-> The hub is set to inactive. Previous status: active"
-	infBufferLatency  = ", buffer + comm latency: "
-	infLastMsgDate    = ", last message date: "
-	infCount          = ", count: "
-	infHubStatus      = ", hub status: "
-	infClientDied     = "Hub-> Client died by expiration: "
-	infExpirationDate = ", Expiration date: "
-	infActualDate     = ", Actual date: "
-	infArraySize      = "Hub-> Array size after removing expired clients: "
+	infClientDied     = "Hub-> Client died by expiration"
+	infArraySize      = "Hub-> Array size after removing expired clients"
+	infClientID       = "ClientID"
+	infLength         = "Length"
+	infStatus         = "Status"
+	infBufferLatency  = "Buffer + Comm latency"
+	infLastMsgDate    = "Last message date"
+	infExpirationDate = "Expiration date"
+	infActualDate     = "Actual date"
+	infPrevStatus     = "Previous status"
 )
 
 // Status are the communication status between the sender and the hub
@@ -214,8 +215,7 @@ func (h *Hub) tryResetTimer(check *time.Timer) {
 	if len(h.clients) > 0 {
 		check.Reset(h.config.CommLatency)
 	} else {
-		h.infos <- []string{
-			strings.Concat(infCheckerDes)}
+		h.infos <- []string{infCheckerDes}
 	}
 }
 
@@ -237,10 +237,11 @@ func (h *Hub) register(client Client, check *time.Timer) {
 	}
 
 	h.infos <- []string{
-		strings.Concat(
-			infClientReg, client.id,
-			infCount, strconv.Itoa(len(h.clients)),
-			infHubStatus, statusString(h.status))}
+		strings.Format(
+			infClientReg,
+			strings.FMTValue(infClientID, client.id),
+			strings.FMTValue(infLength, strconv.Itoa(len(h.clients))),
+			strings.FMTValue(infLength, statusString(h.status)))}
 }
 
 func (h *Hub) unregister(id string) {
@@ -250,13 +251,18 @@ func (h *Hub) unregister(id string) {
 
 	if err := h.removeClient(id); err != nil {
 		h.errors <- []error{errors.Wrap(
-			err, strings.Concat(infClientUnReg, id, infCount, strconv.Itoa(len(h.clients))))}
+			err,
+			strings.Format(
+				infClientUnReg,
+				strings.FMTValue(infLength, strconv.Itoa(len(h.clients)))))}
 	}
 
-	h.infos <- []string{strings.Concat(
-		infClientUnRegd, id,
-		infCount, strconv.Itoa(len(h.clients)),
-		infHubStatus, statusString(h.status))}
+	h.infos <- []string{
+		strings.Format(
+			infClientUnRegd,
+			strings.FMTValue(infClientID, id),
+			strings.FMTValue(infLength, strconv.Itoa(len(h.clients))),
+			strings.FMTValue(infLength, statusString(h.status)))}
 }
 
 // sendMessage send message to the all clients registered. If sending the message throw a error, the client is removed
@@ -279,14 +285,15 @@ func (h *Hub) sendMessage(message []byte) {
 
 			errs = append(
 				errs,
-				errors.Wrap(err, strings.Concat(errSendingMsg, c.id, errClientRemoved)))
+				errors.Wrap(
+					err,
+					strings.Format(errSendingMsg, strings.FMTValue(infClientID, c.id))))
 		}
 	}
 
 	h.lastMessage = time.Now()
 	if h.status != Streaming {
-		h.infos <- []string{strings.Concat(infHubActive, statusString(h.status))}
-
+		h.infos <- []string{strings.Format(infHubActive, strings.FMTValue(infPrevStatus, statusString(h.status)))}
 		h.status = Streaming
 	}
 
@@ -308,10 +315,10 @@ func (h *Hub) controllerStatus() {
 		if h.lastMessage.Add(idleTime).Before(time.Now()) {
 			h.status = Inactive
 			h.infos <- []string{
-				strings.Concat(
+				strings.Format(
 					infHubInactive,
-					infLastMsgDate, h.lastMessage.String(),
-					infBufferLatency, idleTime.String())}
+					strings.FMTValue(infBufferLatency, h.lastMessage.String()),
+					strings.FMTValue(infLastMsgDate, idleTime.String()))}
 		}
 	}
 }
@@ -336,15 +343,16 @@ func (h *Hub) removeDeadClient() {
 					errs,
 					errors.Wrap(
 						err,
-						strings.Concat(errRemovingDiedClient, clientID, errClientRemoved)))
+						strings.Format(errRemovingDiedClient, strings.FMTValue(infClientID, clientID))))
 			}
 
 			infos = append(
 				infos,
-				strings.Concat(
-					infClientDied, clientID,
-					infExpirationDate, c.expiration.String(),
-					infActualDate, time.Now().String()))
+				strings.Format(
+					infClientDied,
+					strings.FMTValue(infClientID, clientID),
+					strings.FMTValue(infExpirationDate, c.expiration.String()),
+					strings.FMTValue(infActualDate, time.Now().String())))
 		}
 	}
 
@@ -359,7 +367,7 @@ func (h *Hub) removeDeadClient() {
 	if len(infos) > 0 {
 		infos = append(
 			infos,
-			strings.Concat(infArraySize, strconv.Itoa(len(h.clients))))
+			strings.Format(infArraySize, strings.FMTValue(infLength, strconv.Itoa(len(h.clients)))))
 		h.infos <- infos
 	}
 }
@@ -407,7 +415,7 @@ func (h *Hub) closeClient(pos uint16) error {
 	clientID := h.clients[pos].id
 
 	if err := h.clients[pos].conn.Close(); err != nil {
-		return errors.Wrap(err, strings.Concat(errClosingClient, clientID))
+		return errors.Wrap(err, strings.Format(errClosingClient, strings.FMTValue(infClientID, clientID)))
 	}
 
 	return nil

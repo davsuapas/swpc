@@ -34,7 +34,7 @@ import (
 
 const (
 	errReadConfig = "Reading the configuration of the micro controller from config file"
-	errCreateZap  = "Error creating zap logger. Description: "
+	errCreateZap  = "Error creating zap logger"
 )
 
 // APIHandler Micro API handler
@@ -139,7 +139,7 @@ func newLogger(ctx config.Config) *zap.Logger {
 
 	l, err := log.Build()
 	if err != nil {
-		panic(strings.Concat(errCreateZap, err.Error()))
+		panic(strings.Format(errCreateZap, strings.FMTValue("Description", err.Error())))
 	}
 
 	return l
