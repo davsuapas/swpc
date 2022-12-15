@@ -21,8 +21,11 @@ import (
 	"encoding/json"
 	"os"
 	"path"
+	"time"
 
 	"github.com/pkg/errors"
+	"github.com/swpoolcontroller/internal/config"
+	"github.com/swpoolcontroller/pkg/sockets"
 	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
 )
@@ -34,6 +37,14 @@ const (
 	errUnmarsConfig   = "Unmarshalling the configuration of the micro controller from config file"
 	errMarshallConfig = "Marshalling the configuration of the micro controller: "
 	errSaveConfig     = "Saving the configuration for the micro controller: "
+)
+
+const (
+	infLoadingConfig = "Loading configuration file"
+	infConfigLoaded  = "Configuration file loaded"
+	infSavingConfig  = "Saving configuration file"
+	infConfig        = "Config"
+	infFile          = "file"
 )
 
 type Config struct {
@@ -56,6 +67,16 @@ func configDefault() Config {
 	}
 }
 
+// String returns struct as string
+func (c *Config) String() string {
+	r, err := json.Marshal(c)
+	if err != nil {
+		return ""
+	}
+
+	return string(r)
+}
+
 // ConfigRead reads the micro controller configuration
 type ConfigRead struct {
 	Log      *zap.Logger
@@ -66,6 +87,8 @@ type ConfigRead struct {
 type ConfigWrite struct {
 	Log      *zap.Logger
 	MControl *Controller
+	Hub      *sockets.Hub
+	Config   config.Config
 	DataPath string
 }
 
@@ -73,9 +96,11 @@ type ConfigWrite struct {
 func (c ConfigRead) Read() (Config, error) {
 	file := path.Join(c.DataPath, fileName)
 
+	c.Log.Info(infLoadingConfig, zap.String(infFile, file))
+
 	data, err := os.ReadFile(file)
 	if err != nil {
-		c.Log.Error(errReadConfig, zap.String("file", file), zap.Error(err))
+		c.Log.Error(errReadConfig, zap.String(infFile, file), zap.Error(err))
 
 		if errors.Is(err, os.ErrNotExist) {
 			return configDefault(), nil
@@ -87,16 +112,20 @@ func (c ConfigRead) Read() (Config, error) {
 	var mc Config
 
 	if err := json.Unmarshal(data, &mc); err != nil {
-		c.Log.Error(errUnmarsConfig, zap.String("file", file), zap.Error(err))
+		c.Log.Error(errUnmarsConfig, zap.String(infFile, file), zap.Error(err))
 
 		return Config{}, nil
 	}
+
+	c.Log.Info(infConfigLoaded, zap.String(infConfig, mc.String()))
 
 	return mc, nil
 }
 
 func (c ConfigWrite) Save(data Config) error {
 	file := path.Join(c.DataPath, fileName)
+
+	c.Log.Info(infSavingConfig, zap.String(infConfig, data.String()), zap.String(infFile, file))
 
 	conf, err := json.Marshal(data)
 	if err != nil {
@@ -109,6 +138,11 @@ func (c ConfigWrite) Save(data Config) error {
 
 	// it updates the controller with new configuration
 	c.MControl.SetConfig(data)
+
+	c.Hub.Config(sockets.Config{
+		CommLatency: time.Duration(c.Config.CommLatencyTime),
+		Buffer:      time.Duration(data.Buffer),
+	})
 
 	return nil
 }

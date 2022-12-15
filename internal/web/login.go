@@ -43,7 +43,10 @@ const (
 	errSign         = "Login. Error signing token"
 )
 
-const infLoginRequest = "Login request"
+const (
+	infLoginRequest  = "Login request"
+	infLogoffRequest = "Logoff request"
+)
 
 // Login controllers the access of the user
 type Login struct {
@@ -64,6 +67,8 @@ func NewLogin(log *zap.Logger, wc config.WebConfig, hub *sockets.Hub) *Login {
 
 // Logoff removes cookies and it un-registers the socket
 func (l *Login) Logoff(ctx echo.Context) error {
+	l.log.Info(infLoginRequest)
+
 	cookie := cookies(TokenName, "", true, time.Time{})
 	cookie.MaxAge = 0 // Remove cookie
 	ctx.SetCookie(cookie)

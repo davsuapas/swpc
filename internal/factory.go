@@ -98,6 +98,8 @@ func NewFactory() *Factory {
 	mconfigWrite := &micro.ConfigWrite{
 		Log:      log,
 		MControl: mcontrol,
+		Hub:      hub,
+		Config:   config,
 		DataPath: config.DataPath,
 	}
 
@@ -111,10 +113,8 @@ func NewFactory() *Factory {
 			Login: web.NewLogin(log, config.WebConfig, hub),
 			Config: &web.ConfigWeb{
 				Log:    log,
-				Hub:    hub,
 				MicroR: mconfigRead,
 				MicroW: mconfigWrite,
-				Config: config,
 			},
 			WS: web.NewWS(log, config.WebConfig, hub),
 		},

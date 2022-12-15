@@ -19,12 +19,9 @@ package web
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/micro"
-	"github.com/swpoolcontroller/pkg/sockets"
 	"go.uber.org/zap"
 )
 
@@ -39,8 +36,6 @@ type ConfigWeb struct {
 	Log    *zap.Logger
 	MicroR *micro.ConfigRead
 	MicroW *micro.ConfigWrite
-	Hub    *sockets.Hub
-	Config config.Config
 }
 
 // Load loads the configuration saved into disk file
@@ -70,11 +65,6 @@ func (cf *ConfigWeb) Save(ctx echo.Context) error {
 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
-
-	cf.Hub.Config(sockets.Config{
-		CommLatency: time.Duration(cf.Config.CommLatencyTime),
-		Buffer:      time.Duration(conf.Buffer),
-	})
 
 	return ctx.NoContent(http.StatusOK)
 }
