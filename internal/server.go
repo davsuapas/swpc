@@ -19,19 +19,16 @@ package internal
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/swpoolcontroller/internal/api"
 	"github.com/swpoolcontroller/internal/crypto"
 	"github.com/swpoolcontroller/internal/web"
 	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 const (
@@ -96,38 +93,6 @@ func (s *Server) Start() {
 // Middleware configure security and behaviour of http
 func (s *Server) Middleware() {
 	s.factory.Webs.Use(middleware.Recover())
-
-	// Logger
-	s.factory.Webs.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
-		LogURI:    true,
-		LogStatus: true,
-		LogValuesFunc: func(ctx echo.Context, values middleware.RequestLoggerValues) error {
-			fields := []zapcore.Field{
-				zap.String("request_id", values.RequestID),
-				zap.String("remote_ip", values.RemoteIP),
-				zap.String("host", values.Host),
-				zap.String("Latency", values.Latency.String()),
-				zap.String("method", values.Method),
-				zap.String("request_uri", values.Method),
-				zap.Int("status", values.Status),
-				zap.Int64("response_size", values.ResponseSize),
-				zap.String("user_agent", values.UserAgent),
-			}
-
-			switch {
-			case values.Status >= http.StatusInternalServerError:
-				s.factory.Log.Error("Web server error", fields...)
-			case values.Status >= http.StatusBadRequest:
-				s.factory.Log.Info("Web client error", fields...)
-			case values.Status >= http.StatusMultipleChoices:
-				s.factory.Log.Info("Web server redirection", fields...)
-			default:
-				s.factory.Log.Info("Web success server response", fields...)
-			}
-
-			return nil
-		},
-	}))
 
 	// SPA web
 	s.factory.Webs.Use(middleware.StaticWithConfig(middleware.StaticConfig{

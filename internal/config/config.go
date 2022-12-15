@@ -90,7 +90,7 @@ func LoadConfig() Config {
 			Encoding:    "console",
 		},
 		WebConfig: WebConfig{
-			SessionExpiration: 1,
+			SessionExpiration: 10,
 		},
 		APIConfig: APIConfig{
 			SessionExpiration: 60,
