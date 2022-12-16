@@ -82,8 +82,10 @@ func NewFactory() *Factory {
 	hubt := hub.NewTrace(log)
 	hub := sockets.NewHub(
 		sockets.Config{
-			CommLatency: time.Duration(config.CommLatencyTime) * time.Second,
-			Buffer:      time.Duration(configm.Buffer) * time.Second,
+			CommLatency:      time.Duration(config.CommLatencyTime) * time.Second,
+			Buffer:           time.Duration(configm.Buffer) * time.Second,
+			TaskTime:         time.Duration(config.TaskTime) * time.Second,
+			NotificationTime: time.Duration(config.NotificationTime) * time.Second,
 		},
 		hubt.Infos,
 		hubt.Errors)

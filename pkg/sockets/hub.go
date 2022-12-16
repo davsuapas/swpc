@@ -18,6 +18,7 @@
 package sockets
 
 import (
+	"encoding/json"
 	"strconv"
 	"time"
 
@@ -29,6 +30,7 @@ import (
 
 const (
 	errSendingMsg         = "Hub-> Sending a message. The client will be removed"
+	errNotify             = "Hub-> Notifying status. The client will be removed"
 	errRemovingDiedClient = "Hub-> Removing died client by expiration"
 	errClosingClient      = "Hub-> Closing client"
 )
@@ -42,6 +44,8 @@ const (
 	infHubInactive    = "Hub-> The hub is set to inactive. Previous status: active"
 	infClientDied     = "Hub-> Client died by expiration"
 	infArraySize      = "Hub-> Array size after removing expired clients"
+	infNotify         = "Hub-> Notifying status"
+	infConfigChanged  = "Hub-> The configuration has been changed"
 	infClientID       = "ClientID"
 	infLength         = "Length"
 	infStatus         = "Status"
@@ -50,6 +54,8 @@ const (
 	infExpirationDate = "Expiration date"
 	infActualDate     = "Actual date"
 	infPrevStatus     = "Previous status"
+	infLastNotify     = "Last notification date"
+	infConfig         = "Config"
 )
 
 // Status are the communication status between the sender and the hub
@@ -74,6 +80,20 @@ type Config struct {
 	CommLatency time.Duration
 	// Buffer is the time in seconds to store metrics before sending to the hub
 	Buffer time.Duration
+	// TaskTime defines how often the hub makes maintenance task
+	TaskTime time.Duration
+	// NotificationTime defines how often a notification is sent
+	NotificationTime time.Duration
+}
+
+// string returns struct as string
+func (c *Config) string() string {
+	r, err := json.Marshal(c)
+	if err != nil {
+		return ""
+	}
+
+	return string(r)
 }
 
 // Client identifies a connection socket.
@@ -107,10 +127,13 @@ type Hub struct {
 	unreg   chan string
 	errors  chan []error
 	infos   chan []string
-	send    chan []byte
+	send    chan string
 	sconfig chan Config
 	statusc chan chan Status
 	closec  chan struct{}
+
+	// lastNotification the time when the last notification was sended
+	lastNotification time.Time
 
 	// lastMessage the time when the last messages was sended
 	lastMessage time.Time
@@ -130,7 +153,7 @@ func NewHub(
 		config:      cnf,
 		reg:         make(chan Client),
 		unreg:       make(chan string),
-		send:        make(chan []byte),
+		send:        make(chan string),
 		sconfig:     make(chan Config),
 		infos:       infos,
 		errors:      errors,
@@ -152,7 +175,7 @@ func (h *Hub) Unregister(id string) {
 }
 
 // Send sends message to the all clients into hub
-func (h *Hub) Send(message []byte) {
+func (h *Hub) Send(message string) {
 	h.send <- message
 }
 
@@ -174,7 +197,7 @@ func (h *Hub) Stop() {
 // Run registers and unregisters clients, sends messages and remove died clients. Launches a gouroutine
 func (h *Hub) Run() {
 	go func() {
-		check := time.NewTimer(h.config.CommLatency)
+		check := time.NewTimer(h.config.TaskTime)
 
 		for {
 			select {
@@ -183,13 +206,15 @@ func (h *Hub) Run() {
 			case id := <-h.unreg:
 				h.unregister(id)
 			case message := <-h.send:
-				h.sendMessage(message)
+				h.sendMessageFromDevice(message)
 			case countResp := <-h.statusc:
 				countResp <- h.status
 			case cnf := <-h.sconfig:
 				h.config = cnf
+				h.infos <- []string{strings.Format(infConfigChanged, strings.FMTValue(infConfig, h.config.string()))}
 			case <-check.C:
 				h.controllerStatus()
+				h.statusNotification()
 				h.removeDeadClient()
 				h.tryResetTimer(check)
 			case <-h.closec:
@@ -213,7 +238,7 @@ func (h *Hub) close(check *time.Timer) {
 // If there aren't clients, the timer is not activated and the CPU is saved.
 func (h *Hub) tryResetTimer(check *time.Timer) {
 	if len(h.clients) > 0 {
-		check.Reset(h.config.CommLatency)
+		check.Reset(h.config.TaskTime)
 	} else {
 		h.infos <- []string{infCheckerDes}
 	}
@@ -233,7 +258,7 @@ func (h *Hub) register(client Client, check *time.Timer) {
 	if countc == 1 {
 		check.Reset(h.config.CommLatency)
 		// As soon as there is a client, the hub switches to reception mode.
-		h.status = Active
+		h.active()
 	}
 
 	h.infos <- []string{
@@ -265,44 +290,23 @@ func (h *Hub) unregister(id string) {
 			strings.FMTValue(infLength, statusString(h.status)))}
 }
 
-// sendMessage send message to the all clients registered. If sending the message throw a error, the client is removed
-func (h *Hub) sendMessage(message []byte) {
+// sendMessageFromDevice send message to the all clients registered.
+// If sending the message throw a error, the client is removed
+func (h *Hub) sendMessageFromDevice(message string) {
 	if h.status == Deactivated || h.status == Closed {
 		return
 	}
 
-	var errs []error
+	// The message may be changed by sendmessage
+	status := h.status
 
-	var brokenclients []uint16
-
-	for i, c := range h.clients {
-		if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-			brokenclients = append(brokenclients, uint16(i))
-
-			if err := h.closeClient(uint16(i)); err != nil {
-				errs = append(errs, errors.Wrap(err, errSendingMsg))
-			}
-
-			errs = append(
-				errs,
-				errors.Wrap(
-					err,
-					strings.Format(errSendingMsg, strings.FMTValue(infClientID, c.id))))
-		}
-	}
+	h.sendMessage([]byte(strings.Concat("1:", message)), errSendingMsg)
 
 	h.lastMessage = time.Now()
+
 	if h.status != Streaming {
-		h.infos <- []string{strings.Format(infHubActive, strings.FMTValue(infPrevStatus, statusString(h.status)))}
+		h.infos <- []string{strings.Format(infHubActive, strings.FMTValue(infPrevStatus, statusString(status)))}
 		h.status = Streaming
-	}
-
-	if len(errs) > 0 {
-		h.errors <- errs
-	}
-
-	if len(brokenclients) > 0 {
-		h.removeClientByPos(brokenclients...)
 	}
 }
 
@@ -313,7 +317,7 @@ func (h *Hub) controllerStatus() {
 		// and a possible latency time
 		idleTime := h.config.Buffer + h.config.CommLatency
 		if h.lastMessage.Add(idleTime).Before(time.Now()) {
-			h.status = Inactive
+			h.inactive()
 			h.infos <- []string{
 				strings.Format(
 					infHubInactive,
@@ -321,6 +325,73 @@ func (h *Hub) controllerStatus() {
 					strings.FMTValue(infLastMsgDate, idleTime.String()))}
 		}
 	}
+}
+
+// statusNotification sends the status to the web client (Only for these states Active or Inactive)
+func (h *Hub) statusNotification() {
+	if h.status != Active && h.status != Inactive {
+		return
+	}
+
+	// If the time for the next notification has not elapsed, it does not send the next notification
+	if h.lastNotification.Add(h.config.NotificationTime).After(time.Now()) {
+		return
+	}
+
+	// The message may be changed by sendmessage
+	status := h.status
+
+	msg := []byte(strings.Concat("0:", strconv.Itoa(int(h.status))))
+	h.sendMessage(msg, errNotify)
+
+	h.infos <- []string{
+		strings.Format(
+			infNotify,
+			strings.FMTValue(infActualDate, time.Now().String()),
+			strings.FMTValue(infLastNotify, h.lastNotification.String()),
+			strings.FMTValue(infStatus, statusString(status)))}
+}
+
+// sendMessage sends messages to the client
+func (h *Hub) sendMessage(message []byte, errMessage string) {
+	var errs []error
+
+	var brokenclients []uint16
+
+	for i, c := range h.clients {
+		if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+			brokenclients = append(brokenclients, uint16(i))
+
+			if err := h.closeClient(uint16(i)); err != nil {
+				errs = append(errs, errors.Wrap(err, errMessage))
+			}
+
+			errs = append(
+				errs,
+				errors.Wrap(
+					err,
+					strings.Format(errMessage, strings.FMTValue(infClientID, c.id))))
+		}
+	}
+
+	if len(brokenclients) > 0 {
+		h.removeClientByPos(brokenclients...)
+	}
+
+	if len(errs) > 0 {
+		h.errors <- errs
+		h.infos <- []string{strings.Format(infArraySize, strings.FMTValue(infLength, strconv.Itoa(len(h.clients))))}
+	}
+}
+
+func (h *Hub) active() {
+	h.status = Active
+	h.lastNotification = time.Now()
+}
+
+func (h *Hub) inactive() {
+	h.status = Inactive
+	h.lastNotification = time.Now()
 }
 
 // removeDeadClient removes died clients

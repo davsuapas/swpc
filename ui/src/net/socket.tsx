@@ -22,8 +22,8 @@ import User from "../login/user";
 import Alert from "../support/alert";
 
 enum CommStatus {
-    inactiveComm,
-    breakComm
+    activeComm,
+    inactiveComm
 }
 
 export default class SocketFactory {
@@ -73,31 +73,31 @@ export default class SocketFactory {
             if (message.messageType == MessageType.control ) {
                 const status = message.controlMessage();
 
-                if (status == CommStatus.inactiveComm) {
+                if (status == CommStatus.activeComm) {
                     if (this.alert.current) {
                         this.alert.current.content(
                             "Comunicación con el micro controlador sin respuesta",
-                            "No se detecta ningún envío de métricas del micro controlador, seguiremos " +
-                            "intentado reestablecer la comunicación. No cierre ninguna vetana mientras " + 
-                            "se restablece la comunicación");
+                            "No se detecta ningún envío de métricas desde el micro controlador, seguiremos " +
+                            "intentado reestablecer la comunicación. Si persiste el problema, " +
+                            "asegúrese que el micro controlador se encuentra encedido y que la comunicación " +
+                            "se encuentra habilitada. También puede ser debido, a que no se encuentra " +
+                            "dentro del horario establecido para la recepción de las métricas " +
+                            "o simplemente hay un retraso en las comunicaciones")
+                            
                         this.alert.current.open();
                         this.actions.activeStandby(true)
                     }
                 } else {
                     if (this.alert.current) {
                         this.alert.current.content(
-                            "Parece que la comunicación con el micro controlador se encuentra caída",
-                            "Demsasiado tiempo sin respuesta, asegúrese que el micro controlador " +
-                            "se encuentra encedido y que la comunicación se encuentra habilitada. " + 
-                            "También puede ser debido, a que no se encuentra dentro del horario establecido " +
-                            "para la recepción de las métricas o simplemente hay un retraso en las comunicaciones. " +
-                            "En este caso último, inténtelo más tarde. " +
-                            "Se procederá a cerrar la sessión de trabajo.");
-                        this.alert.current.events.closed = () => {
-                            socket.close();
-                            this.user.logoff();
-                        };
+                            "Comunicación con el micro controlador sin respuesta, después de envíos satisfactorios",
+                            "Parece que la comunicación con el micro controlador se encuentra caída" + 
+                            "Si persiste el problema, " +
+                            "asegúrese que el micro controlador se encuentra encedido y que la comunicación " +
+                            "se encuentra habilitada")
+
                         this.alert.current.open();
+                        this.actions.activeStandby(true)
                     }
                 }
             }
@@ -121,6 +121,6 @@ class MessageFactory {
     }
 
     controlMessage(): CommStatus {
-        return Number.parseInt(this.rawMessage) == 1 ? CommStatus.inactiveComm : CommStatus.breakComm
+        return Number.parseInt(this.rawMessage) == 1 ? CommStatus.activeComm : CommStatus.inactiveComm
     }
 }

@@ -83,7 +83,7 @@ func (c *Controller) tryConfig() Config {
 // Download transfers the metrics between micro controller and the hub
 // Download also returns the conduct to be taken by the micro-controller
 func (c *Controller) Download(metrics string) Behavior {
-	c.Hub.Send([]byte(metrics))
+	c.Hub.Send(metrics)
 
 	return c.Status()
 }

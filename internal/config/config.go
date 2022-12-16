@@ -46,18 +46,25 @@ func (s *ServerConfig) Address() string {
 
 type APIConfig struct {
 	// SessionExpiration defines the session expiration in minutes
-	SessionExpiration int `json:"expirationSession"`
+	SessionExpiration int `json:"expirationSession,omitempty"`
 	// CommLatencyTime sets the possible communication latency between the device and the hub, in seconds
-	CommLatencyTime int `json:"commLatencyTime"`
-	// CheckTransTime defines When the microphone is in the time window to transmit in case there are no clients,
+	CommLatencyTime int `json:"commLatencyTime,omitempty"`
+	// CheckTransTime defines When the micro-controller is in the time window to transmit in case there are no clients,
 	// every so often it checks when to transmit
-	CheckTransTime int `json:"checkTransTime"`
+	CheckTransTime int `json:"checkTransTime,omitempty"`
 }
 
 // WebConfig describes the web configuration
 type WebConfig struct {
 	// SessionExpiration defines the session expiration in minutes
-	SessionExpiration int `json:"expirationSession"`
+	SessionExpiration int `json:"expirationSession,omitempty"`
+}
+
+type HubConfig struct {
+	// TaskTime defines how often the hub makes maintenance task in seconds
+	TaskTime int `json:"taskTime,omitempty"`
+	// NotificationTime defines how often a notification is sent in seconds
+	NotificationTime int `json:"notificationTime,omitempty"`
 }
 
 // ZapConfig defines the configuration for log framework
@@ -77,6 +84,7 @@ type Config struct {
 	ZapConfig    `json:"log,omitempty"`
 	WebConfig    `json:"web,omitempty"`
 	APIConfig    `json:"api,omitempty"`
+	HubConfig    `json:"hub,omitempty"`
 	DataPath     string `json:"dataPath,omitempty"`
 }
 
@@ -96,6 +104,10 @@ func LoadConfig() Config {
 			SessionExpiration: 60,
 			CommLatencyTime:   10,
 			CheckTransTime:    5,
+		},
+		HubConfig: HubConfig{
+			TaskTime:         10,
+			NotificationTime: 10,
 		},
 		DataPath: "./data",
 	}
