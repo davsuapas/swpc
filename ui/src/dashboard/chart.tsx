@@ -16,9 +16,9 @@
  */
 
 import * as React from 'react';
-import { useTheme } from '@mui/material/styles';
 import { LineChart, Line, XAxis, YAxis, Label, ResponsiveContainer } from 'recharts';
 import Title from './title';
+import { Theme } from '@mui/material/styles';
 
 // Generate Sales Data
 function createData(time: string, amount?: number) {
@@ -40,54 +40,56 @@ const data = [
 interface ChartProps {
   name: string;
   unitName: string;
+  theme: Theme;
 }
 
-export default function Chart(props: ChartProps) {
-  const theme = useTheme();
+export default class Chart extends React.Component<ChartProps, any> {
 
-  return (
-    <React.Fragment>
-      <Title>{props.name}</Title>
-      <ResponsiveContainer>
-        <LineChart
-          data={data}
-          margin={{
-            top: 16,
-            right: 16,
-            bottom: 0,
-            left: 24,
-          }}
-        >
-          <XAxis
-            dataKey="time"
-            stroke={theme.palette.text.secondary}
-            style={theme.typography.body2}
-          />
-          <YAxis
-            stroke={theme.palette.text.secondary}
-            style={theme.typography.body2}
+  render(): React.ReactNode {
+    return (
+      <React.Fragment>
+        <Title>{this.props.name}</Title>
+        <ResponsiveContainer>
+          <LineChart
+            data={data}
+            margin={{
+              top: 16,
+              right: 16,
+              bottom: 0,
+              left: 24,
+            }}
           >
-            <Label
-              angle={270}
-              position="left"
-              style={{
-                textAnchor: 'middle',
-                fill: theme.palette.text.primary,
-                ...theme.typography.body1,
-              }}
+            <XAxis
+              dataKey="time"
+              stroke={this.props.theme.palette.text.secondary}
+              style={this.props.theme.typography.body2}
+            />
+            <YAxis
+              stroke={this.props.theme.palette.text.secondary}
+              style={this.props.theme.typography.body2}
             >
-              {props.unitName}
-            </Label>
-          </YAxis>
-          <Line
-            isAnimationActive={false}
-            type="monotone"
-            dataKey="amount"
-            stroke={theme.palette.primary.main}
-            dot={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </React.Fragment>
-  );
+              <Label
+                angle={270}
+                position="left"
+                style={{
+                  textAnchor: 'middle',
+                  fill: this.props.theme.palette.text.primary,
+                  ...this.props.theme.typography.body1,
+                }}
+              >
+                {this.props.unitName}
+              </Label>
+            </YAxis>
+            <Line
+              isAnimationActive={false}
+              type="monotone"
+              dataKey="amount"
+              stroke={this.props.theme.palette.primary.main}
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </React.Fragment>
+    );
+  }
 }

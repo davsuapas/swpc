@@ -145,7 +145,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart name={temperatureName} unitName={temperatureUnit} />
+                      <Chart name={temperatureName} unitName={temperatureUnit} theme={mdTheme} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>
@@ -169,7 +169,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart name={phName} unitName={phUnit} />
+                      <Chart name={phName} unitName={phUnit} theme={mdTheme} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>
@@ -193,7 +193,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart name={chlorineName} unitName={chlorineUnit} />
+                      <Chart name={chlorineName} unitName={chlorineUnit} theme={mdTheme} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>

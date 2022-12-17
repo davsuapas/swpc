@@ -345,6 +345,8 @@ func (h *Hub) statusNotification() {
 	msg := []byte(strings.Concat("0:", strconv.Itoa(int(h.status))))
 	h.sendMessage(msg, errNotify)
 
+	h.lastNotification = time.Now()
+
 	h.infos <- []string{
 		strings.Format(
 			infNotify,

@@ -86,7 +86,7 @@ export default class SocketFactory {
                             "intentado reestablecer la comunicación. Si persiste el problema, " +
                             "asegúrese que el micro controlador se encuentra encedido y que la comunicación " +
                             "se encuentra habilitada. También puede ser debido, a que no se encuentra " +
-                            "dentro del horario establecido para la recepción de las métricas " +
+                            "dentro del horario establecido para la recepción de las métricas, " +
                             "o simplemente hay un retraso en las comunicaciones")
                             
                         this.alert.current.open();
