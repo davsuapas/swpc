@@ -21,11 +21,16 @@ import { Actions } from "../dashboard/dashboard";
 import User from "../login/user";
 import Alert from "../support/alert";
 
+// CommStatus is the communications status
 enum CommStatus {
+    // activeComm is when the hub is in transmit mode. There are clients connected,
+    // but there is not transmission from sender
     activeComm,
+    // inactiveComm is when the hub was in streaming mode but there is no transmission from the sender
     inactiveComm
 }
 
+// SocketFactory Manages socket iteration with the server
 export default class SocketFactory {
 
     private ws: WebsocketBuilder;
@@ -106,20 +111,24 @@ export default class SocketFactory {
 }
 
 enum MessageType {
+    // control is a message of control type
     control,
-    meassure  
+    // control is a message of metric type
+    metrics  
 }
 
+// MessageFactory builds the message
 class MessageFactory {
     messageType: MessageType;
     private rawMessage: string;
 
     constructor(msg: string) {
         const tokens = msg.split(":")
-        this.messageType = tokens[0] == "0" ? MessageType.control : MessageType.meassure
+        this.messageType = tokens[0] == "0" ? MessageType.control : MessageType.metrics
         this.rawMessage = tokens[1]
     }
 
+    // controlMessage gets communication status
     controlMessage(): CommStatus {
         return Number.parseInt(this.rawMessage) == 1 ? CommStatus.activeComm : CommStatus.inactiveComm
     }

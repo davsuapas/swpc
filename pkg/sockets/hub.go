@@ -64,7 +64,8 @@ type Status int
 const (
 	// Deactivated the hub is in non-transmit mode. There are not clients connected
 	Deactivated Status = iota
-	// Active is when the hub is in transmit mode. There are clients connected
+	// Active is when the hub is in transmit mode. There are clients connected,
+	// but there is not transmission from sender
 	Active
 	// Streaming is when the hub is receiving information from the sender
 	Streaming
