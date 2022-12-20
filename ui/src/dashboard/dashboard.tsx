@@ -74,6 +74,10 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
   private chartPh: React.RefObject<Chart>;
   private chartCl: React.RefObject<Chart>;
 
+  private meassureTemp: React.RefObject<Meassure>;
+  private meassurePh: React.RefObject<Meassure>;
+  private meassureCl: React.RefObject<Meassure>;
+
   constructor(props: any) {
     super(props);
 
@@ -90,17 +94,14 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.chartPh = React.createRef<Chart>();
     this.chartCl = React.createRef<Chart>();
 
+    this.meassureTemp = React.createRef<Meassure>();
+    this.meassurePh = React.createRef<Meassure>();
+    this.meassureCl = React.createRef<Meassure>();
+
     const sfactory = new SocketFactory(this.alert, this);
     sfactory.event.streamMetrics = this.streamMetrics;
 
     this.socket = sfactory.open();
-  }
-
-  // streamMetrics sends all the metrics received by socket to all the chart controls
-  private streamMetrics(metrics: Metrics) {
-    this.chartTemp.current?.setData(metrics.temp);
-    this.chartPh.current?.setData(metrics.ph);
-    this.chartCl.current?.setData(metrics.chlorine);
   }
 
   activeStandby(active: boolean): void {
@@ -113,6 +114,26 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
 
   shutdown(): void {
     this.setState({shutdown: true});
+  }
+
+  // streamMetrics sends all the metrics received by socket to all the chart controls
+  private streamMetrics(metrics: Metrics) {
+    this.chartTemp.current?.setData(metrics.temp);
+    this.chartPh.current?.setData(metrics.ph);
+    this.chartCl.current?.setData(metrics.chlorine);
+  }
+
+  componentDidMount(): void {
+    // Pipeline between the chart and meassure. it sends the last meassure received by chart to the meassure control
+    if (this.chartTemp.current) {
+      this.chartTemp.current.event.lastDataReceived = (m) => {this.meassureTemp.current?.setMeassure(m);}
+    }
+    if (this.chartPh.current) {
+      this.chartPh.current.event.lastDataReceived = (m) => {this.meassurePh.current?.setMeassure(m);}
+    }
+    if (this.chartCl.current) {
+      this.chartCl.current.event.lastDataReceived = (m) => {this.meassureCl.current?.setMeassure(m);}
+    }
   }
 
   render(): React.ReactNode {
@@ -175,7 +196,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Meassure name={temperatureName} value='15' unitName={temperatureUnit} src="temp.png" />
+                      <Meassure name={temperatureName} unitName={temperatureUnit} src="temp.png" />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={9} lg={10}>
@@ -199,7 +220,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Meassure name={phName} value='1,4' unitName={phUnit} src="ph.png" />
+                      <Meassure name={phName} unitName={phUnit} src="ph.png" />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={9} lg={10}>
@@ -223,7 +244,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Meassure name={chlorineName} value='0,4' unitName={chlorineUnit} src="chlorine.png" />
+                      <Meassure name={chlorineName} unitName={chlorineUnit} src="chlorine.png" />
                     </Paper>
                   </Grid>
                 </Grid>

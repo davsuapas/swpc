@@ -25,19 +25,39 @@ function preventDefault(event: React.MouseEvent) {
 
 interface MeassureProps {
   name: string;
-  value: string;
   unitName: string;
   src: string;
 }
 
-export default function Meassure(props: MeassureProps) {
-  return (
-    <React.Fragment>
-      <Title>{props.name}</Title>
-      <Typography component="p" variant="h4" sx={{marginTop: '25px', marginBottom: "20px"}}>
-        {props.value} {props.unitName}
-      </Typography>
-      <img src={props.src} width="80" height="80"></img>
-    </React.Fragment>
-  );
+interface MeassureState {
+  value: number;
+}
+
+export default class Meassure extends React.Component<MeassureProps, MeassureState> {
+
+  constructor(props: MeassureProps) {
+    super(props)
+
+    this.state = {
+      value: 0
+    }
+  }
+
+  setMeassure(value: number) {
+    this.setState({
+      value: value
+    });
+  }
+
+  render(): React.ReactNode {
+    return (
+      <React.Fragment>
+        <Title>{this.props.name}</Title>
+        <Typography component="p" variant="h4" sx={{marginTop: '25px', marginBottom: "20px"}}>
+          {this.state.value} {this.props.unitName}
+        </Typography>
+        <img src={this.props.src} width="80" height="80"></img>
+      </React.Fragment>
+    );
+  }
 }

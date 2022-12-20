@@ -37,9 +37,9 @@ interface ChartState {
 
 export default class Chart extends React.Component<ChartProps, ChartState> {
 
-  private model: Model;
+  event: ChartEvent;
 
-  private event: ChartEvent;
+  private model: Model;
 
   constructor(props: ChartProps) {
     super(props);
