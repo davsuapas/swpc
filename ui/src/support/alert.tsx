@@ -35,19 +35,19 @@ const Transition = React.forwardRef(function Transition(
 });
 
 interface AlertState {
-  title: string,
-  content: string,
-  open: boolean
+  title: string;
+  content: string;
+  open: boolean;
 }
 
 interface AlertEvents {
-  closed: () => void
+  closed: () => void;
 }
 
 // Alert creates a component to display system alerts
 export default class Alert extends React.Component<any, AlertState> {
 
-  events: AlertEvents
+  events: AlertEvents;
 
   constructor(props: any) {
     super(props);

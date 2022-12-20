@@ -40,15 +40,15 @@ const Transition = React.forwardRef(function Transition(
 });
 
 interface ConfigState {
-    open: boolean,
-    wakeupValid: boolean,
-    wakeupValue: number,
-    sendTimeValid: boolean,
-    iniSendTimeValue: string,
-    endSendTimeValue: string,
-    bufferValid: boolean,
-    bufferValue: number,
-    saving: boolean
+    open: boolean;
+    wakeupValid: boolean;
+    wakeupValue: number;
+    sendTimeValid: boolean;
+    iniSendTimeValue: string;
+    endSendTimeValue: string;
+    bufferValid: boolean;
+    bufferValue: number;
+    saving: boolean;
 }
 
 export default class Config extends React.Component<any, ConfigState> {
@@ -163,7 +163,7 @@ export default class Config extends React.Component<any, ConfigState> {
     private async close(save: boolean) {
       if (!save) {
         this.setState({open: false});
-        return
+        return;
       } 
 
       if (this.valid()) {

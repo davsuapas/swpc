@@ -34,7 +34,7 @@ import { CircularProgress } from '@mui/material';
 import React from 'react';
 import Alert from '../support/alert';
 import { colorPurple } from '../support/color';
-import SocketFactory from '../net/socket';
+import SocketFactory, { Metrics } from '../net/socket';
 import { Websocket } from 'websocket-ts/lib';
 import { Navigate } from 'react-router-dom';
 
@@ -52,37 +52,55 @@ const chlorineUnit = "mg/L";
 const mdTheme = createTheme();
 
 interface DashboardState{
-  loadingConfig: boolean
-  standby: boolean
-  shutdown: boolean
+  loadingConfig: boolean;
+  standby: boolean;
+  shutdown: boolean;
 }
 
 export interface Actions {
-  activeStandby(active: boolean): void
-  activeLoadingConfig(active: boolean): void
-  shutdown(): void
+  activeStandby(active: boolean): void;
+  activeLoadingConfig(active: boolean): void;
+  shutdown(): void;
 }
 
 export default class Dashboard extends React.Component<any, DashboardState> implements Actions {
 
-  private socket: Websocket
+  private socket: Websocket;
 
-  private config: React.RefObject<Config>
-  private alert: React.RefObject<Alert>
+  private config: React.RefObject<Config>;
+  private alert: React.RefObject<Alert>;
+
+  private chartTemp: React.RefObject<Chart>;
+  private chartPh: React.RefObject<Chart>;
+  private chartCl: React.RefObject<Chart>;
 
   constructor(props: any) {
-    super(props)
+    super(props);
 
     this.state = {
       loadingConfig: false,
       standby: true,
       shutdown: false
-    }
+    };
 
-    this.config = React.createRef<Config>()
-    this.alert = React.createRef<Alert>()
+    this.config = React.createRef<Config>();
+    this.alert = React.createRef<Alert>();
 
-    this.socket = new SocketFactory(this.alert, this).open();  
+    this.chartTemp = React.createRef<Chart>();
+    this.chartPh = React.createRef<Chart>();
+    this.chartCl = React.createRef<Chart>();
+
+    const sfactory = new SocketFactory(this.alert, this);
+    sfactory.event.streamMetrics = this.streamMetrics;
+
+    this.socket = sfactory.open();
+  }
+
+  // streamMetrics sends all the metrics received by socket to all the chart controls
+  private streamMetrics(metrics: Metrics) {
+    this.chartTemp.current?.setData(metrics.temp);
+    this.chartPh.current?.setData(metrics.ph);
+    this.chartCl.current?.setData(metrics.chlorine);
   }
 
   activeStandby(active: boolean): void {
@@ -145,7 +163,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart name={temperatureName} unitName={temperatureUnit} theme={mdTheme} />
+                      <Chart ref={this.chartTemp} name={temperatureName} unitName={temperatureUnit} theme={mdTheme} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>
@@ -169,7 +187,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart name={phName} unitName={phUnit} theme={mdTheme} />
+                      <Chart ref={this.chartPh} name={phName} unitName={phUnit} theme={mdTheme} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>
@@ -193,7 +211,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart name={chlorineName} unitName={chlorineUnit} theme={mdTheme} />
+                      <Chart ref={this.chartCl} name={chlorineName} unitName={chlorineUnit} theme={mdTheme} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>

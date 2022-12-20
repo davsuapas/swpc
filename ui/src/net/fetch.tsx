@@ -46,7 +46,7 @@ export default class Fetch {
                                 "Error de seguridad",
                                 "La sessión ha caducado. Se procederá a cerrar la sessión de trabajo.");
                             this.alert.current.events.closed = () => {
-                                this.user.logoff()
+                                this.user.logoff();
                             };
                             this.alert.current.open();
                         }

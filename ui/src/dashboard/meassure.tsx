@@ -27,7 +27,7 @@ interface MeassureProps {
   name: string;
   value: string;
   unitName: string;
-  src: string
+  src: string;
 }
 
 export default function Meassure(props: MeassureProps) {

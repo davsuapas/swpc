@@ -16,26 +16,14 @@
  */
 
 import * as React from 'react';
-import { LineChart, Line, XAxis, YAxis, Label, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Label, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Title from './title';
 import { Theme } from '@mui/material/styles';
+import TaskInterval from '../support/interval';
 
-// Generate Sales Data
-function createData(time: string, amount?: number) {
-  return { time, amount };
+interface ChartEvent {
+  lastDataReceived: (lastData: any) => void;
 }
-
-const data = [
-  createData('00:00', 0),
-  createData('03:00', 300),
-  createData('06:00', 600),
-  createData('09:00', 800),
-  createData('12:00', 1500),
-  createData('15:00', 2000),
-  createData('18:00', 2400),
-  createData('21:00', 2400),
-  createData('24:00', undefined),
-];
 
 interface ChartProps {
   name: string;
@@ -43,7 +31,43 @@ interface ChartProps {
   theme: Theme;
 }
 
-export default class Chart extends React.Component<ChartProps, any> {
+interface ChartState {
+  data: any;
+}
+
+export default class Chart extends React.Component<ChartProps, ChartState> {
+
+  private model: Model;
+
+  private event: ChartEvent;
+
+  constructor(props: ChartProps) {
+    super(props);
+
+    this.state = {
+      data: []
+    };
+
+    this.event = {
+      lastDataReceived: (data) => {}
+    };
+
+    this.model = new Model(this);
+  }
+
+  // setData updates the buffer of the chart
+  setData(data: any[]) {
+    this.model.setData(data);
+  }
+
+  componentWillUnmount(): void {
+    this.model.stop()
+  }
+
+  // lastDataReceived raises last data received event
+  lastDataReceived(data: any) {
+    this.event.lastDataReceived(data);
+  }
 
   render(): React.ReactNode {
     return (
@@ -51,7 +75,7 @@ export default class Chart extends React.Component<ChartProps, any> {
         <Title>{this.props.name}</Title>
         <ResponsiveContainer>
           <LineChart
-            data={data}
+            data={this.state.data}
             margin={{
               top: 16,
               right: 16,
@@ -59,6 +83,7 @@ export default class Chart extends React.Component<ChartProps, any> {
               left: 24,
             }}
           >
+            <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="time"
               stroke={this.props.theme.palette.text.secondary}
@@ -91,5 +116,72 @@ export default class Chart extends React.Component<ChartProps, any> {
         </ResponsiveContainer>
       </React.Fragment>
     );
+  }
+}
+
+const intervalInSeconds = 1;
+
+// Model nanages the chart data model
+class Model {
+
+  private task: TaskInterval;
+
+  private buffer: any[];
+
+  constructor(private chart: Chart) {
+    this.buffer = [];
+    this.task = new TaskInterval(intervalInSeconds * 1000, this.readBuffer);
+  }
+
+  // setData updates the buffer and start reading
+  setData(data: any[]) {
+    const read = !this.hasBuffer() && data.length > 0;
+
+    this.buffer.push(data);
+
+    if (read) {
+      this.task.start();
+    }
+  }
+
+  // stop stops the reader
+  stop() {
+    this.task.stop();
+  }
+
+  // readBuffer reads the buffer until the end and updating then chart
+  private readBuffer(): boolean {
+    if (this.hasBuffer()) {
+      const date = new Date();
+      const formattedTime = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+
+      const amount = this.pop(); 
+
+      // raises last data received event
+      this.chart.lastDataReceived(amount);
+
+      this.chart.setState(prevState => {
+        return {
+          data: [...prevState.data, {
+            time: formattedTime,
+            amount: amount
+          }]
+        };
+      });
+      if (this.hasBuffer()) {
+        return false; // Continue extracting with the next each interval
+      }
+    }
+
+    return true; // Cancel
+  }
+
+  private hasBuffer(): boolean {
+    return this.buffer.length > 0;
+  }
+
+  // pop gets the first element of the buffer and it's remove it.
+  private pop() {
+    return this.buffer.shift();
   }
 }
