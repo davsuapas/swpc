@@ -18,6 +18,7 @@
 package micro
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -32,12 +33,12 @@ const (
 
 const layaoutTime = "15:04"
 
-// status are the status communication between the device and server
-type status int
+// actions are the actions communication between the device and server
+type actions int
 
 const (
-	// sleep puts the micro controller to sleep. There is nothing to transmit
-	sleep status = iota
+	// sleep puts the micro controller to sleep
+	sleep actions = iota
 	// transmit puts the micro controller to transmit metrics
 	transmit
 	// checkTransmission puts the micro controller to check transmission status
@@ -50,7 +51,19 @@ type Behavior struct {
 	// CheckTransTime is the time set for the micro to check the status of the clients
 	// and whether or not it has to transmit metric
 	CheckTransTime uint8
-	Status         uint8
+	// Buffer is the buffer in seconds to store metrics int the micro-controller
+	Buffer uint8
+	Action uint8
+}
+
+// String returns struct as string
+func (b *Behavior) string() string {
+	r, err := json.Marshal(b)
+	if err != nil {
+		return ""
+	}
+
+	return string(r)
 }
 
 // Controller controllers the information status on how the micro controller should behave
@@ -85,20 +98,29 @@ func (c *Controller) tryConfig() Config {
 func (c *Controller) Download(metrics string) Behavior {
 	c.Hub.Send(metrics)
 
-	return c.Status()
+	actions := c.Actions()
+
+	return actions
 }
 
-// Status gets the conduct to be taken by the micro-controller
-func (c *Controller) Status() Behavior {
-	return Behavior{
-		WakeUpTime:     c.tryConfig().Wakeup,
+// Actions gets the conduct to be taken by the micro-controller
+func (c *Controller) Actions() Behavior {
+	config := c.tryConfig()
+
+	b := Behavior{
+		WakeUpTime:     config.Wakeup,
 		CheckTransTime: c.CheckTransTime,
-		Status:         uint8(c.status()),
+		Buffer:         config.Buffer,
+		Action:         uint8(c.actions()),
 	}
+
+	c.Log.Debug("Micro.Actions", zap.String("Action", b.string()))
+
+	return b
 }
 
-// status gets the status on how the micro controller should behave
-func (c *Controller) status() status {
+// actions gets the actions on how the micro controller should behave
+func (c *Controller) actions() actions {
 	resp := make(chan sockets.Status)
 	c.Hub.Status(resp)
 	hstatus := <-resp

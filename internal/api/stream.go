@@ -35,14 +35,14 @@ func NewStream(control *micro.Controller) *Stream {
 	}
 }
 
-// Status gets information on how the micro controller should behave
-func (s *Stream) Status(ctx echo.Context) error {
-	return ctx.JSON(http.StatusOK, s.control.Status())
+// Actions gets information on how the micro controller should behave
+func (s *Stream) Actions(ctx echo.Context) error {
+	return ctx.JSON(http.StatusOK, s.control.Actions())
 }
 
 // Download transfers the metrics between micro controller and the web
 func (s *Stream) Download(ctx echo.Context) error {
 	s.control.Download(ctx.FormValue("metrics"))
 
-	return ctx.JSON(http.StatusOK, s.control.Status())
+	return ctx.JSON(http.StatusOK, s.control.Actions())
 }

@@ -140,8 +140,10 @@ func (c ConfigWrite) Save(data Config) error {
 	c.MControl.SetConfig(data)
 
 	c.Hub.Config(sockets.Config{
-		CommLatency: time.Duration(c.Config.CommLatencyTime),
-		Buffer:      time.Duration(data.Buffer),
+		TaskTime:         time.Duration(c.Config.TaskTime) * time.Second,
+		NotificationTime: time.Duration(c.Config.NotificationTime) * time.Second,
+		CommLatency:      time.Duration(c.Config.CommLatencyTime) * time.Second,
+		Buffer:           time.Duration(data.Buffer) * time.Second,
 	})
 
 	return nil

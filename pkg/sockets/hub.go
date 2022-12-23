@@ -40,8 +40,9 @@ const (
 	infClientReg      = "Hub-> Client registered"
 	infClientUnReg    = "Hub-> Unregistering client"
 	infClientUnRegd   = "Hub-> Client unregisted"
-	infHubActive      = "Hub-> The hub is set to active"
+	infHubStreaming   = "Hub-> The hub is set to streaming"
 	infHubInactive    = "Hub-> The hub is set to inactive. Previous status: active"
+	infHubDeactived   = "Hub-> The hub is set to deactivated"
 	infClientDied     = "Hub-> Client died by expiration"
 	infArraySize      = "Hub-> Array size after removing expired clients"
 	infNotify         = "Hub-> Notifying status"
@@ -49,7 +50,6 @@ const (
 	infClientID       = "ClientID"
 	infLength         = "Length"
 	infStatus         = "Status"
-	infBufferLatency  = "Buffer + Comm latency"
 	infLastMsgDate    = "Last message date"
 	infExpirationDate = "Expiration date"
 	infActualDate     = "Actual date"
@@ -62,9 +62,9 @@ const (
 type Status int
 
 const (
-	// Deactivated the hub is in non-transmit mode. There are not clients connected
+	// Deactivated the hub is in non-transmit mode (there are not clients connected)
 	Deactivated Status = iota
-	// Active is when the hub is in transmit mode. There are clients connected,
+	// Active is when the hub is in transmit mode (there are clients connected)
 	// but there is not transmission from sender
 	Active
 	// Streaming is when the hub is receiving information from the sender
@@ -207,7 +207,7 @@ func (h *Hub) Run() {
 			case id := <-h.unreg:
 				h.unregister(id)
 			case message := <-h.send:
-				h.sendMessageFromDevice(message)
+				h.sendMessageToClients(message)
 			case countResp := <-h.statusc:
 				countResp <- h.status
 			case cnf := <-h.sconfig:
@@ -215,7 +215,7 @@ func (h *Hub) Run() {
 				h.infos <- []string{strings.Format(infConfigChanged, strings.FMTValue(infConfig, h.config.string()))}
 			case <-check.C:
 				h.controllerStatus()
-				h.statusNotification()
+				h.notifyStatus()
 				h.removeDeadClient()
 				h.tryResetTimer(check)
 			case <-h.closec:
@@ -291,9 +291,9 @@ func (h *Hub) unregister(id string) {
 			strings.FMTValue(infLength, statusString(h.status)))}
 }
 
-// sendMessageFromDevice send message to the all clients registered.
+// sendMessageToClients send message to the all clients registered.
 // If sending the message throw a error, the client is removed
-func (h *Hub) sendMessageFromDevice(message string) {
+func (h *Hub) sendMessageToClients(message string) {
 	if h.status == Deactivated || h.status == Closed {
 		return
 	}
@@ -305,8 +305,9 @@ func (h *Hub) sendMessageFromDevice(message string) {
 
 	h.lastMessage = time.Now()
 
-	if h.status != Streaming {
-		h.infos <- []string{strings.Format(infHubActive, strings.FMTValue(infPrevStatus, statusString(status)))}
+	// sendMessage can set status to deactivated
+	if h.status != Deactivated && h.status != Streaming {
+		h.infos <- []string{strings.Format(infHubStreaming, strings.FMTValue(infPrevStatus, statusString(status)))}
 		h.status = Streaming
 	}
 }
@@ -317,25 +318,28 @@ func (h *Hub) controllerStatus() {
 		// The idle time is the sum of the time it takes for the sender to create the buffer
 		// and a possible latency time
 		idleTime := h.config.Buffer + h.config.CommLatency
+
 		if h.lastMessage.Add(idleTime).Before(time.Now()) {
 			h.inactive()
 			h.infos <- []string{
 				strings.Format(
 					infHubInactive,
-					strings.FMTValue(infBufferLatency, h.lastMessage.String()),
-					strings.FMTValue(infLastMsgDate, idleTime.String()))}
+					strings.FMTValue(infActualDate, time.Now().String()),
+					strings.FMTValue(infLastMsgDate, h.lastMessage.String()))}
 		}
 	}
 }
 
-// statusNotification sends the status to the web client (Only for these states Active or Inactive)
-func (h *Hub) statusNotification() {
+// notifyStatus sends the status to the web client (Only for these states Active or Inactive)
+func (h *Hub) notifyStatus() {
 	if h.status != Active && h.status != Inactive {
 		return
 	}
 
+	timeout := h.lastNotification.Add(h.config.NotificationTime)
+
 	// If the time for the next notification has not elapsed, it does not send the next notification
-	if h.lastNotification.Add(h.config.NotificationTime).After(time.Now()) {
+	if timeout.After(time.Now()) {
 		return
 	}
 
@@ -345,14 +349,14 @@ func (h *Hub) statusNotification() {
 	msg := []byte(strings.Concat("0:", strconv.Itoa(int(h.status))))
 	h.sendMessage(msg, errNotify)
 
-	h.lastNotification = time.Now()
-
 	h.infos <- []string{
 		strings.Format(
 			infNotify,
 			strings.FMTValue(infActualDate, time.Now().String()),
 			strings.FMTValue(infLastNotify, h.lastNotification.String()),
 			strings.FMTValue(infStatus, statusString(status)))}
+
+	h.lastNotification = time.Now()
 }
 
 // sendMessage sends messages to the client
@@ -481,6 +485,7 @@ func (h *Hub) removeClientByPos(pos ...uint16) {
 
 	if len(h.clients) == 0 {
 		h.status = Deactivated
+		h.infos <- []string{infHubDeactived}
 	}
 }
 
