@@ -123,8 +123,8 @@ export default class SocketFactory {
                         }
                     }
                 } else {
-                    this.event.streamMetrics(message.metricsMessage());
                     this.actions.activeStandby(false);
+                    this.event.streamMetrics(message.metricsMessage());
                 }
             }
             catch (ex) {
@@ -173,7 +173,8 @@ class MessageFactory {
     }
 
     private arrayParseNumber(data: string): number[] {
-        const arr = data.split(",");
-        return arr.map((item) => Number(item));
+        const arrData = data.split(",");
+        const metrics = arrData.map((i) => Number(i));
+        return metrics;
     }
 }

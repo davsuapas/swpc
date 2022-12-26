@@ -15,6 +15,9 @@
  *   limitations under the License.
  */
 
+// Simulates the process on an arduino board,
+// in charge of collecting metrics from a pool to be sent in real time to a server.
+// The code is thought as if it was for the C language.
 package main
 
 import (
@@ -22,7 +25,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -32,11 +35,12 @@ import (
 )
 
 const (
-	URL              = "http://localhost:8080"
-	URLAUTH          = URL + "/auth"
-	URLAPI           = URL + "/micro/api"
-	sID              = "sw3kf$fekdy56dfh"
-	retryTimeSeconds = 10
+	URL               = "http://localhost:8080"
+	URLAUTH           = URL + "/auth"
+	URLAPI            = URL + "/micro/api"
+	sID               = "sw3kf$fekdy56dfh"
+	retryTimeSeconds  = 10
+	collectBufferTime = 900
 )
 
 const (
@@ -103,7 +107,7 @@ func setup() {
 	config = Config{
 		WakeUpTime:     30,
 		CheckTransTime: 5,
-		Buffer:         5,
+		Buffer:         3,
 	}
 
 	collectBuffer(checkNextAction)
@@ -116,7 +120,7 @@ func loop() {
 		time.Sleep(time.Duration(int64(config.WakeUpTime)) * time.Minute)
 		collectBuffer(checkNextAction)
 	case checkNextAction:
-		queryNextAction(checkNextAction, 5)
+		queryNextAction(checkNextAction)
 	case transmit:
 		if doTrasnmisssion() {
 			// doTransmission set action
@@ -133,10 +137,10 @@ func loop() {
 
 // queryNextAction checks against the server the new actions to be performed on the micro-controller
 // If there is error retry previous action. Also it set next action
-func queryNextAction(actionRetry uint8, maxRetry uint8) {
+func queryNextAction(actionRetry uint8) {
 	fmt.Println("queryNextAction")
 
-	do("", http.MethodGet, "/action", actionRetry, maxRetry)
+	do(http.MethodGet, "/action", "", actionRetry, 30)
 }
 
 // doTrasnmisssion trasmits sensor buffer and set next action
@@ -145,11 +149,11 @@ func doTrasnmisssion() bool {
 
 	buffer := strings.Concat(buffer.bufferTemp, ";", buffer.bufferPH, ";", buffer.bufferCL)
 
-	return do(buffer, http.MethodPost, "/download", transmit, 10)
+	return do(http.MethodPost, "/download", buffer, transmit, 60)
 }
 
 // do makes http server request, also controls failures
-func do(body string, method string, uri string, actionRetry uint8, maxRetry uint8) bool {
+func do(method string, uri string, body string, actionRetry uint8, maxRetry uint8) bool {
 	var res string
 
 	if err := REST(method, strings.Concat(URLAPI, uri), body, &res); !err {
@@ -190,7 +194,7 @@ func wakeupBuffer() {
 		return
 	}
 
-	if timeElapsedSec() >= 1 {
+	if timeElapsedMiliSec() >= collectBufferTime {
 		startChrono()
 		collectMetrics()
 	}
@@ -339,6 +343,8 @@ func restInternal(
 		return false
 	}
 
+	req.Header.Set("Content-Type", "text/plain")
+
 	if auth {
 		req.Header.Add("Authorization", strings.Concat("Bearer ", securToken))
 	}
@@ -351,7 +357,7 @@ func restInternal(
 	}
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		setLastError(err.Error())
 
@@ -422,8 +428,12 @@ func startChrono() {
 	timeStartChrono = time.Now().UnixMilli()
 }
 
+func timeElapsedMiliSec() int64 {
+	return time.Now().UnixMilli() - timeStartChrono
+}
+
 func timeElapsedSec() int64 {
-	return (time.Now().UnixMilli() - timeStartChrono) / 1000
+	return timeElapsedMiliSec() / 1000
 }
 
 func setLastError(le string) {

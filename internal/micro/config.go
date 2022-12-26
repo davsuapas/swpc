@@ -54,7 +54,9 @@ type Config struct {
 	EndSendTime string `json:"endSendTime"`
 	// Wakeup is how often in minutes the micro-controller wakes up to check for sending
 	Wakeup uint8 `json:"wakeup"`
-	// Buffer is the buffer in seconds to store metrics int the micro-controller
+	// Buffer is the buffer in seconds to store metrics int the micro-controller.
+	// It must be taken into account that if the buffer is for example 3 seconds,
+	// double the buffer is stored, to avoid unnecessary waits in the web client.
 	Buffer uint8 `json:"buffer"`
 }
 
@@ -63,7 +65,7 @@ func configDefault() Config {
 		IniSendTime: "11:00",
 		EndSendTime: "12:00",
 		Wakeup:      30,
-		Buffer:      5,
+		Buffer:      3,
 	}
 }
 

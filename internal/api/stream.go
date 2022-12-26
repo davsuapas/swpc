@@ -18,10 +18,25 @@
 package api
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/micro"
+	"go.uber.org/zap"
+)
+
+const (
+	errGetBody = "Stream -> it gets body metrics"
+)
+
+const (
+	dbgStreamDownload = "Stream -> Download"
+	dbgGetAction      = "Stream -> it gets next action"
+)
+
+const (
+	infAction = "Action"
 )
 
 // Stream exchanges information with the micro controller
@@ -37,12 +52,25 @@ func NewStream(control *micro.Controller) *Stream {
 
 // Actions gets information on how the micro controller should behave
 func (s *Stream) Actions(ctx echo.Context) error {
-	return ctx.JSON(http.StatusOK, s.control.Actions())
+	action := s.control.Actions()
+
+	s.control.Log.Debug(dbgGetAction, zap.String(infAction, action.String()))
+
+	return ctx.JSON(http.StatusOK, action)
 }
 
 // Download transfers the metrics between micro controller and the web
 func (s *Stream) Download(ctx echo.Context) error {
-	s.control.Download(ctx.FormValue("metrics"))
+	metrics, err := io.ReadAll(ctx.Request().Body)
+	if err != nil {
+		s.control.Log.Error(errGetBody, zap.Error(err))
+	}
 
-	return ctx.JSON(http.StatusOK, s.control.Actions())
+	s.control.Download(string(metrics))
+
+	action := s.control.Actions()
+
+	s.control.Log.Debug(dbgStreamDownload, zap.String(infAction, action.String()))
+
+	return ctx.JSON(http.StatusOK, action)
 }

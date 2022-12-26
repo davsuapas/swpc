@@ -57,7 +57,7 @@ type Behavior struct {
 }
 
 // String returns struct as string
-func (b *Behavior) string() string {
+func (b *Behavior) String() string {
 	r, err := json.Marshal(b)
 	if err != nil {
 		return ""
@@ -113,8 +113,6 @@ func (c *Controller) Actions() Behavior {
 		Buffer:         config.Buffer,
 		Action:         uint8(c.actions()),
 	}
-
-	c.Log.Debug("Micro.Actions", zap.String("Action", b.string()))
 
 	return b
 }

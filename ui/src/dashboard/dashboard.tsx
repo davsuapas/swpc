@@ -43,7 +43,7 @@ const drawerWidth: number = 255;
 const temperatureName = "Temperatura";
 const temperatureUnit = "Grados";
 
-const phName = "Ph";
+const phName = "pH";
 const phUnit = "";
 
 const chlorineName = "Cloro";
@@ -99,7 +99,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.meassureCl = React.createRef<Meassure>();
 
     const sfactory = new SocketFactory(this.alert, this);
-    sfactory.event.streamMetrics = this.streamMetrics;
+    sfactory.event.streamMetrics = this.streamMetrics.bind(this);
 
     this.socket = sfactory.open();
   }
@@ -132,7 +132,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
       this.chartPh.current.event.lastDataReceived = (m) => {this.meassurePh.current?.setMeassure(m);}
     }
     if (this.chartCl.current) {
-      this.chartCl.current.event.lastDataReceived = (m) => {this.meassureCl.current?.setMeassure(m);}
+      this.chartCl.current.event.lastDataReceived = (m) => {this.meassureCl.current?.setMeassure(m.toFixed(2));}
     }
   }
 
@@ -196,7 +196,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Meassure name={temperatureName} unitName={temperatureUnit} src="temp.png" />
+                      <Meassure ref={this.meassureTemp} name={temperatureName} unitName={temperatureUnit} src="temp.png" />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={9} lg={10}>
@@ -220,7 +220,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Meassure name={phName} unitName={phUnit} src="ph.png" />
+                      <Meassure ref={this.meassurePh} name={phName} unitName={phUnit} src="ph.png" />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={9} lg={10}>
@@ -244,11 +244,12 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Meassure name={chlorineName} unitName={chlorineUnit} src="chlorine.png" />
+                      <Meassure ref={this.meassureCl} name={chlorineName} unitName={chlorineUnit} src="chlorine.png" />
                     </Paper>
                   </Grid>
                 </Grid>
                 <div style={{position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)"}}>
+                {this.state.standby && (
                   <CircularProgress 
                       size={80}
                       sx={{
@@ -258,6 +259,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         margin: "0 auto"
                       }}
                     />
+                )}
                 </div>              
               </Container>
             <Alert ref={this.alert}></Alert>
