@@ -21,24 +21,7 @@ import Title from './title';
 import TaskInterval from '../support/interval';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { Theme } from '@mui/material/styles';
-
-interface MediaQueryAPI {
-  isMd: () => boolean
-  isLg: () => boolean
-}
-
-// MediaQuery gets information about media
-const MediaQuery = React.forwardRef<MediaQueryAPI, any>((props, ref) => {
-  const isMd = useMediaQuery((theme) => props.theme.breakpoints.up('md'));
-  const isLg = useMediaQuery((theme) => props.theme.breakpoints.up('lg'));
-
-  React.useImperativeHandle(ref, () => ({
-    isMd: () => {return !isLg && isMd},
-    isLg: () => {return isLg && isMd}
-  }));
-
-  return (<div/>);
-});
+import { MediaQueryAPI } from '../support/mediaquery';
 
 interface ChartEvent {
   lastDataReceived: (lastData: any) => void;
@@ -48,8 +31,7 @@ interface ChartProps {
   name: string;
   unitName: string;
   theme: Theme;
-  isXs?: boolean
-  isMd?: boolean
+  media: MediaQueryAPI | null
 }
 
 interface ChartState {
@@ -60,14 +42,10 @@ export default class Chart extends React.Component<ChartProps, ChartState> {
 
   event: ChartEvent;
 
-  media: React.RefObject<MediaQueryAPI>
-
   private model: Model;
 
   constructor(props: ChartProps) {
     super(props);
-
-    this.media = React.createRef();
 
     this.state = {
       data: []
@@ -80,12 +58,7 @@ export default class Chart extends React.Component<ChartProps, ChartState> {
     this.model = new Model(this);
   } 
 
-  // mediaQuery gets information about media
-  mediaQuery(): MediaQueryAPI | null {
-    return this.media.current;
-  }
-
-  // setData updates the buffer of the chart
+    // setData updates the buffer of the chart
   setData(data: any[]) {
     this.model.setData(data);
   }
@@ -144,7 +117,6 @@ export default class Chart extends React.Component<ChartProps, ChartState> {
             />
           </LineChart>
         </ResponsiveContainer>
-        <MediaQuery ref={this.media} theme={this.props.theme}></MediaQuery>
       </React.Fragment>
     );
   }
@@ -188,6 +160,10 @@ class Model {
 
       const amount = this.pop(); 
 
+      if (this.buffer.length > 10) {
+        console.log("Chart (warning) -> The buffer is growing too large: " + this.buffer.length);
+      }
+  
       // raises last data received event
       this.chart.lastDataReceived(amount);
 
@@ -209,24 +185,22 @@ class Model {
 
   // adjustSize adjusts the internal size of the chart data according to the size of the screen
   private adjustSize(prevState: any): [] {
-    const sizeXs = 5
-    const sizeMd = 8
-    const sizeLg = 10
+    const sizeXs = 2;
+    const sizeMd = 7;
+    const sizeLg = 10;
 
-    let size = sizeXs
-    if (this.chart.mediaQuery()?.isMd()) {
-      size = sizeMd
-    } else if (this.chart.mediaQuery()?.isLg()) {
-      size = sizeLg
+    let size = sizeXs;
+    if (this.chart.props.media?.isMd()) {
+      size = sizeMd;
+    } else if (this.chart.props.media?.isLg()) {
+      size = sizeLg;
     }
-
-console.log("chart.adjustSize prevState.length: " + prevState.length + ", size: " + size);
 
     if (prevState.length > size) {
       prevState.splice(0, prevState.length - size);
     }
 
-    return prevState
+    return prevState;
   }
 
   private hasBuffer(): boolean {

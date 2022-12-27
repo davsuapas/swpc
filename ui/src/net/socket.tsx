@@ -67,7 +67,7 @@ export default class SocketFactory {
             if (this.alert.current) {
                 this.alert.current.content(
                     "Conexión cerrada",
-                    "Puede ser que haya caducado la sesión o se haya producido un problema de comunicación," +
+                    "Puede ser que haya caducado la sesión o se haya producido un problema de comunicación, " +
                     "inténtelo más tarde. " +
                     "Se procederá a cerrar la sessión de trabajo.");
                 this.alert.current.events.closed = () => {
@@ -113,7 +113,7 @@ export default class SocketFactory {
                         if (this.alert.current) {
                             this.alert.current.content(
                                 "Comunicación con el micro controlador sin respuesta, después de envíos satisfactorios",
-                                "Parece que la comunicación con el micro controlador se encuentra caída" + 
+                                "Parece que la comunicación con el micro controlador se encuentra caída. " + 
                                 "Si persiste el problema, " +
                                 "asegúrese que el micro controlador se encuentra encedido y que la comunicación " +
                                 "se encuentra habilitada")

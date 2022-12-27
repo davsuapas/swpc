@@ -79,22 +79,14 @@ func NewFactory() *Factory {
 		log.Panic(errReadConfig)
 	}
 
-	hubt := hub.NewTrace(log)
-	hub := sockets.NewHub(
-		sockets.Config{
-			CommLatency:      time.Duration(config.CommLatencyTime) * time.Second,
-			Buffer:           time.Duration(configm.Buffer) * time.Second,
-			TaskTime:         time.Duration(config.TaskTime) * time.Second,
-			NotificationTime: time.Duration(config.NotificationTime) * time.Second,
-		},
-		hubt.Infos,
-		hubt.Errors)
+	hubt, hub := newHub(log, config, configm)
 
 	mcontrol := &micro.Controller{
-		Log:            log,
-		Hub:            hub,
-		Config:         configm,
-		CheckTransTime: uint8(config.CheckTransTime),
+		Log:                log,
+		Hub:                hub,
+		Config:             configm,
+		CheckTransTime:     uint8(config.CheckTransTime),
+		CollectMetricsTime: uint16(config.CollectMetricsTime),
 	}
 
 	mconfigWrite := &micro.ConfigWrite{
@@ -125,6 +117,21 @@ func NewFactory() *Factory {
 			Stream: api.NewStream(mcontrol),
 		},
 	}
+}
+
+func newHub(log *zap.Logger, config config.Config, configm micro.Config) (*hub.Trace, *sockets.Hub) {
+	hubt := hub.NewTrace(log)
+	hub := sockets.NewHub(
+		sockets.Config{
+			CommLatency:      time.Duration(config.CommLatencyTime) * time.Second,
+			Buffer:           time.Duration(configm.Buffer) * time.Second,
+			TaskTime:         time.Duration(config.TaskTime) * time.Second,
+			NotificationTime: time.Duration(config.NotificationTime) * time.Second,
+		},
+		hubt.Infos,
+		hubt.Errors)
+
+	return hubt, hub
 }
 
 func newLogger(ctx config.Config) *zap.Logger {

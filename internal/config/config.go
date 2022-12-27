@@ -49,6 +49,8 @@ type APIConfig struct {
 	SessionExpiration int `json:"expirationSession,omitempty"`
 	// CommLatencyTime sets the possible communication latency between the device and the hub, in seconds
 	CommLatencyTime int `json:"commLatencyTime,omitempty"`
+	// CollectMetricsTime defines how often metrics are collected in miliseconds
+	CollectMetricsTime int `json:"collectMetricsTime,omitempty"`
 	// CheckTransTime defines when the micro-controller is in the time window to transmit in case there are no clients,
 	// every so often it checks when to transmit
 	CheckTransTime int `json:"checkTransTime,omitempty"`
@@ -101,13 +103,14 @@ func LoadConfig() Config {
 			SessionExpiration: 10,
 		},
 		APIConfig: APIConfig{
-			SessionExpiration: 60,
-			CommLatencyTime:   5,
-			CheckTransTime:    5,
+			SessionExpiration:  60,
+			CommLatencyTime:    2,
+			CollectMetricsTime: 800,
+			CheckTransTime:     5,
 		},
 		HubConfig: HubConfig{
-			TaskTime:         10,
-			NotificationTime: 10,
+			TaskTime:         8,
+			NotificationTime: 8,
 		},
 		DataPath: "./data",
 	}

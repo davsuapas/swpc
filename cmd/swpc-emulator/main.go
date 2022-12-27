@@ -35,12 +35,11 @@ import (
 )
 
 const (
-	URL               = "http://localhost:8080"
-	URLAUTH           = URL + "/auth"
-	URLAPI            = URL + "/micro/api"
-	sID               = "sw3kf$fekdy56dfh"
-	retryTimeSeconds  = 10
-	collectBufferTime = 900
+	URL              = "http://localhost:8080"
+	URLAUTH          = URL + "/auth"
+	URLAPI           = URL + "/micro/api"
+	sID              = "sw3kf$fekdy56dfh"
+	retryTimeSeconds = 10
 )
 
 const (
@@ -64,10 +63,11 @@ const (
 
 // See micro.Behavior
 type Config struct {
-	WakeUpTime     uint8
-	CheckTransTime uint8
-	Buffer         uint8
-	Action         uint8
+	WakeUpTime         uint8
+	CheckTransTime     uint8
+	CollectMetricsTime uint16
+	Buffer             uint8
+	Action             uint8
 }
 
 type Retry struct {
@@ -105,9 +105,10 @@ func main() {
 
 func setup() {
 	config = Config{
-		WakeUpTime:     30,
-		CheckTransTime: 5,
-		Buffer:         3,
+		WakeUpTime:         30,
+		CheckTransTime:     5,
+		CollectMetricsTime: 800,
+		Buffer:             3,
 	}
 
 	collectBuffer(checkNextAction)
@@ -194,7 +195,7 @@ func wakeupBuffer() {
 		return
 	}
 
-	if timeElapsedMiliSec() >= collectBufferTime {
+	if timeElapsedMiliSec() >= int64(config.CollectMetricsTime) {
 		startChrono()
 		collectMetrics()
 	}

@@ -37,6 +37,7 @@ import { colorPurple } from '../support/color';
 import SocketFactory, { Metrics } from '../net/socket';
 import { Websocket } from 'websocket-ts/lib';
 import { Navigate } from 'react-router-dom';
+import { MediaQuery, MediaQueryAPI } from '../support/mediaquery';
 
 const drawerWidth: number = 255;
 
@@ -67,6 +68,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
 
   private socket: Websocket;
 
+  private media: React.RefObject<MediaQueryAPI>
+
   private config: React.RefObject<Config>;
   private alert: React.RefObject<Alert>;
 
@@ -86,6 +89,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
       standby: true,
       shutdown: false
     };
+
+    this.media = React.createRef();
 
     this.config = React.createRef<Config>();
     this.alert = React.createRef<Alert>();
@@ -184,7 +189,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart ref={this.chartTemp} name={temperatureName} unitName={temperatureUnit} theme={mdTheme} />
+                      <Chart ref={this.chartTemp} name={temperatureName} 
+                        unitName={temperatureUnit} theme={mdTheme} media={this.media.current} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>
@@ -208,7 +214,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart ref={this.chartPh} name={phName} unitName={phUnit} theme={mdTheme} />
+                      <Chart ref={this.chartPh} name={phName}
+                        unitName={phUnit} theme={mdTheme} media={this.media.current} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>
@@ -232,7 +239,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart ref={this.chartCl} name={chlorineName} unitName={chlorineUnit} theme={mdTheme} />
+                      <Chart ref={this.chartCl} name={chlorineName}
+                        unitName={chlorineUnit} theme={mdTheme} media={this.media.current} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>
@@ -265,6 +273,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
             <Alert ref={this.alert}></Alert>
             <Config ref={this.config} alert={this.alert} actions={this}/>
             {this.state.shutdown && (<Navigate to="/" replace={true}/>)}
+            <MediaQuery ref={this.media} theme={mdTheme}></MediaQuery>
       </ThemeProvider>
     );    
   }

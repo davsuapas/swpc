@@ -51,6 +51,8 @@ type Behavior struct {
 	// CheckTransTime is the time set for the micro to check the status of the clients
 	// and whether or not it has to transmit metric
 	CheckTransTime uint8
+	// CollectMetricsTime defines how often metrics are collected
+	CollectMetricsTime uint16
 	// Buffer is the buffer in seconds to store metrics int the micro-controller
 	Buffer uint8
 	Action uint8
@@ -68,10 +70,11 @@ func (b *Behavior) String() string {
 
 // Controller controllers the information status on how the micro controller should behave
 type Controller struct {
-	Log            *zap.Logger
-	Hub            *sockets.Hub
-	Config         Config
-	CheckTransTime uint8
+	Log                *zap.Logger
+	Hub                *sockets.Hub
+	Config             Config
+	CheckTransTime     uint8
+	CollectMetricsTime uint16
 
 	lock sync.RWMutex
 }
@@ -107,14 +110,13 @@ func (c *Controller) Download(metrics string) Behavior {
 func (c *Controller) Actions() Behavior {
 	config := c.tryConfig()
 
-	b := Behavior{
-		WakeUpTime:     config.Wakeup,
-		CheckTransTime: c.CheckTransTime,
-		Buffer:         config.Buffer,
-		Action:         uint8(c.actions()),
+	return Behavior{
+		WakeUpTime:         config.Wakeup,
+		CheckTransTime:     c.CheckTransTime,
+		CollectMetricsTime: c.CollectMetricsTime,
+		Buffer:             config.Buffer,
+		Action:             uint8(c.actions()),
 	}
-
-	return b
 }
 
 // actions gets the actions on how the micro controller should behave
