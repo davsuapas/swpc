@@ -288,7 +288,7 @@ func (h *Hub) unregister(id string) {
 			infClientUnRegd,
 			strings.FMTValue(infClientID, id),
 			strings.FMTValue(infLength, strconv.Itoa(len(h.clients))),
-			strings.FMTValue(infLength, statusString(h.status)))}
+			strings.FMTValue(infStatus, statusString(h.status)))}
 }
 
 // sendMessageToClients send message to the all clients registered.

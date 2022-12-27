@@ -38,6 +38,7 @@ import SocketFactory, { Metrics } from '../net/socket';
 import { Websocket } from 'websocket-ts/lib';
 import { Navigate } from 'react-router-dom';
 import { MediaQuery, MediaQueryAPI } from '../support/mediaquery';
+import User from '../login/user';
 
 const drawerWidth: number = 255;
 
@@ -81,6 +82,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
   private meassurePh: React.RefObject<Meassure>;
   private meassureCl: React.RefObject<Meassure>;
 
+  private user: User
+
   constructor(props: any) {
     super(props);
 
@@ -102,6 +105,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.meassureTemp = React.createRef<Meassure>();
     this.meassurePh = React.createRef<Meassure>();
     this.meassureCl = React.createRef<Meassure>();
+
+    this.user = new User(this);
 
     const sfactory = new SocketFactory(this.alert, this);
     sfactory.event.streamMetrics = this.streamMetrics.bind(this);
@@ -126,6 +131,11 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.chartTemp.current?.setData(metrics.temp);
     this.chartPh.current?.setData(metrics.ph);
     this.chartCl.current?.setData(metrics.chlorine);
+  }
+
+  private exit() {
+    this.socket.close();
+    this.user.logoff();
   }
 
   componentDidMount(): void {
@@ -172,7 +182,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Salir">
-                  <IconButton color="inherit">
+                  <IconButton color="inherit" onClick={() => this.exit()}>
                       <ExitToAppIcon />
                   </IconButton>
                 </Tooltip>
