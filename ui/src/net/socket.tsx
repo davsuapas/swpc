@@ -67,8 +67,9 @@ export default class SocketFactory {
             if (this.alert.current) {
                 this.alert.current.content(
                     "Conexión cerrada",
-                    "Puede ser que haya caducado la sesión o se haya producido un problema de comunicación, " +
-                    "inténtelo más tarde. " +
+                    "La sesión se ha caducado, o bien por cumplir el tiempo máximo de sesión, " +
+                    "o bien porque el servidor, por algún motivo, ha cerrado la sesión. " + 
+                    "Si desea continuar vuelva a iniciar sesión. " +
                     "Se procederá a cerrar la sessión de trabajo.");
                 this.alert.current.events.closed = () => {
                     this.user.logoff();

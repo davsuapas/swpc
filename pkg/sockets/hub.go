@@ -126,8 +126,8 @@ type Hub struct {
 
 	reg     chan Client
 	unreg   chan string
-	errors  chan []error
-	infos   chan []string
+	err     chan error
+	info    chan string
 	send    chan string
 	sconfig chan Config
 	statusc chan chan Status
@@ -147,8 +147,8 @@ type Hub struct {
 // The errors channel receives all errors into the hub
 func NewHub(
 	cnf Config,
-	infos chan []string,
-	errors chan []error) *Hub {
+	info chan string,
+	err chan error) *Hub {
 	return &Hub{
 		clients:     []Client{},
 		config:      cnf,
@@ -156,8 +156,8 @@ func NewHub(
 		unreg:       make(chan string),
 		send:        make(chan string),
 		sconfig:     make(chan Config),
-		infos:       infos,
-		errors:      errors,
+		info:        info,
+		err:         err,
 		statusc:     make(chan chan Status),
 		closec:      make(chan struct{}),
 		lastMessage: time.Time{},
@@ -212,7 +212,7 @@ func (h *Hub) Run() {
 				countResp <- h.status
 			case cnf := <-h.sconfig:
 				h.config = cnf
-				h.infos <- []string{strings.Format(infConfigChanged, strings.FMTValue(infConfig, h.config.string()))}
+				h.info <- strings.Format(infConfigChanged, strings.FMTValue(infConfig, h.config.string()))
 			case <-check.C:
 				h.controllerStatus()
 				h.notifyStatus()
@@ -241,7 +241,7 @@ func (h *Hub) tryResetTimer(check *time.Timer) {
 	if len(h.clients) > 0 {
 		check.Reset(h.config.TaskTime)
 	} else {
-		h.infos <- []string{infCheckerDes}
+		h.info <- infCheckerDes
 	}
 }
 
@@ -262,12 +262,11 @@ func (h *Hub) register(client Client, check *time.Timer) {
 		h.active()
 	}
 
-	h.infos <- []string{
-		strings.Format(
-			infClientReg,
-			strings.FMTValue(infClientID, client.id),
-			strings.FMTValue(infLength, strconv.Itoa(len(h.clients))),
-			strings.FMTValue(infLength, statusString(h.status)))}
+	h.info <- strings.Format(
+		infClientReg,
+		strings.FMTValue(infClientID, client.id),
+		strings.FMTValue(infLength, strconv.Itoa(len(h.clients))),
+		strings.FMTValue(infLength, statusString(h.status)))
 }
 
 func (h *Hub) unregister(id string) {
@@ -276,19 +275,18 @@ func (h *Hub) unregister(id string) {
 	}
 
 	if err := h.removeClient(id); err != nil {
-		h.errors <- []error{errors.Wrap(
+		h.err <- errors.Wrap(
 			err,
 			strings.Format(
 				infClientUnReg,
-				strings.FMTValue(infLength, strconv.Itoa(len(h.clients)))))}
+				strings.FMTValue(infLength, strconv.Itoa(len(h.clients)))))
 	}
 
-	h.infos <- []string{
-		strings.Format(
-			infClientUnRegd,
-			strings.FMTValue(infClientID, id),
-			strings.FMTValue(infLength, strconv.Itoa(len(h.clients))),
-			strings.FMTValue(infStatus, statusString(h.status)))}
+	h.info <- strings.Format(
+		infClientUnRegd,
+		strings.FMTValue(infClientID, id),
+		strings.FMTValue(infLength, strconv.Itoa(len(h.clients))),
+		strings.FMTValue(infStatus, statusString(h.status)))
 }
 
 // sendMessageToClients send message to the all clients registered.
@@ -301,13 +299,13 @@ func (h *Hub) sendMessageToClients(message string) {
 	// The message may be changed by sendmessage
 	status := h.status
 
-	h.sendMessage([]byte(strings.Concat("1:", message)), errSendingMsg)
+	h.sendMessage(strings.Concat("1:", message), errSendingMsg)
 
 	h.lastMessage = time.Now()
 
 	// sendMessage can set status to deactivated
 	if h.status != Deactivated && h.status != Streaming {
-		h.infos <- []string{strings.Format(infHubStreaming, strings.FMTValue(infPrevStatus, statusString(status)))}
+		h.info <- strings.Format(infHubStreaming, strings.FMTValue(infPrevStatus, statusString(status)))
 		h.status = Streaming
 	}
 }
@@ -321,11 +319,10 @@ func (h *Hub) controllerStatus() {
 
 		if h.lastMessage.Add(idleTime).Before(time.Now()) {
 			h.inactive()
-			h.infos <- []string{
-				strings.Format(
-					infHubInactive,
-					strings.FMTValue(infActualDate, time.Now().String()),
-					strings.FMTValue(infLastMsgDate, h.lastMessage.String()))}
+			h.info <- strings.Format(
+				infHubInactive,
+				strings.FMTValue(infActualDate, time.Now().String()),
+				strings.FMTValue(infLastMsgDate, h.lastMessage.String()))
 		}
 	}
 }
@@ -346,48 +343,38 @@ func (h *Hub) notifyStatus() {
 	// The message may be changed by sendmessage
 	status := h.status
 
-	msg := []byte(strings.Concat("0:", strconv.Itoa(int(h.status))))
-	h.sendMessage(msg, errNotify)
+	h.sendMessage(strings.Concat("0:", strconv.Itoa(int(h.status))), errNotify)
 
-	h.infos <- []string{
-		strings.Format(
-			infNotify,
-			strings.FMTValue(infActualDate, time.Now().String()),
-			strings.FMTValue(infLastNotify, h.lastNotification.String()),
-			strings.FMTValue(infStatus, statusString(status)))}
+	h.info <- strings.Format(
+		infNotify,
+		strings.FMTValue(infActualDate, time.Now().String()),
+		strings.FMTValue(infLastNotify, h.lastNotification.String()),
+		strings.FMTValue(infStatus, statusString(status)))
 
 	h.lastNotification = time.Now()
 }
 
 // sendMessage sends messages to the client
-func (h *Hub) sendMessage(message []byte, errMessage string) {
-	var errs []error
-
+func (h *Hub) sendMessage(message string, errMessage string) {
 	var brokenclients []uint16
 
 	for i, c := range h.clients {
-		if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+		if err := c.conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
 			brokenclients = append(brokenclients, uint16(i))
 
 			if err := h.closeClient(uint16(i)); err != nil {
-				errs = append(errs, errors.Wrap(err, errMessage))
+				h.err <- errors.Wrap(err, errMessage)
 			}
 
-			errs = append(
-				errs,
-				errors.Wrap(
-					err,
-					strings.Format(errMessage, strings.FMTValue(infClientID, c.id))))
+			h.err <- errors.Wrap(
+				err,
+				strings.Format(errMessage, strings.FMTValue(infClientID, c.id)))
 		}
 	}
 
 	if len(brokenclients) > 0 {
 		h.removeClientByPos(brokenclients...)
-	}
-
-	if len(errs) > 0 {
-		h.errors <- errs
-		h.infos <- []string{strings.Format(infArraySize, strings.FMTValue(infLength, strconv.Itoa(len(h.clients))))}
+		h.info <- strings.Format(infArraySize, strings.FMTValue(infLength, strconv.Itoa(len(h.clients))))
 	}
 }
 
@@ -403,11 +390,6 @@ func (h *Hub) inactive() {
 
 // removeDeadClient removes died clients
 func (h *Hub) removeDeadClient() {
-	var (
-		infos []string
-		errs  []error
-	)
-
 	var deadClients []uint16
 
 	for i, c := range h.clients {
@@ -417,36 +399,22 @@ func (h *Hub) removeDeadClient() {
 			clientID := h.clients[i].id
 
 			if err := h.closeClient(uint16(i)); err != nil {
-				errs = append(
-					errs,
-					errors.Wrap(
-						err,
-						strings.Format(errRemovingDiedClient, strings.FMTValue(infClientID, clientID))))
+				h.err <- errors.Wrap(
+					err,
+					strings.Format(errRemovingDiedClient, strings.FMTValue(infClientID, clientID)))
 			}
 
-			infos = append(
-				infos,
-				strings.Format(
-					infClientDied,
-					strings.FMTValue(infClientID, clientID),
-					strings.FMTValue(infExpirationDate, c.expiration.String()),
-					strings.FMTValue(infActualDate, time.Now().String())))
+			h.info <- strings.Format(
+				infClientDied,
+				strings.FMTValue(infClientID, clientID),
+				strings.FMTValue(infExpirationDate, c.expiration.String()),
+				strings.FMTValue(infActualDate, time.Now().String()))
 		}
-	}
-
-	if len(errs) > 0 {
-		h.errors <- errs
 	}
 
 	if len(deadClients) > 0 {
 		h.removeClientByPos(deadClients...)
-	}
-
-	if len(infos) > 0 {
-		infos = append(
-			infos,
-			strings.Format(infArraySize, strings.FMTValue(infLength, strconv.Itoa(len(h.clients)))))
-		h.infos <- infos
+		h.info <- strings.Format(infArraySize, strings.FMTValue(infLength, strconv.Itoa(len(h.clients))))
 	}
 }
 
@@ -485,7 +453,7 @@ func (h *Hub) removeClientByPos(pos ...uint16) {
 
 	if len(h.clients) == 0 {
 		h.status = Deactivated
-		h.infos <- []string{infHubDeactived}
+		h.info <- infHubDeactived
 	}
 }
 

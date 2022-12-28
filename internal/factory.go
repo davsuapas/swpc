@@ -128,8 +128,8 @@ func newHub(log *zap.Logger, config config.Config, configm micro.Config) (*hub.T
 			TaskTime:         time.Duration(config.TaskTime) * time.Second,
 			NotificationTime: time.Duration(config.NotificationTime) * time.Second,
 		},
-		hubt.Infos,
-		hubt.Errors)
+		hubt.Info,
+		hubt.Error)
 
 	return hubt, hub
 }

@@ -18,11 +18,12 @@
 package micro
 
 import (
-	"encoding/json"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/swpoolcontroller/pkg/sockets"
+	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
 )
 
@@ -60,12 +61,11 @@ type Behavior struct {
 
 // String returns struct as string
 func (b *Behavior) String() string {
-	r, err := json.Marshal(b)
-	if err != nil {
-		return ""
-	}
-
-	return string(r)
+	return strings.Concat("WakeUpTime: ", string(b.WakeUpTime),
+		", CheckTransTime: ", string(b.CheckTransTime),
+		", CollectMetricsTime: ", strconv.Itoa(int(b.CollectMetricsTime)),
+		", Buffer: ", string(b.Buffer),
+		", Action: ", string(b.Action))
 }
 
 // Controller controllers the information status on how the micro controller should behave

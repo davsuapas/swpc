@@ -42,13 +42,13 @@ import User from '../login/user';
 
 const drawerWidth: number = 255;
 
-const temperatureName = "Temperatura";
-const temperatureUnit = "Grados";
+const temperatureName = "TEMPERATURA";
+const temperatureUnit = "grados";
 
 const phName = "pH";
 const phUnit = "";
 
-const chlorineName = "Cloro";
+const chlorineName = "CLORO";
 const chlorineUnit = "mg/L";
 
 const mdTheme = createTheme();

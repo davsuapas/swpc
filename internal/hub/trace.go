@@ -25,17 +25,17 @@ const (
 
 // Trace manages the info and errors sent by the hub. This info and errors are write into log
 type Trace struct {
-	log    *zap.Logger
-	Infos  chan []string
-	Errors chan []error
+	log   *zap.Logger
+	Info  chan string
+	Error chan error
 }
 
 // NewTrace builds HubError service
 func NewTrace(log *zap.Logger) *Trace {
 	return &Trace{
-		log:    log,
-		Infos:  make(chan []string),
-		Errors: make(chan []error),
+		log:   log,
+		Info:  make(chan string),
+		Error: make(chan error),
 	}
 }
 
@@ -46,14 +46,10 @@ func (h *Trace) Register() {
 	go func() {
 		for {
 			select {
-			case errors := <-h.Errors:
-				for _, e := range errors {
-					h.log.Error("Hub errors", zap.Error(e))
-				}
-			case infos := <-h.Infos:
-				for _, i := range infos {
-					h.log.Info(i)
-				}
+			case e := <-h.Error:
+				h.log.Error("Hub errors", zap.Error(e))
+			case i := <-h.Info:
+				h.log.Info(i)
 			}
 		}
 	}()

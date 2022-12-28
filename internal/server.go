@@ -32,15 +32,12 @@ import (
 )
 
 const (
-	errShutdown = "Shutting down the server"
-)
-
-const (
-	infStartingServer = "Starting the swimming pool controller server ..."
-	infStartHub       = "Starting the hub"
-	infStoppingServer = "The web server is stopping ..."
-	infStoppingHub    = "The hub is stopping ..."
-	infStoppedServer  = "The server has been stopped"
+	infStartingServer    = "Starting the swimming pool controller server ..."
+	infStartHub          = "Starting the hub"
+	infStoppingWebServer = "The web server is stopping ..."
+	infStoppedWebServer  = "The web server has been stopped"
+	infStoppingHub       = "The hub is stopping ..."
+	infStoppedServer     = "The server has been stopped"
 )
 
 type Server struct {
@@ -65,7 +62,7 @@ func (s *Server) Start() {
 		s.factory.Hub.Run()
 
 		if err := s.factory.Webs.Start(s.factory.Config.Address()); err != nil {
-			s.factory.Log.Panic(errShutdown)
+			s.factory.Log.Info(infStoppedWebServer)
 		}
 	}()
 
@@ -78,7 +75,7 @@ func (s *Server) Start() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	s.factory.Log.Info(infStoppingServer)
+	s.factory.Log.Info(infStoppingWebServer)
 
 	if err := s.factory.Webs.Shutdown(ctx); err != nil {
 		s.factory.Log.Error(err.Error())
