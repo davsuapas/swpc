@@ -19,7 +19,6 @@ import * as React from 'react';
 import { LineChart, Line, XAxis, YAxis, Label, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Title from './title';
 import TaskInterval from '../support/interval';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import { Theme } from '@mui/material/styles';
 import { MediaQueryAPI } from '../support/mediaquery';
 
@@ -34,8 +33,13 @@ interface ChartProps {
   media: MediaQueryAPI | null
 }
 
+interface ChartItem {
+  time: string,
+  amount: number
+}
+
 interface ChartState {
-  data: any;
+  data: ChartItem[];
 }
 
 export default class Chart extends React.Component<ChartProps, ChartState> {
@@ -130,21 +134,35 @@ class Model {
   private task: TaskInterval;
 
   private buffer: any[];
+  private index: number;
+  private cumuSize: number;
 
   constructor(private chart: Chart) {
     this.buffer = [];
+    this.index = -1; // Empty stack
+    this.cumuSize = 0;
+
     this.task = new TaskInterval(intervalInSeconds * 1000, this.readBuffer.bind(this));
   }
 
   // setData updates the buffer and start reading
   setData(data: any[]) {
-    const read = !this.hasBuffer() && data.length > 0;
-
-    this.buffer = this.buffer.concat(data);
-
-    if (read) {
-      this.task.start();
+    if (data.length == 0) {
+      return
     }
+
+    this.cumuSize += data.length;
+
+    // In order to always display the most current data,
+    // data that has not yet been read is added to the top of the stack and inserted as a buffer,
+    // with a maximum of twice the amount of data being sent.
+    if (this.hasBuffer()) {
+      data.push(...this.buffer.slice(this.index, this.index + data.length));
+    }
+    this.buffer = data;
+    this.index = 0;
+
+    this.task.start();
   }
 
   // stop stops the reader
@@ -155,39 +173,39 @@ class Model {
   // readBuffer reads the buffer until the end and updating then chart
   private readBuffer(): boolean {
     if (this.hasBuffer()) {
+      if (this.cumuSize % 10 == 0) {
+        console.log("Chart (warning) -> More metrics are received than extracted: " + this.cumuSize +
+         ". Tamaño buffer: " + this.buffer.length);
+      }
+
       const date = new Date();
       const formattedTime = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
-
       const amount = this.pop(); 
-
-      if (this.buffer.length > 10) {
-        console.log("Chart (warning) -> The buffer is growing too large: " + this.buffer.length);
-      }
-  
+ 
       // raises last data received event
       this.chart.lastDataReceived(amount);
 
       this.chart.setState(prevState => {
-        return {
-          data: [...this.adjustSize(prevState.data), {
+        return this.setChartState(prevState, {
             time: formattedTime,
             amount: amount
-          }]
-        };
+          });
       });
+
       if (this.hasBuffer()) {
         return false; // Continue extracting with the next each interval
       }
     }
 
-    return true; // Cancel
+    return true; // Cancel, because there is nothing more to extract
   }
 
-  // adjustSize adjusts the internal size of the chart data according to the size of the screen
-  private adjustSize(prevState: any): [] {
-    const sizeXs = 2;
+  // setChartState sets the chart state adding the new metric,
+  // depending on the size of the screen, more or less data is displayed
+  private setChartState(prevState: ChartState, item: ChartItem): ChartState {
+    const sizeXs = 3;
     const sizeMd = 7;
-    const sizeLg = 10;
+    const sizeLg = 11;
 
     let size = sizeXs;
     if (this.chart.props.media?.isMd()) {
@@ -196,19 +214,25 @@ class Model {
       size = sizeLg;
     }
 
-    if (prevState.length > size) {
-      prevState.splice(0, prevState.length - size);
+    if (prevState.data.length > size) {
+      prevState.data.splice(0, prevState.data.length - size);
     }
 
-    return prevState;
+    return {data: [...prevState.data, item]};
   }
 
   private hasBuffer(): boolean {
-    return this.buffer.length > 0;
+    return this.index > -1;
   }
 
-  // pop gets the first element of the buffer and it's remove it.
+  // pop gets the first element of the buffer
   private pop() {
-    return this.buffer.shift();
+    const data = this.buffer[this.index++];
+    if (this.buffer.length == this.index) {
+      this.index = -1;
+    }
+    this.cumuSize--;
+
+    return data;
   }
 }

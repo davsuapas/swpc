@@ -23,10 +23,16 @@ export default class TaskInterval {
 
     // interval defines the interval to launch the task, task is the function to execute
     constructor(private interval: number, task: () => boolean) {
-        this.idTimeout = undefined;
-
         this.internalFuncTask = () => {
-            const cancel = task();
+            this.idTimeout = null;
+
+            let cancel = true;
+            try {
+                cancel = task();
+            }
+            catch (ex) {
+                console.log("TaskInterval. Executing task: " + ex);
+            }
             if (!cancel) {
                 this.idTimeout = setTimeout(this.internalFuncTask, this.interval);
             }
@@ -35,12 +41,16 @@ export default class TaskInterval {
 
     // start starts the task each x amount of time defined in interval
     start() {
-        this.idTimeout = setTimeout(this.internalFuncTask, this.interval);
+        if (!this.idTimeout) {
+            this.idTimeout = setTimeout(this.internalFuncTask, this.interval);
+        }
     }
 
     // stop stops of executing the task
     stop() {
-        if (this.idTimeout)
+        if (this.idTimeout) {
             clearTimeout(this.idTimeout)
+            this.idTimeout = null;
+        }
     } 
 }
