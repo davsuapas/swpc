@@ -5,17 +5,17 @@
   "dependencies": {
     "@emotion/react": "latest",
     "@emotion/styled": "latest",
-    "@mui/icons-material": "^5.10.3",
+    "@mui/icons-material": "latest",
     "@mui/material": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "react": "latest",
     "react-dom": "latest",
     "react-router-dom": "latest",
-    "react-scripts": "latest",
-    "recharts": "^2.1.14",
+    "react-scripts": "^5.0.1",
+    "recharts": "latest",
     "typescript": "latest",
-    "websocket-ts": "^1.1.1"
+    "websocket-ts": "latest"
   },
   "scripts": {
     "start": "react-scripts start",
