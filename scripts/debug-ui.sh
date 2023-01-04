@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Build the spa ui for debugging
+# Build the SPA ui for debugging
 
 PATH_PUBLIC=./cmd/swpc-server/public
 
