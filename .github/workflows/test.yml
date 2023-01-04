@@ -1,0 +1,32 @@
+name: TestGO
+
+on:
+  push:
+    paths:
+      - "**.go"
+      - go.mod
+      - go.sum
+  pull_request:
+    paths:
+      - "**.go"
+      - go.mod
+      - go.sum
+
+permissions:
+  contents: read
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version-file: './go.mod'
+        cache: true
+
+    - name: Test GO
+      run: ./scripts/test-go.sh
