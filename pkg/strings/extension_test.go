@@ -24,7 +24,14 @@ import (
 	"github.com/swpoolcontroller/pkg/strings"
 )
 
-func Test_fmt(t *testing.T) {
+func TestStrings_Concat(t *testing.T) {
+	t.Parallel()
+
+	c := strings.Concat("a", "b")
+	assert.Equal(t, c, "ab")
+}
+
+func TestStrings_fmt(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
