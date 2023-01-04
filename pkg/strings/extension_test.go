@@ -38,7 +38,7 @@ func Test_fmt(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Text  + Any params",
+			name: "Text + Any params",
 			args: args{
 				text:      "Text",
 				fmtValues: []strings.FormatValue{},
@@ -46,7 +46,7 @@ func Test_fmt(t *testing.T) {
 			want: "Text",
 		},
 		{
-			name: "Text  + only one param",
+			name: "Text + only one param",
 			args: args{
 				text: "Text",
 				fmtValues: []strings.FormatValue{
@@ -56,7 +56,7 @@ func Test_fmt(t *testing.T) {
 			want: "Text (key1: Value1, )",
 		},
 		{
-			name: "Text  + Several params",
+			name: "Text + Several params",
 			args: args{
 				text: "Text",
 				fmtValues: []strings.FormatValue{
