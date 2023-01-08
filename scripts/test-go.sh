@@ -2,5 +2,4 @@
 
 # Test GO
 
-
 go test -v ./...
