@@ -9,7 +9,9 @@ on:
         - '**/*.html'  
   
 permissions:
-  contents: read  
+  contents: read
+  actions: read
+  security-events: write
 
 jobs:
   analyze:
