@@ -23,6 +23,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
+	echojwt "github.com/labstack/echo-jwt/v4"
+	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/swpoolcontroller/internal/api"
 	"github.com/swpoolcontroller/internal/crypto"
@@ -116,12 +119,14 @@ func (s *Server) webRoute() {
 
 	// Web
 	wapi := s.factory.Webs.Group("/web/api")
-	config := middleware.JWTConfig{
-		Claims:      &web.JWTCustomClaims{},
+	config := echojwt.Config{
+		NewClaimsFunc: func(c echo.Context) jwt.Claims {
+			return &web.JWTCustomClaims{}
+		},
 		SigningKey:  []byte(crypto.Key),
 		TokenLookup: strings.Concat("cookie:", web.TokenName),
 	}
-	wapi.Use(middleware.JWTWithConfig(config))
+	wapi.Use(echojwt.WithConfig(config))
 	wapi.GET("/config", s.factory.WebHandler.Config.Load)
 	wapi.POST("/config", s.factory.WebHandler.Config.Save)
 
@@ -129,10 +134,8 @@ func (s *Server) webRoute() {
 
 	// Micro controller API
 	mapi := s.factory.Webs.Group("/micro/api")
-	config = middleware.JWTConfig{
-		SigningKey: []byte(crypto.Key),
-	}
-	mapi.Use(middleware.JWTWithConfig(config))
+
+	mapi.Use(echojwt.JWT([]byte(crypto.Key)))
 	mapi.GET("/action", s.factory.APIHandler.Stream.Actions)
 	mapi.POST("/download", s.factory.APIHandler.Stream.Download)
 }

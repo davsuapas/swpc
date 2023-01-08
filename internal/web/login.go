@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/crypto"
@@ -155,8 +155,8 @@ func (l *Login) securityToken(ctx echo.Context, email string) (string, error) {
 	// Set custom claims
 	claims := &JWTCustomClaims{
 		email,
-		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Duration(l.webc.SessionExpiration) * time.Minute).Unix(),
+		jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(l.webc.SessionExpiration) * time.Minute)),
 		},
 	}
 
@@ -177,7 +177,7 @@ func (l *Login) securityToken(ctx echo.Context, email string) (string, error) {
 // JWTCustomClaims are custom claims extending default ones.
 type JWTCustomClaims struct {
 	Email string `json:"email"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // Users controllers the user of app in memory

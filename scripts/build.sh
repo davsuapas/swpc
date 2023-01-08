@@ -9,7 +9,7 @@ $path_scripts/test-go.sh
 $path_scripts/lint-go.sh
 
 mkdir -p "$path_target"
-mkdir "$path_target/data"
+mkdir -p "$path_target/data"
 
 $path_scripts/build-ui.sh "$path_target"
 
