@@ -3,14 +3,8 @@ name: "codeql"
 on:
   push:
     branches: [ "main" ]
-    paths-ignore:
-        - '**/*.md'
-        - '**/*.html'  
   pull_request:
     branches: [ "main" ]
-    paths-ignore:
-        - '**/*.md'
-        - '**/*.html'  
   
 permissions:
   contents: read
