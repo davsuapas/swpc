@@ -36,11 +36,11 @@ const (
 )
 
 const (
-	errGettingToken = "Logoff. Getting auth token from web request"
-	errUserNotFound = "Login. The user not found"
-	errEncrypt      = "Login. Error encrypt the pass"
-	errBadKey       = "Login. The pass is bad"
-	errSign         = "Login. Error signing token"
+	errGettingTk    = "Logoff -> Getting auth token from web request"
+	errUserNotFound = "Login -> The user not found"
+	errEncrypt      = "Login -> Error encrypt the pass"
+	errBadKey       = "Login -> The pass is bad"
+	errSign         = "Login -> Error signing token"
 )
 
 const (
@@ -78,7 +78,7 @@ func (l *Login) Logoff(ctx echo.Context) error {
 
 	sess, err := ctx.Cookie(TokenName)
 	if err != nil {
-		l.log.Error(errGettingToken, zap.Error(err))
+		l.log.Error(errGettingTk, zap.Error(err))
 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}

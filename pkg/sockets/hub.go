@@ -208,8 +208,8 @@ func (h *Hub) Run() {
 				h.unregister(id)
 			case message := <-h.send:
 				h.sendMessageToClients(message)
-			case countResp := <-h.statusc:
-				countResp <- h.status
+			case resps := <-h.statusc:
+				resps <- h.status
 			case cnf := <-h.sconfig:
 				h.config = cnf
 				h.info <- strings.Format(infConfigChanged, strings.FMTValue(infConfig, h.config.string()))

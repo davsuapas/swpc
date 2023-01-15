@@ -34,16 +34,16 @@ const (
 
 const layaoutTime = "15:04"
 
-// actions are the actions communication between the device and server
-type actions int
+// Actions are the Actions communication between the device and server
+type Actions int
 
 const (
-	// sleep puts the micro controller to sleep
-	sleep actions = iota
-	// transmit puts the micro controller to transmit metrics
-	transmit
-	// checkTransmission puts the micro controller to check transmission status
-	checkTransmission
+	// Sleep puts the micro controller to Sleep
+	Sleep Actions = iota
+	// Transmit puts the micro controller to Transmit metrics
+	Transmit
+	// CheckTransmission puts the micro controller to check transmission status
+	CheckTransmission
 )
 
 type Behavior struct {
@@ -68,10 +68,18 @@ func (b *Behavior) String() string {
 		", Action: ", string(b.Action))
 }
 
+// Hub manages the socket pool and distribute messages
+type Hub interface {
+	// Send sends message to the all clients into hub
+	Send(message string)
+	// Status request hub status via channel
+	Status(resp chan sockets.Status)
+}
+
 // Controller controllers the information status on how the micro controller should behave
 type Controller struct {
 	Log                *zap.Logger
-	Hub                *sockets.Hub
+	Hub                Hub
 	Config             Config
 	CheckTransTime     uint8
 	CollectMetricsTime uint16
@@ -120,18 +128,18 @@ func (c *Controller) Actions() Behavior {
 }
 
 // actions gets the actions on how the micro controller should behave
-func (c *Controller) actions() actions {
+func (c *Controller) actions() Actions {
 	resp := make(chan sockets.Status)
 	c.Hub.Status(resp)
 	hstatus := <-resp
 
 	if hstatus == sockets.Closed {
-		return sleep
+		return Sleep
 	}
 
 	if hstatus != sockets.Deactivated {
 		// All states other than deactivated and closed are susceptible to transmission
-		return transmit
+		return Transmit
 	}
 
 	conf := c.tryConfig()
@@ -140,14 +148,14 @@ func (c *Controller) actions() actions {
 	if err != nil {
 		c.Log.Fatal(parseStartTimeError, zap.Error(err))
 
-		return sleep
+		return Sleep
 	}
 
 	endTime, err := time.Parse(layaoutTime, conf.EndSendTime)
 	if err != nil {
 		c.Log.Fatal(parseEndTimeError, zap.Error(err))
 
-		return sleep
+		return Sleep
 	}
 
 	n := time.Now()
@@ -169,9 +177,9 @@ func (c *Controller) actions() actions {
 
 	// It is on schedule but there are no clients (the hub is deactivated)
 	if transWindow {
-		return checkTransmission
+		return CheckTransmission
 	}
 
 	// It is not on schedule and there are no clients (the hub is deactivated)
-	return sleep
+	return Sleep
 }

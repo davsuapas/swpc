@@ -60,7 +60,7 @@ type Config struct {
 	Buffer uint8 `json:"buffer"`
 }
 
-func configDefault() Config {
+func ConfigDefault() Config {
 	return Config{
 		IniSendTime: "11:00",
 		EndSendTime: "12:00",
@@ -105,7 +105,7 @@ func (c ConfigRead) Read() (Config, error) {
 		c.Log.Error(errReadConfig, zap.String(infFile, file), zap.Error(err))
 
 		if errors.Is(err, os.ErrNotExist) {
-			return configDefault(), nil
+			return ConfigDefault(), nil
 		}
 
 		return Config{}, nil

@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/crypto"
@@ -61,8 +61,8 @@ func (o *OAuth) Token(ctx echo.Context) error {
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
 
-	claims := jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(time.Duration(o.ac.SessionExpiration) * time.Minute).Unix(),
+	claims := jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(o.ac.SessionExpiration) * time.Minute)),
 	}
 
 	// Create token with claims
