@@ -157,7 +157,7 @@ func doTrasnmisssion() bool {
 func do(method string, uri string, body string, actionRetry uint8, maxRetry uint8) bool {
 	var res string
 
-	if err := REST(method, strings.Concat(URLAPI, uri), body, &res); !err {
+	if !REST(method, strings.Concat(URLAPI, uri), body, &res) {
 		retryAction(actionRetry, maxRetry)
 
 		return false
@@ -308,7 +308,7 @@ func REST(method string, url string, body string, result *string) bool {
 
 	var res string
 
-	if err := restInternal(true, true, method, url, body, &res); !err {
+	if !restInternal(true, true, method, url, body, &res) {
 		return false
 	}
 

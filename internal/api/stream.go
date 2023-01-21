@@ -64,11 +64,10 @@ func (s *Stream) Download(ctx echo.Context) error {
 	metrics, err := io.ReadAll(ctx.Request().Body)
 	if err != nil {
 		s.control.Log.Error(errGetBody, zap.Error(err))
+		return ctx.NoContent(http.StatusBadRequest)
 	}
 
-	s.control.Download(string(metrics))
-
-	action := s.control.Actions()
+	action := s.control.Download(string(metrics))
 
 	s.control.Log.Debug(dbgStreamDownload, zap.String(infAction, action.String()))
 

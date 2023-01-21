@@ -28,6 +28,20 @@ import (
 	"go.uber.org/zap"
 )
 
+func TestBehavior_String(t *testing.T) {
+	b := micro.Behavior{
+		WakeUpTime:         1,
+		CheckTransTime:     1,
+		CollectMetricsTime: 1,
+		Buffer:             1,
+		Action:             1,
+	}
+
+	s := b.String()
+
+	assert.Equal(t, "WakeUpTime: \x01, CheckTransTime: \x01, CollectMetricsTime: 1, Buffer: \x01, Action: \x01", s)
+}
+
 func TestController_SetConfig(t *testing.T) {
 	t.Parallel()
 
@@ -42,41 +56,132 @@ func TestController_SetConfig(t *testing.T) {
 func TestController_Download(t *testing.T) {
 	t.Parallel()
 
-	mockHub := mocks.NewHub(t)
-
 	metrics := "1,2,3"
 
-	mockHub.On("Send", metrics)
-	mockHub.On("Status", mock.AnythingOfType("chan sockets.Status")).Run(func(args mock.Arguments) {
-		if s, ok := args.Get(0).(chan sockets.Status); ok {
-			go func() {
-				s <- sockets.Closed
-			}()
-		}
-	})
-
-	cnf := micro.ConfigDefault()
-
-	c := &micro.Controller{
-		Log:                zap.NewExample(),
-		Hub:                mockHub,
-		Config:             cnf,
-		CheckTransTime:     1,
-		CollectMetricsTime: 2,
+	type fields struct {
+		cnf    micro.Config
+		status sockets.Status
 	}
-
-	b := c.Download(metrics)
-
-	assert.Equal(
-		t,
-		micro.Behavior{
-			WakeUpTime:         cnf.Wakeup,
-			CheckTransTime:     c.CheckTransTime,
-			CollectMetricsTime: c.CollectMetricsTime,
-			Buffer:             cnf.Buffer,
-			Action:             uint8(micro.Sleep),
+	tests := []struct {
+		name   string
+		fields fields
+		res    micro.Behavior
+	}{
+		{
+			name: "Download. Socket closed",
+			fields: fields{
+				cnf:    micro.ConfigDefault(),
+				status: sockets.Closed,
+			},
+			res: micro.Behavior{
+				WakeUpTime:         30,
+				CheckTransTime:     1,
+				CollectMetricsTime: 2,
+				Buffer:             3,
+				Action:             uint8(micro.Sleep),
+			},
 		},
-		b)
+		{
+			name: "Download. Socket unlike Deactivated",
+			fields: fields{
+				cnf:    micro.ConfigDefault(),
+				status: sockets.Streaming,
+			},
+			res: micro.Behavior{
+				WakeUpTime:         30,
+				CheckTransTime:     1,
+				CollectMetricsTime: 2,
+				Buffer:             3,
+				Action:             uint8(micro.Transmit),
+			},
+		},
+		{
+			name: "Download. Bad formatted start time",
+			fields: fields{
+				cnf: micro.Config{
+					IniSendTime: "123-221",
+					EndSendTime: "",
+					Wakeup:      20,
+					Buffer:      5,
+				},
+				status: sockets.Deactivated,
+			},
+			res: micro.Behavior{
+				WakeUpTime:         20,
+				CheckTransTime:     1,
+				CollectMetricsTime: 2,
+				Buffer:             5,
+				Action:             uint8(micro.Sleep),
+			},
+		},
+		{
+			name: "Download. Bad formatted end time",
+			fields: fields{
+				cnf: micro.Config{
+					IniSendTime: "12:12",
+					EndSendTime: "123-221",
+					Wakeup:      20,
+					Buffer:      5,
+				},
+				status: sockets.Deactivated,
+			},
+			res: micro.Behavior{
+				WakeUpTime:         20,
+				CheckTransTime:     1,
+				CollectMetricsTime: 2,
+				Buffer:             5,
+				Action:             uint8(micro.Sleep),
+			},
+		},
+		{
+			name: "Download. Socket deactivated",
+			fields: fields{
+				cnf: micro.Config{
+					IniSendTime: "11:52",
+					EndSendTime: "11:52",
+					Wakeup:      20,
+					Buffer:      5,
+				},
+				status: sockets.Deactivated,
+			},
+			res: micro.Behavior{
+				WakeUpTime:         20,
+				CheckTransTime:     1,
+				CollectMetricsTime: 2,
+				Buffer:             5,
+				Action:             uint8(micro.Sleep),
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	mockHub.AssertExpectations(t)
+			mhub := mocks.NewHub(t)
+
+			mhub.On("Send", metrics)
+			mhub.On("Status", mock.AnythingOfType("chan sockets.Status")).Run(func(args mock.Arguments) {
+				if s, ok := args.Get(0).(chan sockets.Status); ok {
+					go func() {
+						s <- tt.fields.status
+					}()
+				}
+			})
+
+			c := &micro.Controller{
+				Log:                zap.NewExample(),
+				Hub:                mhub,
+				Config:             tt.fields.cnf,
+				CheckTransTime:     1,
+				CollectMetricsTime: 2,
+			}
+
+			b := c.Download(metrics)
+
+			assert.Equal(t, tt.res, b)
+
+			mhub.AssertExpectations(t)
+		})
+	}
 }

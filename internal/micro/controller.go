@@ -29,7 +29,7 @@ import (
 
 const (
 	parseStartTimeError = "MicroController.Status-> Parser start time. The micro-controller is set sleep status"
-	parseEndTimeError   = "MicroController.Status-> Parser start time. The micro-controller is set sleep status"
+	parseEndTimeError   = "MicroController.Status-> Parser end time. The micro-controller is set sleep status"
 )
 
 const layaoutTime = "15:04"
@@ -146,14 +146,14 @@ func (c *Controller) actions() Actions {
 
 	iniTime, err := time.Parse(layaoutTime, conf.IniSendTime)
 	if err != nil {
-		c.Log.Fatal(parseStartTimeError, zap.Error(err))
+		c.Log.Error(parseStartTimeError, zap.Error(err))
 
 		return Sleep
 	}
 
 	endTime, err := time.Parse(layaoutTime, conf.EndSendTime)
 	if err != nil {
-		c.Log.Fatal(parseEndTimeError, zap.Error(err))
+		c.Log.Error(parseEndTimeError, zap.Error(err))
 
 		return Sleep
 	}
@@ -169,14 +169,9 @@ func (c *Controller) actions() Actions {
 		iniTime.Nanosecond(),
 		iniTime.Location())
 
-	transWindow := false
 	// Can transmit within the time zone set by the user.
-	if now.After(iniTime) && now.Before(endTime) {
-		transWindow = true
-	}
-
 	// It is on schedule but there are no clients (the hub is deactivated)
-	if transWindow {
+	if now.After(iniTime) && now.Before(endTime) {
 		return CheckTransmission
 	}
 

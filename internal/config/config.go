@@ -25,7 +25,7 @@ import (
 	"github.com/swpoolcontroller/pkg/strings"
 )
 
-const envConfig = "SW_POOL_CONTROLLER_CONFIG"
+const ENVConfig = "SW_POOL_CONTROLLER_CONFIG"
 
 const (
 	errEnvConfig   = "Environment configuration variable cannot be loaded"
@@ -90,9 +90,8 @@ type Config struct {
 	DataPath     string `json:"dataPath,omitempty"`
 }
 
-// LoadConfig loads the configuration from environment variable
-func LoadConfig() Config {
-	cnf := Config{
+func Default() Config {
+	return Config{
 		ServerConfig: ServerConfig{Port: 8080},
 		ZapConfig: ZapConfig{
 			Development: true,
@@ -114,8 +113,13 @@ func LoadConfig() Config {
 		},
 		DataPath: "./data",
 	}
+}
 
-	env := os.Getenv(envConfig)
+// LoadConfig loads the configuration from environment variable
+func LoadConfig() Config {
+	cnf := Default()
+
+	env := os.Getenv(ENVConfig)
 
 	if len(env) != 0 {
 		if err := json.Unmarshal([]byte(env), &cnf); err != nil {

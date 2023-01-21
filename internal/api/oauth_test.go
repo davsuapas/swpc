@@ -42,14 +42,14 @@ func TestOAuth_Token(t *testing.T) {
 		status int
 	}{
 		{
-			name: "Token Success",
+			name: "Token. Success",
 			args: args{
 				si: "sw3kf$fekdy56dfh",
 			},
 			status: http.StatusOK,
 		},
 		{
-			name: "Token ivalid",
+			name: "Token. Invalid",
 			args: args{
 				si: "tinvalid",
 			},
