@@ -29,6 +29,8 @@ import (
 )
 
 func TestBehavior_String(t *testing.T) {
+	t.Parallel()
+
 	b := micro.Behavior{
 		WakeUpTime:         1,
 		CheckTransTime:     1,
@@ -45,7 +47,7 @@ func TestBehavior_String(t *testing.T) {
 func TestController_SetConfig(t *testing.T) {
 	t.Parallel()
 
-	cnf := micro.ConfigDefault()
+	cnf := micro.DefaultConfig()
 	c := &micro.Controller{}
 
 	c.SetConfig(cnf)
@@ -62,6 +64,7 @@ func TestController_Download(t *testing.T) {
 		cnf    micro.Config
 		status sockets.Status
 	}
+
 	tests := []struct {
 		name   string
 		fields fields
@@ -70,7 +73,7 @@ func TestController_Download(t *testing.T) {
 		{
 			name: "Download. Socket closed",
 			fields: fields{
-				cnf:    micro.ConfigDefault(),
+				cnf:    micro.DefaultConfig(),
 				status: sockets.Closed,
 			},
 			res: micro.Behavior{
@@ -84,7 +87,7 @@ func TestController_Download(t *testing.T) {
 		{
 			name: "Download. Socket unlike Deactivated",
 			fields: fields{
-				cnf:    micro.ConfigDefault(),
+				cnf:    micro.DefaultConfig(),
 				status: sockets.Streaming,
 			},
 			res: micro.Behavior{
@@ -153,6 +156,7 @@ func TestController_Download(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {

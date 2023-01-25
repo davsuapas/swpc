@@ -38,3 +38,7 @@ issues:
     - path: _test\.go
       linters:
         - funlen
+    - path: internal/config/config_test.go
+      linters:
+        - paralleltest
+        - tparallel

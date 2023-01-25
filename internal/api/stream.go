@@ -64,6 +64,7 @@ func (s *Stream) Download(ctx echo.Context) error {
 	metrics, err := io.ReadAll(ctx.Request().Body)
 	if err != nil {
 		s.control.Log.Error(errGetBody, zap.Error(err))
+
 		return ctx.NoContent(http.StatusBadRequest)
 	}
 

@@ -12,6 +12,11 @@ type Hub struct {
 	mock.Mock
 }
 
+// Config provides a mock function with given fields: cnf
+func (_m *Hub) Config(cnf sockets.Config) {
+	_m.Called(cnf)
+}
+
 // Send provides a mock function with given fields: message
 func (_m *Hub) Send(message string) {
 	_m.Called(message)

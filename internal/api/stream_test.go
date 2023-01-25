@@ -54,7 +54,7 @@ func TestStream_Actions(t *testing.T) {
 	c := api.NewStream(&micro.Controller{
 		Log:                zap.NewExample(),
 		Hub:                mhub,
-		Config:             micro.ConfigDefault(),
+		Config:             micro.DefaultConfig(),
 		CheckTransTime:     10,
 		CollectMetricsTime: 20,
 	})
@@ -95,7 +95,7 @@ func TestStream_Download(t *testing.T) {
 	c := api.NewStream(&micro.Controller{
 		Log:                zap.NewExample(),
 		Hub:                mhub,
-		Config:             micro.ConfigDefault(),
+		Config:             micro.DefaultConfig(),
 		CheckTransTime:     10,
 		CollectMetricsTime: 20,
 	})

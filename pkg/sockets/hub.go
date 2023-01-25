@@ -180,7 +180,7 @@ func (h *Hub) Send(message string) {
 	h.send <- message
 }
 
-// Send the config to the hub
+// Config sends the config to the hub
 func (h *Hub) Config(cnf Config) {
 	h.sconfig <- cnf
 }

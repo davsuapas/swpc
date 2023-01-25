@@ -18,6 +18,7 @@
 package internal
 
 import (
+	"path"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -36,6 +37,8 @@ const (
 	errReadConfig = "Reading the configuration of the micro controller from config file"
 	errCreateZap  = "Error creating zap logger"
 )
+
+const dataFile = "micro-config.dat"
 
 // APIHandler Micro API handler
 type APIHandler struct {
@@ -69,9 +72,11 @@ func NewFactory() *Factory {
 
 	log := newLogger(config)
 
+	dataFile := path.Join(config.DataPath, dataFile)
+
 	mconfigRead := &micro.ConfigRead{
 		Log:      log,
-		DataPath: config.DataPath,
+		DataFile: dataFile,
 	}
 
 	configm, err := mconfigRead.Read()
@@ -94,7 +99,7 @@ func NewFactory() *Factory {
 		MControl: mcontrol,
 		Hub:      hub,
 		Config:   config,
-		DataPath: config.DataPath,
+		DataFile: dataFile,
 	}
 
 	return &Factory{

@@ -20,7 +20,6 @@ package micro
 import (
 	"encoding/json"
 	"os"
-	"path"
 	"time"
 
 	"github.com/pkg/errors"
@@ -29,8 +28,6 @@ import (
 	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
 )
-
-const fileName = "micro-config.dat"
 
 const (
 	errReadConfig     = "Reading the configuration of the micro controller from config file"
@@ -60,7 +57,7 @@ type Config struct {
 	Buffer uint8 `json:"buffer"`
 }
 
-func ConfigDefault() Config {
+func DefaultConfig() Config {
 	return Config{
 		IniSendTime: "11:00",
 		EndSendTime: "12:00",
@@ -82,41 +79,39 @@ func (c *Config) String() string {
 // ConfigRead reads the micro controller configuration
 type ConfigRead struct {
 	Log      *zap.Logger
-	DataPath string
+	DataFile string
 }
 
 // ConfigWrite writes the micro controller configuration
 type ConfigWrite struct {
 	Log      *zap.Logger
 	MControl *Controller
-	Hub      *sockets.Hub
+	Hub      Hub
 	Config   config.Config
-	DataPath string
+	DataFile string
 }
 
 // Read reads the configuration saved in disk. If the file not exists returns config default
-func (c ConfigRead) Read() (Config, error) {
-	file := path.Join(c.DataPath, fileName)
+func (c *ConfigRead) Read() (Config, error) {
+	c.Log.Info(infLoadingConfig, zap.String(infFile, c.DataFile))
 
-	c.Log.Info(infLoadingConfig, zap.String(infFile, file))
-
-	data, err := os.ReadFile(file)
+	data, err := os.ReadFile(c.DataFile)
 	if err != nil {
-		c.Log.Error(errReadConfig, zap.String(infFile, file), zap.Error(err))
+		c.Log.Error(errReadConfig, zap.String(infFile, c.DataFile), zap.Error(err))
 
 		if errors.Is(err, os.ErrNotExist) {
-			return ConfigDefault(), nil
+			return DefaultConfig(), nil
 		}
 
-		return Config{}, nil
+		return Config{}, errors.Wrap(err, errReadConfig)
 	}
 
 	var mc Config
 
 	if err := json.Unmarshal(data, &mc); err != nil {
-		c.Log.Error(errUnmarsConfig, zap.String(infFile, file), zap.Error(err))
+		c.Log.Error(errUnmarsConfig, zap.String(infFile, c.DataFile), zap.Error(err))
 
-		return Config{}, nil
+		return DefaultConfig(), errors.Wrap(err, errUnmarsConfig)
 	}
 
 	c.Log.Info(infConfigLoaded, zap.String(infConfig, mc.String()))
@@ -125,17 +120,15 @@ func (c ConfigRead) Read() (Config, error) {
 }
 
 func (c ConfigWrite) Save(data Config) error {
-	file := path.Join(c.DataPath, fileName)
-
-	c.Log.Info(infSavingConfig, zap.String(infConfig, data.String()), zap.String(infFile, file))
+	c.Log.Info(infSavingConfig, zap.String(infConfig, data.String()), zap.String(infFile, c.DataFile))
 
 	conf, err := json.Marshal(data)
 	if err != nil {
-		return errors.Wrap(err, strings.Concat(errMarshallConfig, file))
+		return errors.Wrap(err, strings.Concat(errMarshallConfig, c.DataFile))
 	}
 
-	if err := os.WriteFile(file, conf, os.FileMode(0664)); err != nil {
-		return errors.Wrap(err, strings.Concat(errSaveConfig, file))
+	if err := os.WriteFile(c.DataFile, conf, os.FileMode(0664)); err != nil {
+		return errors.Wrap(err, strings.Concat(errSaveConfig, c.DataFile))
 	}
 
 	// it updates the controller with new configuration

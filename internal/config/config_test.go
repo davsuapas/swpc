@@ -18,7 +18,6 @@
 package config_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -67,9 +66,10 @@ func TestLoadConfig(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv(config.ENVConfig, tt.env)
+			t.Setenv(config.ENVConfig, tt.env)
 
 			cnf := config.LoadConfig()
 
@@ -98,9 +98,10 @@ func TestLoadConfig_Panic(t *testing.T) {
 			env:  `{"log": {"level": 8}}`,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv(config.ENVConfig, tt.env)
+			t.Setenv(config.ENVConfig, tt.env)
 
 			assert.Panics(t, func() { config.LoadConfig() })
 		})
@@ -108,6 +109,8 @@ func TestLoadConfig_Panic(t *testing.T) {
 }
 
 func TestServerConfig_String(t *testing.T) {
+	t.Parallel()
+
 	c := config.Default()
 
 	res := c.String()
@@ -116,6 +119,8 @@ func TestServerConfig_String(t *testing.T) {
 }
 
 func TestServerConfig_Address(t *testing.T) {
+	t.Parallel()
+
 	s := config.ServerConfig{
 		Port: 2020,
 	}

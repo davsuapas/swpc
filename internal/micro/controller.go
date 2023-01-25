@@ -68,14 +68,6 @@ func (b *Behavior) String() string {
 		", Action: ", string(b.Action))
 }
 
-// Hub manages the socket pool and distribute messages
-type Hub interface {
-	// Send sends message to the all clients into hub
-	Send(message string)
-	// Status request hub status via channel
-	Status(resp chan sockets.Status)
-}
-
 // Controller controllers the information status on how the micro controller should behave
 type Controller struct {
 	Log                *zap.Logger
