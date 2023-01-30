@@ -87,12 +87,12 @@ func TestConfigRead_Read(t *testing.T) {
 				DataFile: tt.dataPath,
 			}
 
-			got, err := c.Read()
+			res, err := c.Read()
 			if err != nil && tt.err.want {
 				assert.ErrorContains(t, err, tt.err.msg, "Error")
 			}
 
-			assert.Equal(t, tt.expected, got)
+			assert.Equal(t, tt.expected, res)
 		})
 	}
 }
@@ -147,7 +147,7 @@ func TestConfigWrite_Save(t *testing.T) {
 		{
 			name: "Write micro config. Error writing file",
 			fields: fields{
-				DataFile: "./no_exist/micro-config-write-sucess.dat",
+				DataFile: "./no_exist/micro-config-write.dat",
 			},
 			args: args{
 				data: micro.DefaultConfig(),

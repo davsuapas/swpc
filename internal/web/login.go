@@ -26,7 +26,6 @@ import (
 	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/crypto"
 	pcrypto "github.com/swpoolcontroller/pkg/crypto"
-	"github.com/swpoolcontroller/pkg/sockets"
 	"go.uber.org/zap"
 )
 
@@ -51,12 +50,12 @@ const (
 // Login controllers the access of the user
 type Login struct {
 	log   *zap.Logger
-	hub   *sockets.Hub
+	hub   Hub
 	webc  config.WebConfig
 	users users
 }
 
-func NewLogin(log *zap.Logger, wc config.WebConfig, hub *sockets.Hub) *Login {
+func NewLogin(log *zap.Logger, wc config.WebConfig, hub Hub) *Login {
 	return &Login{
 		log:   log,
 		webc:  wc,
@@ -69,13 +68,6 @@ func NewLogin(log *zap.Logger, wc config.WebConfig, hub *sockets.Hub) *Login {
 func (l *Login) Logoff(ctx echo.Context) error {
 	l.log.Info(infLoginRequest)
 
-	cookie := cookies(TokenName, "", true, time.Time{})
-	cookie.MaxAge = 0 // Remove cookie
-	ctx.SetCookie(cookie)
-	cookie = cookies(authCookie, "", false, time.Time{})
-	cookie.MaxAge = 0 // Remove cookie
-	ctx.SetCookie(cookie)
-
 	sess, err := ctx.Cookie(TokenName)
 	if err != nil {
 		l.log.Error(errGettingTk, zap.Error(err))
@@ -84,6 +76,13 @@ func (l *Login) Logoff(ctx echo.Context) error {
 	}
 
 	l.hub.Unregister(sess.Value)
+
+	cookie := cookies(TokenName, "", true, time.Time{})
+	cookie.MaxAge = 0 // Remove cookie
+	ctx.SetCookie(cookie)
+	cookie = cookies(authCookie, "", false, time.Time{})
+	cookie.MaxAge = 0 // Remove cookie
+	ctx.SetCookie(cookie)
 
 	return ctx.NoContent(http.StatusOK)
 }
@@ -188,7 +187,7 @@ type users struct {
 func newUsersInMemory() users {
 	return users{
 		user: map[string]string{
-			"dav.sua.pas@gmail.com": "RCrkRDBG6cc=",
+			"test": "cSv7Vw==",
 		},
 	}
 }

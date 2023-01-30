@@ -36,13 +36,13 @@ const (
 // WS register sockets
 type WS struct {
 	log      *zap.Logger
-	hub      *sockets.Hub
+	hub      Hub
 	sessionc config.WebConfig
 	upgrader websocket.Upgrader
 }
 
 // NewWS builds WS service
-func NewWS(log *zap.Logger, sessionc config.WebConfig, hub *sockets.Hub) *WS {
+func NewWS(log *zap.Logger, sessionc config.WebConfig, hub Hub) *WS {
 	return &WS{
 		log:      log,
 		hub:      hub,
@@ -60,7 +60,8 @@ func (w *WS) Register(ctx echo.Context) error {
 	if err != nil {
 		w.log.Error(errGenSocket, zap.Error(err))
 
-		return ctx.NoContent(http.StatusInternalServerError)
+		// Upgrade update the response. No need to return the error
+		return nil
 	}
 
 	sess, err := ctx.Cookie(TokenName)
