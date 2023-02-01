@@ -1,0 +1,31 @@
+name: test
+
+on:
+  push:
+    paths:
+      - "**.go"
+  pull_request:
+    paths:
+      - "**.go"
+
+permissions:
+  contents: read
+
+jobs:
+
+  test-go:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version-file: './go.mod'
+        cache: true
+
+    - name: Coverage GO
+      run: ./scripts/coverage-go.sh
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
