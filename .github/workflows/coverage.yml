@@ -1,4 +1,4 @@
-name: test
+name: coverage
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
 
-  test-go:
+  coverage-go:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
