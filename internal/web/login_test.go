@@ -106,7 +106,7 @@ func TestLogin_Submit(t *testing.T) {
 		resStatus int
 	}{
 		{
-			name: "Login. StatusOk",
+			name: "Login. Status Ok",
 			args: args{
 				user: "test",
 				pass: "test",
@@ -114,7 +114,7 @@ func TestLogin_Submit(t *testing.T) {
 			resStatus: http.StatusOK,
 		},
 		{
-			name: "Login. User not found returns StatusUnauthorized",
+			name: "Login. User not found returns Status Unauthorized",
 			args: args{
 				user: "pepe",
 				pass: "",
@@ -122,7 +122,7 @@ func TestLogin_Submit(t *testing.T) {
 			resStatus: http.StatusUnauthorized,
 		},
 		{
-			name: "Login. Pass incorrect returns StatusUnauthorized",
+			name: "Login. Pass incorrect returns Status Unauthorized",
 			args: args{
 				user: "test",
 				pass: "pass",
