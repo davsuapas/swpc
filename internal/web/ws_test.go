@@ -56,10 +56,13 @@ func TestWS_Register_WS_Should_Return_StatusOk(t *testing.T) {
 	cookie := http.Cookie{Name: web.TokenName, Value: "TokenName", Path: "/", HttpOnly: true, Secure: false}
 	header := make(http.Header)
 	header.Add("Cookie", cookie.String())
-	ws, _, err := websocket.DefaultDialer.Dial(u, header)
+
+	ws, r, err := websocket.DefaultDialer.Dial(u, header)
+
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+	defer r.Body.Close()
 	defer ws.Close()
 
 	assert.Equal(t, http.StatusOK, <-cstatusCode)
@@ -99,10 +102,11 @@ func TestWS_Register_WS_Without_Socket_Should_Return_StatusInternalServerError(t
 
 	u := "ws" + strings.TrimPrefix(s.URL, "http")
 
-	ws, _, err := websocket.DefaultDialer.Dial(u, nil)
+	ws, r, err := websocket.DefaultDialer.Dial(u, nil)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+	defer r.Body.Close()
 	defer ws.Close()
 
 	assert.Equal(t, http.StatusInternalServerError, <-cstatusCode)
