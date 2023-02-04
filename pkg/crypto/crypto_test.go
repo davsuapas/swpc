@@ -18,26 +18,23 @@
 package crypto
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"encoding/base64"
+	"testing"
 
-	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
 
-// Encrypt encrypts or hide any classified text
-func Encrypt(text string, key string) (string, error) {
-	var bytes = []byte{35, 26, 17, 44, 85, 35, 25, 74, 87, 65, 88, 98, 68, 32, 44, 05}
+func TestEncrypt_Encrypt_Ok(t *testing.T) {
+	t.Parallel()
 
-	block, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		return "", errors.Wrap(err, "New cipher")
+	e, err := Encrypt("123", "1234567891234567")
+	if assert.NoError(t, err) {
+		assert.Equal(t, e, "iO7a")
 	}
+}
 
-	plainText := []byte(text)
-	cfb := cipher.NewCFBEncrypter(block, bytes)
-	cipherText := make([]byte, len(plainText))
-	cfb.XORKeyStream(cipherText, plainText)
+func TestEncrypt_Encrypt_Error_Minimal_Key(t *testing.T) {
+	t.Parallel()
 
-	return base64.StdEncoding.EncodeToString(cipherText), nil
+	_, err := Encrypt("123", "123")
+	assert.Error(t, err)
 }
