@@ -27,11 +27,16 @@ import (
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/pkg/errors"
 	"github.com/swpoolcontroller/internal/api"
 	"github.com/swpoolcontroller/internal/crypto"
 	"github.com/swpoolcontroller/internal/web"
 	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
+)
+
+const (
+	errShutdownServer = "Shutting down web server"
 )
 
 const (
@@ -45,16 +50,23 @@ const (
 
 type Server struct {
 	factory *Factory
+	quit    chan os.Signal
 }
 
 func NewServer(factory *Factory) *Server {
 	return &Server{
 		factory: factory,
+		quit:    make(chan os.Signal, 1),
 	}
 }
 
+// Kill forces to kill the process
+func (s *Server) Kill() {
+	s.quit <- os.Kill
+}
+
 // Start starts the graceful http server and services
-func (s *Server) Start() {
+func (s *Server) Start() error {
 	s.factory.Log.Info(infStartingServer, zap.String("Config", s.factory.Config.String()))
 
 	// Start server
@@ -69,11 +81,8 @@ func (s *Server) Start() {
 		}
 	}()
 
-	// Wait for interrupt signal to gracefully shutdown the server with
-	// a timeout of 10 seconds.
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-	<-quit
+	signal.Notify(s.quit, os.Interrupt)
+	<-s.quit
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -82,12 +91,16 @@ func (s *Server) Start() {
 
 	if err := s.factory.Webs.Shutdown(ctx); err != nil {
 		s.factory.Log.Error(err.Error())
+
+		return errors.Wrap(err, errShutdownServer)
 	}
 
 	s.factory.Log.Info(infStoppingHub)
 	s.factory.Hub.Stop()
 
 	s.factory.Log.Info(infStoppedServer)
+
+	return nil
 }
 
 // Middleware configure security and behaviour of http
@@ -105,10 +118,6 @@ func (s *Server) Middleware() {
 
 // Route sets the router of app so web as api
 func (s *Server) Route() {
-	s.webRoute()
-}
-
-func (s *Server) webRoute() {
 	// Public
 	wa := s.factory.Webs.Group("/auth")
 	wa.POST("/login", s.factory.WebHandler.Login.Submit)

@@ -15,14 +15,25 @@
  *   limitations under the License.
  */
 
-package main
+package internal_test
 
-import "github.com/swpoolcontroller/internal"
+import (
+	"testing"
 
-func main() {
+	"github.com/stretchr/testify/assert"
+	"github.com/swpoolcontroller/internal"
+)
+
+func TestNewFactory(t *testing.T) {
+	t.Parallel()
+
 	f := internal.NewFactory()
-	s := internal.NewServer(f)
-	s.Middleware()
-	s.Route()
-	_ = s.Start()
+
+	assert.NotNil(t, f.APIHandler, "APIHandler")
+	assert.NotNil(t, f.Config, "Config")
+	assert.NotNil(t, f.Hub, "Hub")
+	assert.NotNil(t, f.Hubt, "Hubt")
+	assert.NotNil(t, f.Log, "Log")
+	assert.NotNil(t, f.WebHandler, "WebHandler")
+	assert.NotNil(t, f.Webs, "Webs")
 }

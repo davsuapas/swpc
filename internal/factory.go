@@ -104,7 +104,7 @@ func NewFactory() *Factory {
 
 	return &Factory{
 		Config: config,
-		Webs:   newWebServer(),
+		Webs:   echo.New(),
 		Log:    log,
 		Hubt:   hubt,
 		Hub:    hub,
@@ -157,10 +157,4 @@ func newLogger(ctx config.Config) *zap.Logger {
 	}
 
 	return l
-}
-
-func newWebServer() *echo.Echo {
-	e := echo.New()
-
-	return e
 }
