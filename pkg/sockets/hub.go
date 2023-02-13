@@ -36,26 +36,27 @@ const (
 )
 
 const (
-	infCheckerDes     = "Hub-> The check timer is deactivated because there are no clients"
-	infClientReg      = "Hub-> Client registered"
-	infClientUnReg    = "Hub-> Unregistering client"
-	infClientUnRegd   = "Hub-> Client unregisted"
-	infHubStreaming   = "Hub-> The hub is set to streaming"
-	infHubInactive    = "Hub-> The hub is set to inactive. Previous status: active"
-	infHubDeactived   = "Hub-> The hub is set to deactivated"
-	infClientDied     = "Hub-> Client died by expiration"
-	infArraySize      = "Hub-> Array size after removing expired clients"
-	infNotify         = "Hub-> Notifying status"
-	infConfigChanged  = "Hub-> The configuration has been changed"
-	infClientID       = "ClientID"
-	infLength         = "Length"
-	infStatus         = "Status"
-	infLastMsgDate    = "Last message date"
-	infExpirationDate = "Expiration date"
-	infActualDate     = "Actual date"
-	infPrevStatus     = "Previous status"
-	infLastNotify     = "Last notification date"
-	infConfig         = "Config"
+	infSendStatusDesac = "Hub-> An attempt has been made to send a message but the hub is not in transmission mode"
+	infCheckerDes      = "Hub-> The check timer is deactivated because there are no clients"
+	infClientReg       = "Hub-> Client registered"
+	infClientUnReg     = "Hub-> Unregistering client"
+	infClientUnRegd    = "Hub-> Client unregisted"
+	infHubStreaming    = "Hub-> The hub is set to streaming"
+	infHubInactive     = "Hub-> The hub is set to inactive. Previous status: active"
+	infHubDeactived    = "Hub-> The hub is set to deactivated"
+	infClientDied      = "Hub-> Client died by expiration"
+	infArraySize       = "Hub-> Array size after removing expired clients"
+	infNotify          = "Hub-> Notifying status"
+	infConfigChanged   = "Hub-> The configuration has been changed"
+	infClientID        = "ClientID"
+	infLength          = "Length"
+	infStatus          = "Status"
+	infLastMsgDate     = "Last message date"
+	infExpirationDate  = "Expiration date"
+	infActualDate      = "Actual date"
+	infPrevStatus      = "Previous status"
+	infLastNotify      = "Last notification date"
+	infConfig          = "Config"
 )
 
 // Status are the communication status between the sender and the hub
@@ -131,7 +132,7 @@ type Hub struct {
 	send    chan string
 	sconfig chan Config
 	statusc chan chan Status
-	closec  chan struct{}
+	closec  chan bool
 
 	// lastNotification the time when the last notification was sended
 	lastNotification time.Time
@@ -159,7 +160,7 @@ func NewHub(
 		info:        info,
 		err:         err,
 		statusc:     make(chan chan Status),
-		closec:      make(chan struct{}),
+		closec:      make(chan bool),
 		lastMessage: time.Time{},
 		status:      Deactivated,
 	}
@@ -190,9 +191,9 @@ func (h *Hub) Status(resp chan Status) {
 	h.statusc <- resp
 }
 
-// Stop finishes the hub
-func (h *Hub) Stop() {
-	close(h.closec)
+// Stop finishes the hub. The force param closes all channels and force to exist of the goroutine
+func (h *Hub) Stop(force bool) {
+	h.closec <- force
 }
 
 // Run registers and unregisters clients, sends messages and remove died clients. Launches a gouroutine
@@ -214,18 +215,22 @@ func (h *Hub) Run() {
 				h.config = cnf
 				h.info <- strings.Format(infConfigChanged, strings.FMTValue(infConfig, h.config.string()))
 			case <-check.C:
-				h.controllerStatus()
+				h.idleController()
 				h.notifyStatus()
 				h.removeDeadClient()
 				h.tryResetTimer(check)
-			case <-h.closec:
-				h.close(check)
+			case force := <-h.closec:
+				h.close(check, force)
+
+				if force {
+					return
+				}
 			}
 		}
 	}()
 }
 
-func (h *Hub) close(check *time.Timer) {
+func (h *Hub) close(check *time.Timer, force bool) {
 	h.closeh()
 
 	if !check.Stop() {
@@ -233,6 +238,17 @@ func (h *Hub) close(check *time.Timer) {
 	}
 
 	h.status = Closed
+
+	if force {
+		close(h.err)
+		close(h.info)
+		close(h.reg)
+		close(h.unreg)
+		close(h.send)
+		close(h.sconfig)
+		close(h.statusc)
+		close(h.closec)
+	}
 }
 
 // tryResetTimer resets timer if there are clients.
@@ -252,12 +268,10 @@ func (h *Hub) register(client Client, check *time.Timer) {
 
 	h.clients = append(h.clients, client)
 
-	countc := len(h.clients)
-
-	// If there is a client, it means that the timer was not activated before
-	// and therefore is activated.
-	if countc == 1 {
-		check.Reset(h.config.CommLatency)
+	if len(h.clients) == 1 {
+		// If there is a client, it means that the timer was not activated before
+		// and therefore is activated.
+		check.Reset(h.config.TaskTime)
 		// As soon as there is a client, the hub switches to reception mode.
 		h.active()
 	}
@@ -293,6 +307,8 @@ func (h *Hub) unregister(id string) {
 // If sending the message throw a error, the client is removed
 func (h *Hub) sendMessageToClients(message string) {
 	if h.status == Deactivated || h.status == Closed {
+		h.info <- strings.Format(infSendStatusDesac, strings.FMTValue(infPrevStatus, statusString(h.status)))
+
 		return
 	}
 
@@ -310,8 +326,8 @@ func (h *Hub) sendMessageToClients(message string) {
 	}
 }
 
-// controllerStatus controls the life cycle if the hub
-func (h *Hub) controllerStatus() {
+// idleController checks whether there is still activity since the last communication
+func (h *Hub) idleController() {
 	if h.status == Streaming {
 		// The idle time is the sum of the time it takes for the sender to create the buffer
 		// and a possible latency time
@@ -471,8 +487,10 @@ func (h *Hub) closeClient(pos uint16) error {
 // closeh closes all the clients socket
 func (h *Hub) closeh() {
 	for _, c := range h.clients {
-		c.conn.Close()
+		_ = c.conn.Close()
 	}
+
+	h.clients = []Client{}
 }
 
 func statusString(s Status) string {

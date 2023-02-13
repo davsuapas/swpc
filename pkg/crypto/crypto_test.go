@@ -15,18 +15,19 @@
  *   limitations under the License.
  */
 
-package crypto
+package crypto_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/swpoolcontroller/pkg/crypto"
 )
 
 func TestEncrypt_Encrypt_Ok(t *testing.T) {
 	t.Parallel()
 
-	e, err := Encrypt("123", "1234567891234567")
+	e, err := crypto.Encrypt("123", "1234567891234567")
 	if assert.NoError(t, err) {
 		assert.Equal(t, e, "iO7a")
 	}
@@ -35,6 +36,6 @@ func TestEncrypt_Encrypt_Ok(t *testing.T) {
 func TestEncrypt_Encrypt_Error_Minimal_Key(t *testing.T) {
 	t.Parallel()
 
-	_, err := Encrypt("123", "123")
+	_, err := crypto.Encrypt("123", "123")
 	assert.Error(t, err)
 }

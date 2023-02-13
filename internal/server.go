@@ -96,7 +96,7 @@ func (s *Server) Start() error {
 	}
 
 	s.factory.Log.Info(infStoppingHub)
-	s.factory.Hub.Stop()
+	s.factory.Hub.Stop(false)
 
 	s.factory.Log.Info(infStoppedServer)
 

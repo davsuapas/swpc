@@ -33,6 +33,7 @@ linters-settings:
       - .NoContent(
       - .JSON(
       - errors.Wrap( 
+      - errors.New(        
 issues:
   exclude-rules:
     - path: _test\.go
