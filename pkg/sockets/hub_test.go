@@ -48,7 +48,7 @@ func TestHub_Register(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "Register a client",
+			name: "Register client",
 			cases: cases{
 				clientsAlreadyRegistered: false,
 			},
