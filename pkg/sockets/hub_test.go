@@ -125,6 +125,7 @@ func TestHub_Unregister(t *testing.T) {
 		name     string
 		cases    cases
 		args     args
+		err      string
 		expected []string
 	}{
 		{
@@ -150,6 +151,19 @@ func TestHub_Unregister(t *testing.T) {
 			},
 			expected: []string{
 				"Hub-> Client unregisted (ClientID: 1, Length: 1, Status: Active, )",
+			},
+		},
+		{
+			name: "Unregister a client with connection error",
+			cases: cases{
+				clientsAlreadyRegistered: false,
+			},
+			args: args{
+				clientID: "1",
+			},
+			err: "Unregistering client (Length: 0, )",
+			expected: []string{
+				"Hub-> Client unregisted (ClientID: 1, Length: 0, Status: Deactivated, )",
 			},
 		},
 	}
@@ -189,7 +203,16 @@ func TestHub_Unregister(t *testing.T) {
 			h.Register(sockets.NewClient(tt.args.clientID, ws, 10*time.Second))
 			<-info
 
+			if tt.err != "" {
+				ws.Close()
+			}
+
 			h.Unregister(tt.args.clientID)
+
+			if tt.err != "" {
+				<-info
+				assert.ErrorContains(t, <-err, tt.err, "Error")
+			}
 
 			assertArrayAllEqual(t, tt.expected, info, "Info")
 		})
@@ -264,10 +287,11 @@ func TestHub_Send(t *testing.T) {
 		name     string
 		cases    cases
 		mSend    string
+		err      string
 		expected expected
 	}{
 		{
-			name: "Unregister a client with hub deactivated",
+			name: "Send a client with hub deactivated",
 			cases: cases{
 				statusPrevious: sockets.Deactivated,
 			},
@@ -278,7 +302,7 @@ func TestHub_Send(t *testing.T) {
 			},
 		},
 		{
-			name: "Unregister a client with hub activated",
+			name: "Send a client with hub activated",
 			cases: cases{
 				statusPrevious: sockets.Active,
 			},
@@ -289,7 +313,7 @@ func TestHub_Send(t *testing.T) {
 			},
 		},
 		{
-			name: "Unregister a client with hub in streaming mode",
+			name: "Send a client with hub in streaming mode",
 			cases: cases{
 				statusPrevious: sockets.Streaming,
 			},
@@ -297,6 +321,17 @@ func TestHub_Send(t *testing.T) {
 			expected: expected{
 				status:  sockets.Streaming,
 				message: "1:message3",
+			},
+		},
+		{
+			name: "Send a client with connection error",
+			cases: cases{
+				statusPrevious: sockets.Active,
+			},
+			mSend: "message4",
+			err:   "Hub-> Sending a message. The client will be removed (ClientID: 0, )",
+			expected: expected{
+				status: sockets.Deactivated,
 			},
 		},
 	}
@@ -338,17 +373,27 @@ func TestHub_Send(t *testing.T) {
 				<-info
 			}
 
+			if tt.err != "" {
+				ws.Close()
+			}
+
 			h.Send(tt.mSend)
 
 			if tt.cases.statusPrevious == sockets.Active || tt.cases.statusPrevious == sockets.Streaming {
-				_, mactual, errm := wc.ReadMessage()
-				if errm != nil {
-					assert.Error(t, errm, "Error reading websocket message")
+				if tt.err == "" {
+					_, mactual, errm := wc.ReadMessage()
+					if errm != nil {
+						assert.Error(t, errm, "Error reading websocket message")
 
-					return
+						return
+					}
+
+					assert.Equal(t, tt.expected.message, string(mactual))
+				} else {
+					<-err
+					assert.ErrorContains(t, <-err, tt.err)
+					<-info
 				}
-
-				assert.Equal(t, tt.expected.message, string(mactual))
 			}
 
 			if tt.cases.statusPrevious != sockets.Streaming {

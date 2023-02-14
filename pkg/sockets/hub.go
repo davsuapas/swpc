@@ -454,13 +454,10 @@ func (h *Hub) removeClient(clientID string) error {
 
 	posr := uint16(pos)
 
-	if err := h.closeClient(posr); err != nil {
-		return err
-	}
-
+	err := h.closeClient(posr)
 	h.removeClientByPos(posr)
 
-	return nil
+	return err
 }
 
 // removeClientByPos remove clients by position
