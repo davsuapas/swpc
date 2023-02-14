@@ -18,6 +18,7 @@
 package api_test
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -31,6 +32,10 @@ import (
 	"github.com/swpoolcontroller/internal/micro/mocks"
 	"github.com/swpoolcontroller/pkg/sockets"
 	"go.uber.org/zap"
+)
+
+var (
+	errBody = errors.New("body error")
 )
 
 func TestStream_Actions(t *testing.T) {
@@ -109,4 +114,28 @@ func TestStream_Download(t *testing.T) {
 		rec.Body.String())
 
 	mhub.AssertExpectations(t)
+}
+
+type errReader int
+
+func (errReader) Read(p []byte) (int, error) {
+	return 0, errBody
+}
+
+func TestStream_Download_Body_Error(t *testing.T) {
+	t.Parallel()
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/download/", errReader(0))
+	rec := httptest.NewRecorder()
+	ctx := e.NewContext(req, rec)
+
+	c := api.NewStream(&micro.Controller{
+		Log:    zap.NewExample(),
+		Config: micro.DefaultConfig(),
+	})
+
+	_ = c.Download(ctx)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
