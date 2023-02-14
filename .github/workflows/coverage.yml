@@ -4,9 +4,11 @@ on:
   push:
     paths:
       - "**.go"
+      - "**.sh"
   pull_request:
     paths:
       - "**.go"
+      - "**.sh"
 
 permissions:
   contents: read

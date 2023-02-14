@@ -6,11 +6,13 @@ on:
       - "**.go"
       - go.mod
       - go.sum
+      - "**.sh"
   pull_request:
     paths:
       - "**.go"
       - go.mod
       - go.sum
+      - "**.sh"
 
 permissions:
   contents: read
