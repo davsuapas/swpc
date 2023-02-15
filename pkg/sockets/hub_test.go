@@ -380,20 +380,7 @@ func TestHub_Send(t *testing.T) {
 			h.Send(tt.mSend)
 
 			if tt.cases.statusPrevious == sockets.Active || tt.cases.statusPrevious == sockets.Streaming {
-				if tt.err == "" {
-					_, mactual, errm := wc.ReadMessage()
-					if errm != nil {
-						assert.Error(t, errm, "Error reading websocket message")
-
-						return
-					}
-
-					assert.Equal(t, tt.expected.message, string(mactual))
-				} else {
-					<-err
-					assert.ErrorContains(t, <-err, tt.err)
-					<-info
-				}
+				readMessage(t, wc, err, info, tt.err, tt.expected.message)
 			}
 
 			if tt.cases.statusPrevious != sockets.Streaming {
@@ -405,6 +392,30 @@ func TestHub_Send(t *testing.T) {
 
 			assert.Equal(t, tt.expected.status, <-resp)
 		})
+	}
+}
+
+func readMessage(
+	t *testing.T,
+	wc *websocket.Conn,
+	err chan error,
+	info chan string,
+	errMsg string,
+	expectedMsg string) {
+	//
+	t.Helper()
+
+	if errMsg == "" {
+		_, mactual, errm := wc.ReadMessage()
+		if errm != nil {
+			assert.Error(t, errm, "Error reading websocket message")
+		}
+
+		assert.Equal(t, expectedMsg, string(mactual))
+	} else {
+		<-err
+		assert.ErrorContains(t, <-err, errMsg)
+		<-info
 	}
 }
 
