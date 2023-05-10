@@ -39,30 +39,74 @@ func TestLoadConfig(t *testing.T) {
 		},
 		{
 			name: "Config. Custom",
-			env:  `{"server": {"port": 2020}}`,
+			env: `{
+				"server": {
+					"tls": true,
+					"host": "192.168.100.1",
+					"port": 2020
+				},
+				"log": {"development": false, "level": 3},
+				"web": {
+					"expirationSession": 15,
+					"secretKey": "123",
+					"auth": {
+						"provider": "oauth2",
+						"clientId": "clientId",
+						"loginUrl": "loginUrl",
+						"jwkUrl": "jwkUrl",
+						"tokenUrl": "tokenUrl",
+						"revokeTokenUrl": "revokeTokenUrl",
+						"redirectLoginUri": "redirectLoginUri",
+						"redirectLogoutUri": "redirectLogoutUri"
+					}
+				},
+				"api": {
+					"expirationSession": 15,
+					"commLatencyTime": 4,
+					"collectMetricsTime": 10,
+					"checkTransTime": 4,
+					"clientId": "123",
+					"tokenSecretKey": "123"
+				},
+				"hub": {"taskTime": 6, "notificationTime": 7},
+				"dataPath": "./datas"
+			}`,
 			res: config.Config{
-				ServerConfig: config.ServerConfig{
+				Server: config.Server{
+					TLS:  true,
+					Host: "192.168.100.1",
 					Port: 2020,
 				},
-				ZapConfig: config.ZapConfig{
-					Development: true,
-					Level:       -1,
+				Zap: config.Zap{
+					Development: false,
+					Level:       3,
 					Encoding:    "console",
 				},
-				WebConfig: config.WebConfig{
-					SessionExpiration: 10,
+				Web: config.Web{
+					SessionExpiration: 15,
+					SecretKey:         "123",
+					Auth: config.Auth{
+						Provider:       "oauth2",
+						ClientID:       "clientId",
+						LoginURL:       "loginUrl",
+						JWKURL:         "jwkUrl",
+						TokenURL:       "tokenUrl",
+						RevokeTokenURL: "revokeTokenUrl",
+					},
 				},
-				APIConfig: config.APIConfig{
-					SessionExpiration:  60,
-					CommLatencyTime:    2,
-					CollectMetricsTime: 800,
-					CheckTransTime:     5,
+				API: config.API{
+					SessionExpiration:  15,
+					CommLatencyTime:    4,
+					CollectMetricsTime: 10,
+					CheckTransTime:     4,
+					ClientID:           "123",
+					TokenSecretKey:     "123",
 				},
-				HubConfig: config.HubConfig{
-					TaskTime:         8,
-					NotificationTime: 8,
+				Hub: config.Hub{
+					TaskTime:         6,
+					NotificationTime: 7,
 				},
-				DataPath: "./data",
+				DataPath: "./datas",
 			},
 		},
 	}
@@ -71,9 +115,7 @@ func TestLoadConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv(config.ENVConfig, tt.env)
 
-			cnf := config.LoadConfig()
-
-			assert.Equal(t, tt.res, cnf)
+			assert.Equal(t, tt.res, config.LoadConfig())
 		})
 	}
 }
@@ -91,11 +133,15 @@ func TestLoadConfig_Panic(t *testing.T) {
 		},
 		{
 			name: "Config. Encoding incorrect",
-			env:  `{"log": {"encoding": "other"}}`,
+			env:  `{"log": {"encoding": "no_exist"}}`,
 		},
 		{
 			name: "Config. Level incorrect",
 			env:  `{"log": {"level": 8}}`,
+		},
+		{
+			name: "Config. Auth provider incorrect",
+			env:  `{"web": {"auth": { "provider": "no_exist"}}}`,
 		},
 	}
 
@@ -108,6 +154,105 @@ func TestLoadConfig_Panic(t *testing.T) {
 	}
 }
 
+func TestServer_URL(t *testing.T) {
+	type fields struct {
+		TSL  bool
+		Port int
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "URL with TSL",
+			fields: fields{
+				TSL:  true,
+				Port: 0,
+			},
+			want: "https://localhost/fragment",
+		},
+		{
+			name: "URL without TSL",
+			fields: fields{
+				TSL:  false,
+				Port: 2020,
+			},
+			want: "http://localhost:2020/fragment",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := config.Server{
+				TLS:  tt.fields.TSL,
+				Host: "localhost",
+				Port: tt.fields.Port,
+			}
+			res := s.URL("fragment")
+
+			assert.Equal(t, tt.want, res)
+		})
+	}
+}
+
+func TestConfig_AuthRedirectURI(t *testing.T) {
+	type fields struct {
+		RedirectURL string
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "AuthRedirectURI with redirect URL",
+			fields: fields{
+				RedirectURL: "",
+			},
+			want: "http://server:2020/fragment",
+		},
+		{
+			name: "AuthRedirectURI without redirect URL",
+			fields: fields{
+				RedirectURL: "http://server",
+			},
+			want: "http://server/fragment",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := config.Config{
+				Server: config.Server{
+					TLS:  false,
+					Host: "server",
+					Port: 2020,
+				},
+				Web: config.Web{
+					Auth: config.Auth{
+						RedirectURL: tt.fields.RedirectURL,
+					},
+				},
+			}
+
+			res := c.AuthRedirectURI("fragment")
+
+			assert.Equal(t, tt.want, res)
+		})
+	}
+}
+
 func TestServerConfig_String(t *testing.T) {
 	t.Parallel()
 
@@ -116,16 +261,4 @@ func TestServerConfig_String(t *testing.T) {
 	res := c.String()
 
 	assert.NotEmpty(t, res)
-}
-
-func TestServerConfig_Address(t *testing.T) {
-	t.Parallel()
-
-	s := config.ServerConfig{
-		Port: 2020,
-	}
-
-	res := s.Address()
-
-	assert.Equal(t, ":2020", res)
 }

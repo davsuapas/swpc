@@ -21,15 +21,14 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
 	echojwt "github.com/labstack/echo-jwt/v4"
-	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/errors"
 	"github.com/swpoolcontroller/internal/api"
-	"github.com/swpoolcontroller/internal/crypto"
+	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/web"
 	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
@@ -73,10 +72,12 @@ func (s *Server) Start() error {
 	go func() {
 		s.factory.Hubt.Register()
 
-		s.factory.Log.Info(infStartHub)
+		address := strings.Concat(s.factory.Config.Host, ":", strconv.Itoa(s.factory.Config.Port))
+
+		s.factory.Log.Info(infStartHub, zap.String("Address", address))
 		s.factory.Hub.Run()
 
-		if err := s.factory.Webs.Start(s.factory.Config.Address()); err != nil {
+		if err := s.factory.Webs.Start(address); err != nil {
 			s.factory.Log.Info(infStoppedWebServer)
 		}
 	}()
@@ -90,9 +91,10 @@ func (s *Server) Start() error {
 	s.factory.Log.Info(infStoppingWebServer)
 
 	if err := s.factory.Webs.Shutdown(ctx); err != nil {
-		s.factory.Log.Error(err.Error())
+		erre := errors.Wrap(err, errShutdownServer)
+		s.factory.Log.Error(erre.Error())
 
-		return errors.Wrap(err, errShutdownServer)
+		return errors.Wrap(erre, errShutdownServer)
 	}
 
 	s.factory.Log.Info(infStoppingHub)
@@ -119,23 +121,27 @@ func (s *Server) Middleware() {
 // Route sets the router of app so web as api
 func (s *Server) Route() {
 	// Public
+	wapp := s.factory.Webs.Group("/app")
+	wapp.GET("/config", s.factory.WebHandler.AppConfig.Load)
+
 	wa := s.factory.Webs.Group("/auth")
-	wa.POST("/login", s.factory.WebHandler.Login.Submit)
-	wa.GET("/logoff", s.factory.WebHandler.Login.Logoff)
-	wa.GET(strings.Concat("/token/:", api.SName), s.factory.APIHandler.OAuth.Token)
+	wa.GET("/login", s.factory.WebHandler.Auth.Login)
+	wa.GET("/api/logout", s.factory.WebHandler.Auth.Logout)
+	wa.GET(strings.Concat("/token/:", api.ClientIDName), s.factory.APIHandler.Auth.Token)
 
 	// API Restricted by JWT
 
 	// Web
 	wapi := s.factory.Webs.Group("/web/api")
-	config := echojwt.Config{
-		NewClaimsFunc: func(c echo.Context) jwt.Claims {
-			return &web.JWTCustomClaims{}
-		},
-		SigningKey:  []byte(crypto.Key),
-		TokenLookup: strings.Concat("cookie:", web.TokenName),
+
+	if s.factory.Config.Auth.Provider == config.AuthProviderOauth2 {
+		config := echojwt.Config{
+			KeyFunc:     s.factory.JWT.GetKey,
+			TokenLookup: strings.Concat("cookie:", web.AuthHeaderName),
+		}
+		wapi.Use(echojwt.WithConfig(config))
 	}
-	wapi.Use(echojwt.WithConfig(config))
+
 	wapi.GET("/config", s.factory.WebHandler.Config.Load)
 	wapi.POST("/config", s.factory.WebHandler.Config.Save)
 
@@ -143,8 +149,7 @@ func (s *Server) Route() {
 
 	// Micro controller API
 	mapi := s.factory.Webs.Group("/micro/api")
-
-	mapi.Use(echojwt.JWT([]byte(crypto.Key)))
+	mapi.Use(echojwt.JWT([]byte(s.factory.Config.API.TokenSecretKey)))
 	mapi.GET("/action", s.factory.APIHandler.Stream.Actions)
 	mapi.POST("/download", s.factory.APIHandler.Stream.Download)
 }

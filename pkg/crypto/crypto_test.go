@@ -24,18 +24,36 @@ import (
 	"github.com/swpoolcontroller/pkg/crypto"
 )
 
-func TestEncrypt_Encrypt_Ok(t *testing.T) {
+var key = []byte("123456789asdfghjklzxcvbnmqwertyu")
+
+func TestEncrypt_Ok(t *testing.T) {
 	t.Parallel()
 
-	e, err := crypto.Encrypt("123", "1234567891234567")
-	if assert.NoError(t, err) {
-		assert.Equal(t, e, "iO7a")
-	}
+	e, _ := crypto.Encrypt(key, []byte("1234567891234567"))
+
+	assert.Equal(t, len(e), 44)
 }
 
-func TestEncrypt_Encrypt_Error_Minimal_Key(t *testing.T) {
+func TestEncrypt_Error_Minimal_Key(t *testing.T) {
 	t.Parallel()
 
-	_, err := crypto.Encrypt("123", "123")
+	_, err := crypto.Encrypt([]byte("123"), []byte("123"))
+
+	assert.Error(t, err)
+}
+
+func TestDecrypt_Ok(t *testing.T) {
+	t.Parallel()
+
+	e, _ := crypto.Encrypt(key, []byte("1234567891234567"))
+	d, _ := crypto.Decrypt(key, e)
+
+	assert.Equal(t, string(d), "1234567891234567")
+}
+
+func TestDecrypt_Error_Minimal_Key(t *testing.T) {
+	t.Parallel()
+
+	_, err := crypto.Decrypt([]byte("123"), []byte("123"))
 	assert.Error(t, err)
 }

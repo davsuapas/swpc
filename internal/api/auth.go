@@ -24,39 +24,35 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/config"
-	"github.com/swpoolcontroller/internal/crypto"
 	"go.uber.org/zap"
 )
 
-const (
-	SName = "secretID"
-	sid   = "sw3kf$fekdy56dfh"
-)
+const ClientIDName = "client_id"
 
 const (
-	errIDBad = "OAuth.Token. The secretID is bad"
-	errSign  = "OAuth.Token. Error signing token"
+	errBadID = "OAuth.Token-> The secretID is bad"
+	errSign  = "OAuth.Token-> Error signing token"
 )
 
-// OAuth controllers the access of the API
-type OAuth struct {
+// Auth controllers the access of the API
+type Auth struct {
 	log *zap.Logger
-	ac  config.APIConfig
+	ac  config.API
 }
 
-func NewOAuth(log *zap.Logger, ac config.APIConfig) *OAuth {
-	return &OAuth{
+func NewAuth(log *zap.Logger, ac config.API) *Auth {
+	return &Auth{
 		log: log,
 		ac:  ac,
 	}
 }
 
 // Token gets security token
-func (o *OAuth) Token(ctx echo.Context) error {
-	sID := ctx.Param(SName)
+func (o *Auth) Token(ctx echo.Context) error {
+	sID := ctx.Param(ClientIDName)
 
-	if sID != sid {
-		o.log.Error(errIDBad)
+	if sID != o.ac.ClientID {
+		o.log.Error(errBadID)
 
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
@@ -69,7 +65,7 @@ func (o *OAuth) Token(ctx echo.Context) error {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Generate encoded token and send it as response.
-	token, err := t.SignedString([]byte(crypto.Key))
+	token, err := t.SignedString([]byte(o.ac.TokenSecretKey))
 	if err != nil {
 		o.log.With(zap.Error(err)).Error(errSign, zap.Error(err))
 

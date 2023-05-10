@@ -30,10 +30,17 @@ func TestNewFactory(t *testing.T) {
 	f := internal.NewFactory()
 
 	assert.NotNil(t, f.APIHandler, "APIHandler")
+	assert.NotNil(t, f.APIHandler.Auth, "APIHandler.Auth")
+	assert.NotNil(t, f.APIHandler.Stream, "APIHandler.Stream")
 	assert.NotNil(t, f.Config, "Config")
+	assert.NotNil(t, f.JWT, "JWT")
 	assert.NotNil(t, f.Hub, "Hub")
 	assert.NotNil(t, f.Hubt, "Hubt")
 	assert.NotNil(t, f.Log, "Log")
 	assert.NotNil(t, f.WebHandler, "WebHandler")
+	assert.NotNil(t, f.WebHandler.AppConfig, "AppConfig")
+	assert.NotNil(t, f.WebHandler.Auth, "WebHandler.Auth")
+	assert.NotNil(t, f.WebHandler.Config, "WebHandler.Config")
+	assert.NotNil(t, f.WebHandler.WS, "WebHandler.WS")
 	assert.NotNil(t, f.Webs, "Webs")
 }

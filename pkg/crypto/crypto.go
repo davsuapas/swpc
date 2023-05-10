@@ -20,24 +20,72 @@ package crypto
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"encoding/base64"
+	"crypto/rand"
+	e "errors"
+	"io"
 
 	"github.com/pkg/errors"
 )
 
-// Encrypt encrypts or hide any classified text
-func Encrypt(text string, key string) (string, error) {
-	var bytes = []byte{35, 26, 17, 44, 85, 35, 25, 74, 87, 65, 88, 98, 68, 32, 44, 05}
+var (
+	errKeyLen = e.New("the key length must be 32 bytes")
+)
 
-	block, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		return "", errors.Wrap(err, "New cipher")
+const (
+	errEcrypt    = "Encrypt RSA"
+	errDesEcrypt = "Des-encrypt RSA"
+)
+
+// encrypt encrypts with RSA
+func Encrypt(key []byte, plaintext []byte) ([]byte, error) {
+	if len(key) != 32 {
+		return nil, errKeyLen
 	}
 
-	plainText := []byte(text)
-	cfb := cipher.NewCFBEncrypter(block, bytes)
-	cipherText := make([]byte, len(plainText))
-	cfb.XORKeyStream(cipherText, plainText)
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, errors.Wrap(err, errEcrypt)
+	}
 
-	return base64.StdEncoding.EncodeToString(cipherText), nil
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return nil, errors.Wrap(err, errEcrypt)
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, errors.Wrap(err, errEcrypt)
+	}
+
+	ciphertext := gcm.Seal(nonce, nonce, plaintext, nil)
+
+	return ciphertext, nil
+}
+
+// Decrypt desencrypts with RSA
+func Decrypt(key []byte, ciphertext []byte) ([]byte, error) {
+	if len(key) != 32 {
+		return nil, errKeyLen
+	}
+
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, errors.Wrap(err, errDesEcrypt)
+	}
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return nil, errors.Wrap(err, errDesEcrypt)
+	}
+
+	nonceSize := gcm.NonceSize()
+
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+
+	decryptedText, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, errDesEcrypt)
+	}
+
+	return decryptedText, nil
 }

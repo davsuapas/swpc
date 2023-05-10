@@ -39,6 +39,7 @@ const (
 	infSendStatusDesac = "Hub-> An attempt has been made to send a message but the hub is not in transmission mode"
 	infCheckerDes      = "Hub-> The check timer is deactivated because there are no clients"
 	infClientReg       = "Hub-> Client registered"
+	infClientExists    = "Hub-> Unregistering existing client when trying to register "
 	infClientUnReg     = "Hub-> Unregistering client"
 	infClientUnRegd    = "Hub-> Client unregisted"
 	infHubStreaming    = "Hub-> The hub is set to streaming"
@@ -266,6 +267,15 @@ func (h *Hub) register(client Client, check *time.Timer) {
 		return
 	}
 
+	// If client exists is removed
+	if err := h.removeClient(client.id); err != nil {
+		h.err <- errors.Wrap(
+			err,
+			strings.Format(
+				infClientExists,
+				strings.FMTValue(infClientID, client.id)))
+	}
+
 	h.clients = append(h.clients, client)
 
 	if len(h.clients) == 1 {
@@ -280,7 +290,7 @@ func (h *Hub) register(client Client, check *time.Timer) {
 		infClientReg,
 		strings.FMTValue(infClientID, client.id),
 		strings.FMTValue(infLength, strconv.Itoa(len(h.clients))),
-		strings.FMTValue(infLength, statusString(h.status)))
+		strings.FMTValue(infLength, StatusString(h.status)))
 }
 
 func (h *Hub) unregister(id string) {
@@ -300,14 +310,14 @@ func (h *Hub) unregister(id string) {
 		infClientUnRegd,
 		strings.FMTValue(infClientID, id),
 		strings.FMTValue(infLength, strconv.Itoa(len(h.clients))),
-		strings.FMTValue(infStatus, statusString(h.status)))
+		strings.FMTValue(infStatus, StatusString(h.status)))
 }
 
 // sendMessageToClients send message to the all clients registered.
 // If sending the message throw a error, the client is removed
 func (h *Hub) sendMessageToClients(message string) {
 	if h.status == Deactivated || h.status == Closed {
-		h.info <- strings.Format(infSendStatusDesac, strings.FMTValue(infPrevStatus, statusString(h.status)))
+		h.info <- strings.Format(infSendStatusDesac, strings.FMTValue(infPrevStatus, StatusString(h.status)))
 
 		return
 	}
@@ -321,7 +331,7 @@ func (h *Hub) sendMessageToClients(message string) {
 
 	// sendMessage can set status to deactivated
 	if h.status != Deactivated && h.status != Streaming {
-		h.info <- strings.Format(infHubStreaming, strings.FMTValue(infPrevStatus, statusString(status)))
+		h.info <- strings.Format(infHubStreaming, strings.FMTValue(infPrevStatus, StatusString(status)))
 		h.status = Streaming
 	}
 }
@@ -365,7 +375,7 @@ func (h *Hub) notifyStatus() {
 		infNotify,
 		strings.FMTValue(infActualDate, time.Now().String()),
 		strings.FMTValue(infLastNotify, h.lastNotification.String()),
-		strings.FMTValue(infStatus, statusString(status)))
+		strings.FMTValue(infStatus, StatusString(status)))
 
 	h.lastNotification = time.Now()
 }
@@ -434,17 +444,6 @@ func (h *Hub) removeDeadClient() {
 	}
 }
 
-// findClient seeks a client by ID. If the client is not found returns -1
-func (h *Hub) findClient(clientID string) int {
-	for i, c := range h.clients {
-		if c.id == clientID {
-			return i
-		}
-	}
-
-	return -1
-}
-
 // removeClient removes client by id
 func (h *Hub) removeClient(clientID string) error {
 	pos := h.findClient(clientID)
@@ -458,6 +457,17 @@ func (h *Hub) removeClient(clientID string) error {
 	h.removeClientByPos(posr)
 
 	return err
+}
+
+// findClient seeks a client by ID. If the client is not found returns -1
+func (h *Hub) findClient(clientID string) int {
+	for i, c := range h.clients {
+		if c.id == clientID {
+			return i
+		}
+	}
+
+	return -1
 }
 
 // removeClientByPos remove clients by position
@@ -490,7 +500,7 @@ func (h *Hub) closeh() {
 	h.clients = []Client{}
 }
 
-func statusString(s Status) string {
+func StatusString(s Status) string {
 	switch s {
 	case Deactivated:
 		return "Deactivated"

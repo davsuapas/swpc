@@ -42,7 +42,7 @@ func TestWS_Register_WS_Should_Return_StatusOk(t *testing.T) {
 	hubm.On("Register", mock.AnythingOfType("sockets.Client"))
 
 	regh := func(w http.ResponseWriter, r *http.Request) {
-		ws := web.NewWS(zap.NewExample(), config.Default().WebConfig, hubm)
+		ws := web.NewWS(zap.NewExample(), config.Default().Web, hubm)
 		c := echo.New().NewContext(r, w)
 		_ = ws.Register(c)
 		cstatusCode <- c.Response().Status
@@ -53,7 +53,7 @@ func TestWS_Register_WS_Should_Return_StatusOk(t *testing.T) {
 
 	u := "ws" + strings.TrimPrefix(s.URL, "http")
 
-	cookie := http.Cookie{Name: web.TokenName, Value: "TokenName", Path: "/", HttpOnly: true, Secure: false}
+	cookie := http.Cookie{Name: web.WSClientIDName, Value: "1234", Path: "/", HttpOnly: true, Secure: false}
 	header := make(http.Header)
 	header.Add("Cookie", cookie.String())
 
@@ -78,7 +78,7 @@ func TestWS_Register_Http_Should_Return_StatusBadRequest(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	ws := web.NewWS(zap.NewExample(), config.Default().WebConfig, mocks.NewHub(t))
+	ws := web.NewWS(zap.NewExample(), config.Default().Web, mocks.NewHub(t))
 
 	_ = ws.Register(c)
 
@@ -91,7 +91,7 @@ func TestWS_Register_WS_Without_Socket_Should_Return_StatusInternalServerError(t
 	cstatusCode := make(chan int)
 
 	regh := func(w http.ResponseWriter, r *http.Request) {
-		ws := web.NewWS(zap.NewExample(), config.Default().WebConfig, mocks.NewHub(t))
+		ws := web.NewWS(zap.NewExample(), config.Default().Web, mocks.NewHub(t))
 		c := echo.New().NewContext(r, w)
 		_ = ws.Register(c)
 		cstatusCode <- c.Response().Status

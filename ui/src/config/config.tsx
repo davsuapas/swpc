@@ -58,7 +58,7 @@ export default class Config extends React.Component<any, ConfigState> {
     constructor(props: any) {
         super(props);
 
-        this.fetch = new Fetch(this.props.alert, this.props.actions);
+        this.fetch = new Fetch(this.props.alert);
 
         this.state = {
             open: false,

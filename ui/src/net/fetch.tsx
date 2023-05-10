@@ -16,13 +16,13 @@
  */
 
 import { RefObject } from "react";
-import User from "../login/user";
-import Alert from "../support/alert";
+import { logoff } from "../auth/user";
+import Alert from "../info/alert";
 
 // Fetch communicates using fetch
 export default class Fetch {
 
-    constructor(private alert: RefObject<Alert>, private user: User) {
+    constructor(private alert: RefObject<Alert>) {
     }
 
     // send sends http request and allows to handle the response through a function.
@@ -46,7 +46,7 @@ export default class Fetch {
                                 "Error de seguridad",
                                 "La sessión ha caducado. Se procederá a cerrar la sessión de trabajo.");
                             this.alert.current.events.closed = () => {
-                                this.user.logoff();
+                                logoff();
                             };
                             this.alert.current.open();
                         }

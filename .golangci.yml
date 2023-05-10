@@ -31,15 +31,23 @@ linters-settings:
     ignoreSigs:
       - .String(
       - .NoContent(
+      - .Redirect(      
       - .JSON(
       - errors.Wrap( 
-      - errors.New(        
+      - errors.New(  
 issues:
   exclude-rules:
     - path: _test\.go
       linters:
         - funlen
+        - gochecknoglobals
     - path: internal/config/config_test.go
       linters:
         - paralleltest
         - tparallel
+    - path: pkg/auth/jwt_test.go
+      linters:
+        - lll
+    - path: pkg/auth/oauth2_test.go
+      linters:
+        - lll

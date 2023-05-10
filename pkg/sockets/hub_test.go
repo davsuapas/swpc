@@ -45,6 +45,7 @@ func TestHub_Register(t *testing.T) {
 		name     string
 		cases    cases
 		args     args
+		err      string
 		expected string
 	}{
 		{
@@ -66,6 +67,17 @@ func TestHub_Register(t *testing.T) {
 				clientID: "2",
 			},
 			expected: "Hub-> Client registered (ClientID: 2, Length: 2, Length: Active, )",
+		},
+		{
+			name: "Register a client with connection error",
+			cases: cases{
+				clientsAlreadyRegistered: true,
+			},
+			args: args{
+				clientID: "0",
+			},
+			err:      "Unregistering existing client when trying to register",
+			expected: "Hub-> Client registered (ClientID: 0, Length: 1, Length: Active, )",
 		},
 	}
 
@@ -101,7 +113,16 @@ func TestHub_Register(t *testing.T) {
 				<-info
 			}
 
+			if tt.err != "" {
+				ws.Close()
+			}
+
 			h.Register(sockets.NewClient(tt.args.clientID, ws, 10*time.Second))
+
+			if tt.err != "" {
+				<-info
+				assert.ErrorContains(t, <-err, tt.err, "Error")
+			}
 
 			res := <-info
 
@@ -640,6 +661,58 @@ func TestHub_RemoveDeadClient(t *testing.T) {
 	<-info
 
 	assert.Equal(t, "Hub-> Array size after removing expired clients (Length: 0, )", res)
+}
+
+func Test_statusString(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		s    sockets.Status
+		want string
+	}{
+		{
+			name: "Deactivated Status",
+			s:    sockets.Deactivated,
+			want: "Deactivated",
+		},
+		{
+			name: "Active Status",
+			s:    sockets.Active,
+			want: "Active",
+		},
+		{
+			name: "Streaming Status",
+			s:    sockets.Streaming,
+			want: "Streaming",
+		},
+		{
+			name: "Inactive Status",
+			s:    sockets.Inactive,
+			want: "Inactive",
+		},
+		{
+			name: "Closed Status",
+			s:    sockets.Closed,
+			want: "Closed",
+		},
+		{
+			name: "Closed Status",
+			s:    10,
+			want: "None",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			res := sockets.StatusString(tt.s)
+
+			assert.Equal(t, tt.want, res)
+		})
+	}
 }
 
 func assertArrayAllEqual(t assert.TestingT, exptected []string, actual chan string, msg string) {

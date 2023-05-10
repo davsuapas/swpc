@@ -32,13 +32,12 @@ import Config from '../config/config';
 import Tooltip from '@mui/material/Tooltip';
 import { CircularProgress } from '@mui/material';
 import React from 'react';
-import Alert from '../support/alert';
+import Alert from '../info/alert';
 import { colorPurple } from '../support/color';
 import SocketFactory, { Metrics } from '../net/socket';
 import { Websocket } from 'websocket-ts/lib';
-import { Navigate } from 'react-router-dom';
 import { MediaQuery, MediaQueryAPI } from '../support/mediaquery';
-import User from '../login/user';
+import { logoff } from '../auth/user';
 
 const drawerWidth: number = 255;
 
@@ -56,13 +55,11 @@ const mdTheme = createTheme();
 interface DashboardState{
   loadingConfig: boolean;
   standby: boolean;
-  shutdown: boolean;
 }
 
 export interface Actions {
   activeStandby(active: boolean): void;
   activeLoadingConfig(active: boolean): void;
-  shutdown(): void;
 }
 
 export default class Dashboard extends React.Component<any, DashboardState> implements Actions {
@@ -82,15 +79,12 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
   private meassurePh: React.RefObject<Meassure>;
   private meassureCl: React.RefObject<Meassure>;
 
-  private user: User
-
   constructor(props: any) {
     super(props);
 
     this.state = {
       loadingConfig: false,
       standby: true,
-      shutdown: false
     };
 
     this.media = React.createRef();
@@ -106,8 +100,6 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.meassurePh = React.createRef<Meassure>();
     this.meassureCl = React.createRef<Meassure>();
 
-    this.user = new User(this);
-
     const sfactory = new SocketFactory(this.alert, this);
     sfactory.event.streamMetrics = this.streamMetrics.bind(this);
 
@@ -122,10 +114,6 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.setState({loadingConfig: active});
   }
 
-  shutdown(): void {
-    this.setState({shutdown: true});
-  }
-
   // streamMetrics sends all the metrics received by socket to all the chart controls
   private streamMetrics(metrics: Metrics) {
     this.chartTemp.current?.setData(metrics.temp);
@@ -135,7 +123,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
 
   private exit() {
     this.socket.close();
-    this.user.logoff();
+    logoff();
   }
 
   componentDidMount(): void {
@@ -281,8 +269,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                 </div>              
               </Container>
             <Alert ref={this.alert}></Alert>
-            <Config ref={this.config} alert={this.alert} actions={this}/>
-            {this.state.shutdown && (<Navigate to="/" replace={true}/>)}
+            <Config ref={this.config} alert={this.alert}/>
             <MediaQuery ref={this.media} theme={mdTheme}></MediaQuery>
       </ThemeProvider>
     );    

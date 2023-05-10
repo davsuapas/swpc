@@ -15,28 +15,18 @@
  *   limitations under the License.
  */
 
-package main
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 
-import (
-	"flag"
-	"fmt"
-
-	cryptoi "github.com/swpoolcontroller/internal/crypto"
-	"github.com/swpoolcontroller/pkg/crypto"
-)
-
-func main() {
-	text := flag.String("text", "", "Text to encrypt")
-	flag.Parse()
-
-	if len(*text) == 0 {
-		panic("The text must be filled in. Execute the command with -help option")
-	}
-
-	r, err := crypto.Encrypt(*text, cryptoi.Key)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	fmt.Println(r)
+interface MeterProps {
+    message: string;
 }
+
+export default function Meter(props: MeterProps) {
+  return (
+    <Stack sx={{ width: '100%', color: 'grey.500' }} spacing={2}>
+      <LinearProgress color="secondary" />
+      <Typography variant="subtitle1">{props.message}</Typography>              
+    </Stack>
+  );}

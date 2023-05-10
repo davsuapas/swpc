@@ -29,6 +29,10 @@ import (
 )
 
 const (
+	WSClientIDName = "WSClientID"
+)
+
+const (
 	errGenSocket   = "WS. Generating socket from web request"
 	errGettingAuth = "WS. Getting auth token from web request"
 )
@@ -37,12 +41,12 @@ const (
 type WS struct {
 	log      *zap.Logger
 	hub      Hub
-	sessionc config.WebConfig
+	sessionc config.Web
 	upgrader websocket.Upgrader
 }
 
 // NewWS builds WS service
-func NewWS(log *zap.Logger, sessionc config.WebConfig, hub Hub) *WS {
+func NewWS(log *zap.Logger, sessionc config.Web, hub Hub) *WS {
 	return &WS{
 		log:      log,
 		hub:      hub,
@@ -64,14 +68,14 @@ func (w *WS) Register(ctx echo.Context) error {
 		return nil
 	}
 
-	sess, err := ctx.Cookie(TokenName)
+	id, err := ctx.Cookie(WSClientIDName)
 	if err != nil {
 		w.log.Error(errGettingAuth, zap.Error(err))
 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	w.hub.Register(sockets.NewClient(sess.Value, ws, time.Duration(w.sessionc.SessionExpiration)*time.Minute))
+	w.hub.Register(sockets.NewClient(id.Value, ws, time.Duration(w.sessionc.SessionExpiration)*time.Minute))
 
 	return ctx.NoContent(http.StatusOK)
 }

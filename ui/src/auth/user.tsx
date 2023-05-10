@@ -15,6 +15,9 @@
  *   limitations under the License.
  */
 
-package crypto
+import { appConfig } from "../app/config";
 
-const Key = "Sw!3eD45rj&h&4e$fdcbm7$4TgY64bgD"
+// logoff ends the session
+export function logoff() {
+    window.location.href = appConfig().authLogoutUrl;
+}

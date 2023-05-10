@@ -18,8 +18,8 @@
 import { RefObject } from "react";
 import { Websocket, WebsocketBuilder } from "websocket-ts/lib";
 import { Actions } from "../dashboard/dashboard";
-import User from "../login/user";
-import Alert from "../support/alert";
+import { logoff } from "../auth/user";
+import Alert from "../info/alert";
 
 // CommStatus is the communications status
 enum CommStatus {
@@ -46,13 +46,10 @@ export default class SocketFactory {
     event: SocketEvent;
 
     private ws: WebsocketBuilder;
-    private user: User
 
     constructor(private alert: RefObject<Alert>, private actions: Actions) {
         const protocol = location.protocol == "https:" ? "wss" : "ws";
         this.ws = new WebsocketBuilder(protocol + "://" + document.location.host + "/web/api/ws");
-
-        this.user = new User(actions);
 
         this.event = {
             streamMetrics: () => {}
@@ -72,7 +69,7 @@ export default class SocketFactory {
                     "Si desea continuar vuelva a iniciar sesión. " +
                     "Se procederá a cerrar la sessión de trabajo.");
                 this.alert.current.events.closed = () => {
-                    this.user.logoff();
+                    logoff();
                 };
                 this.alert.current.open();
             }
@@ -84,7 +81,7 @@ export default class SocketFactory {
                     "Se ha producido un error con la conexión en tiempo real. " +
                     "Se procederá a cerrar la sessión de trabajo.");
                 this.alert.current.events.closed = () => {
-                    this.user.logoff()
+                    logoff()
                 };
                 this.alert.current.open();
             }

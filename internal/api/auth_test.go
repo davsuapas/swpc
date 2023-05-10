@@ -29,11 +29,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestOAuth_Token(t *testing.T) {
+func TestAuth_Token(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
-		si string
+		sID string
 	}
 
 	tests := []struct {
@@ -44,14 +44,14 @@ func TestOAuth_Token(t *testing.T) {
 		{
 			name: "Token. Success",
 			args: args{
-				si: "sw3kf$fekdy56dfh",
+				sID: "",
 			},
 			status: http.StatusOK,
 		},
 		{
 			name: "Token. Invalid",
 			args: args{
-				si: "tinvalid",
+				sID: "tinvalid",
 			},
 			status: http.StatusUnauthorized,
 		},
@@ -59,6 +59,7 @@ func TestOAuth_Token(t *testing.T) {
 
 	for _, tt := range tests {
 		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -66,11 +67,11 @@ func TestOAuth_Token(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/token/", nil)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetPath("/token/:secretID")
-			c.SetParamNames("secretID")
-			c.SetParamValues(tt.args.si)
+			c.SetPath("/token/:" + api.ClientIDName)
+			c.SetParamNames(api.ClientIDName)
+			c.SetParamValues(tt.args.sID)
 
-			o := api.NewOAuth(zap.NewExample(), config.APIConfig{SessionExpiration: 1})
+			o := api.NewAuth(zap.NewExample(), config.API{SessionExpiration: 1})
 
 			_ = o.Token(c)
 

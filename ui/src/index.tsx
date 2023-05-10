@@ -16,24 +16,9 @@
  */
 
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import Dashboard from './dashboard/dashboard';
-import Login from './login/login';
-import PrivateRoute from './router'
+import main from './app/main';
 
 const rootElement = document.getElementById('root');
 const root = createRoot(rootElement!);
 
-root.render(
-    <BrowserRouter>
-        <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="piscina" element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            }
-          />
-        </Routes>
-    </BrowserRouter>,
-);
+main(root);
