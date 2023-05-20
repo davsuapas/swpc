@@ -182,7 +182,7 @@ func (k *JWT) GetKey(token *jwt.Token) (interface{}, error) {
 		return nil, errors.Wrap(err, errConvertJWT)
 	}
 
-	return key, nil
+	return &key, nil
 }
 
 // ParseJWT parse the token given a JWK service
@@ -196,13 +196,13 @@ func (k *JWT) ParseJWT(tokenString string) (*jwt.Token, error) {
 	return token, nil
 }
 
-func convertKey(jwkKey JWKKey) (*rsa.PublicKey, error) {
+func convertKey(jwkKey JWKKey) (rsa.PublicKey, error) {
 	rawE := jwkKey.E
 	rawN := jwkKey.N
 
 	decodedE, err := base64.RawURLEncoding.DecodeString(rawE)
 	if err != nil {
-		return nil, errors.Wrap(err, errDecodeE)
+		return rsa.PublicKey{}, errors.Wrap(err, errDecodeE)
 	}
 
 	if len(decodedE) < 4 {
@@ -211,14 +211,14 @@ func convertKey(jwkKey JWKKey) (*rsa.PublicKey, error) {
 		decodedE = ndata
 	}
 
-	pubKey := &rsa.PublicKey{
+	pubKey := rsa.PublicKey{
 		N: &big.Int{},
 		E: int(binary.BigEndian.Uint32(decodedE)),
 	}
 
 	decodedN, err := base64.RawURLEncoding.DecodeString(rawN)
 	if err != nil {
-		return nil, errors.Wrap(err, errDecodeN)
+		return rsa.PublicKey{}, errors.Wrap(err, errDecodeN)
 	}
 
 	pubKey.N.SetBytes(decodedN)
