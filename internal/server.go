@@ -72,7 +72,9 @@ func (s *Server) Start() error {
 	go func() {
 		s.factory.Hubt.Register()
 
-		address := strings.Concat(s.factory.Config.Host, ":", strconv.Itoa(s.factory.Config.Port))
+		address := strings.Concat(
+			s.factory.Config.Server.Internal.Host, ":",
+			strconv.Itoa(s.factory.Config.Internal.Port))
 
 		s.factory.Log.Info(infStartHub, zap.String("Address", address))
 		s.factory.Hub.Run()

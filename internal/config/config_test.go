@@ -41,9 +41,16 @@ func TestLoadConfig(t *testing.T) {
 			name: "Config. Custom",
 			env: `{
 				"server": {
-					"tls": true,
-					"host": "192.168.100.1",
-					"port": 2020
+					"Internal": {
+						"tls": true,
+						"host": "192.168.100.1",
+						"port": 2020
+					},
+					"External": {
+						"tls": true,
+						"host": "192.168.100.2",
+						"port": 2021
+					}
 				},
 				"log": {"development": false, "level": 3},
 				"web": {
@@ -55,7 +62,6 @@ func TestLoadConfig(t *testing.T) {
 						"loginUrl": "loginUrl",
 						"jwkUrl": "jwkUrl",
 						"tokenUrl": "tokenUrl",
-						"revokeTokenUrl": "revokeTokenUrl",
 						"redirectLoginUri": "redirectLoginUri",
 						"redirectLogoutUri": "redirectLogoutUri"
 					}
@@ -73,9 +79,16 @@ func TestLoadConfig(t *testing.T) {
 			}`,
 			res: config.Config{
 				Server: config.Server{
-					TLS:  true,
-					Host: "192.168.100.1",
-					Port: 2020,
+					Internal: config.Address{
+						TLS:  true,
+						Host: "192.168.100.1",
+						Port: 2020,
+					},
+					External: config.Address{
+						TLS:  true,
+						Host: "192.168.100.2",
+						Port: 2021,
+					},
 				},
 				Zap: config.Zap{
 					Development: false,
@@ -86,12 +99,11 @@ func TestLoadConfig(t *testing.T) {
 					SessionExpiration: 15,
 					SecretKey:         "123",
 					Auth: config.Auth{
-						Provider:       "oauth2",
-						ClientID:       "clientId",
-						LoginURL:       "loginUrl",
-						JWKURL:         "jwkUrl",
-						TokenURL:       "tokenUrl",
-						RevokeTokenURL: "revokeTokenUrl",
+						Provider: "oauth2",
+						ClientID: "clientId",
+						LoginURL: "loginUrl",
+						JWKURL:   "jwkUrl",
+						TokenURL: "tokenUrl",
 					},
 				},
 				API: config.API{
@@ -154,7 +166,7 @@ func TestLoadConfig_Panic(t *testing.T) {
 	}
 }
 
-func TestServer_URL(t *testing.T) {
+func TestServer_InternalURL(t *testing.T) {
 	type fields struct {
 		TSL  bool
 		Port int
@@ -190,15 +202,30 @@ func TestServer_URL(t *testing.T) {
 			t.Parallel()
 
 			s := config.Server{
-				TLS:  tt.fields.TSL,
-				Host: "localhost",
-				Port: tt.fields.Port,
+				Internal: config.Address{
+					TLS:  tt.fields.TSL,
+					Host: "localhost",
+					Port: tt.fields.Port,
+				},
 			}
-			res := s.URL("fragment")
+			res := s.InternalURL("fragment")
 
 			assert.Equal(t, tt.want, res)
 		})
 	}
+}
+
+func TestServer_ExternalURL(t *testing.T) {
+	s := config.Server{
+		External: config.Address{
+			TLS:  true,
+			Host: "localhost",
+			Port: 2020,
+		},
+	}
+	res := s.ExternalURL("fragment")
+
+	assert.Equal(t, "https://localhost:2020/fragment", res)
 }
 
 func TestConfig_AuthRedirectURI(t *testing.T) {
@@ -235,9 +262,11 @@ func TestConfig_AuthRedirectURI(t *testing.T) {
 
 			c := config.Config{
 				Server: config.Server{
-					TLS:  false,
-					Host: "server",
-					Port: 2020,
+					External: config.Address{
+						TLS:  false,
+						Host: "server",
+						Port: 2020,
+					},
 				},
 				Web: config.Web{
 					Auth: config.Auth{

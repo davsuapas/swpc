@@ -119,7 +119,7 @@ func TestStream_Download(t *testing.T) {
 type errReader int
 
 func (errReader) Read(p []byte) (int, error) {
-	return 0, errBody
+	return len(p), errBody
 }
 
 func TestStream_Download_Body_Error(t *testing.T) {

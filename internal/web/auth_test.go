@@ -232,13 +232,6 @@ func TestAuthFlow_Logout(t *testing.T) {
 	type args struct {
 		clientName string
 		clientID   string
-		tokenName  string
-		token      string
-	}
-
-	type mocktoken struct {
-		use bool
-		err error
 	}
 
 	type want struct {
@@ -249,7 +242,6 @@ func TestAuthFlow_Logout(t *testing.T) {
 	tests := []struct {
 		name       string
 		args       args
-		mockToken  mocktoken
 		mockHubUse bool
 		want       want
 	}{
@@ -258,43 +250,7 @@ func TestAuthFlow_Logout(t *testing.T) {
 			args: args{
 				clientName: "error",
 			},
-			mockToken: mocktoken{
-				use: false,
-			},
 			mockHubUse: false,
-			want: want{
-				statusCode: http.StatusInternalServerError,
-				cookies:    0,
-			},
-		},
-		{
-			name: "Logout without AuthHeaderName cookie. it should return StatusInternalServerError",
-			args: args{
-				clientName: web.WSClientIDName,
-				clientID:   "123",
-			},
-			mockToken: mocktoken{
-				use: false,
-			},
-			mockHubUse: true,
-			want: want{
-				statusCode: http.StatusInternalServerError,
-				cookies:    0,
-			},
-		},
-		{
-			name: "Logout revoke token error. it should return StatusInternalServerError",
-			args: args{
-				clientName: web.WSClientIDName,
-				clientID:   "123",
-				tokenName:  web.AuthHeaderName,
-				token:      "123",
-			},
-			mockToken: mocktoken{
-				use: true,
-				err: errToken,
-			},
-			mockHubUse: true,
 			want: want{
 				statusCode: http.StatusInternalServerError,
 				cookies:    0,
@@ -305,12 +261,6 @@ func TestAuthFlow_Logout(t *testing.T) {
 			args: args{
 				clientName: web.WSClientIDName,
 				clientID:   "123",
-				tokenName:  web.AuthHeaderName,
-				token:      "123",
-			},
-			mockToken: mocktoken{
-				use: true,
-				err: nil,
 			},
 			mockHubUse: true,
 			want: want{
@@ -332,30 +282,15 @@ func TestAuthFlow_Logout(t *testing.T) {
 				Value: tt.args.clientID,
 			}
 			req.AddCookie(co)
-			co = &http.Cookie{
-				Name:  tt.args.tokenName,
-				Value: tt.args.token,
-			}
-			req.AddCookie(co)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
-			oa := mocks.NewOAuth2(t)
 			h := mocks.NewHub(t)
 
 			o := &web.AuthFlow{
-				Log:     zap.NewExample(),
-				Service: oa,
-				Hub:     h,
-				Config:  config.Default(),
-			}
-
-			param := auth.OA2RevokeTokenInput{
-				URL:   o.Config.Auth.TokenURL,
-				Token: tt.args.token,
-			}
-			if tt.mockToken.use {
-				oa.On("RevokeToken", param).Return(tt.mockToken.err)
+				Log:    zap.NewExample(),
+				Hub:    h,
+				Config: config.Default(),
 			}
 
 			if tt.mockHubUse {
@@ -370,7 +305,6 @@ func TestAuthFlow_Logout(t *testing.T) {
 			defer r.Body.Close()
 			assert.Equal(t, tt.want.cookies, len(r.Cookies()), "Cookies")
 
-			oa.AssertExpectations(t)
 			h.AssertExpectations(t)
 		})
 	}

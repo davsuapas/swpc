@@ -80,13 +80,13 @@ const (
 
 type Config struct {
 	// CommLatency is the time in seconds before the communication goes to the inactive state
-	CommLatency time.Duration
+	CommLatency time.Duration `json:"commLatency"`
 	// Buffer is the time in seconds to store metrics before sending to the hub
-	Buffer time.Duration
+	Buffer time.Duration `json:"buffer"`
 	// TaskTime defines how often the hub makes maintenance task
-	TaskTime time.Duration
+	TaskTime time.Duration `json:"taskTime"`
 	// NotificationTime defines how often a notification is sent
-	NotificationTime time.Duration
+	NotificationTime time.Duration `json:"notificationTime"`
 }
 
 // string returns struct as string

@@ -265,8 +265,8 @@ func TestHub_Config(t *testing.T) {
 
 	assert.Equal(
 		t,
-		"Hub-> The configuration has been changed (Config: {\"CommLatency\":1000000000,\"Buffer\":2000000000,"+
-			"\"TaskTime\":3600000000000,\"NotificationTime\":3000000000}, )",
+		"Hub-> The configuration has been changed (Config: {\"commLatency\":1000000000,\"buffer\":2000000000,"+
+			"\"taskTime\":3600000000000,\"notificationTime\":3000000000}, )",
 		<-info)
 }
 

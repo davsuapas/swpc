@@ -18,3 +18,6 @@
 /cmd/*/public
 /cmd/*/data
 __debug_bin
+
+# Environment variables
+/deploy/swpc.env

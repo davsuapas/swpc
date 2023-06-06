@@ -43,8 +43,8 @@ const (
 	AuthProviderOauth2 AuthProvider = "oauth2"
 )
 
-// Server describes the http configuration
-type Server struct {
+// Server address
+type Address struct {
 	// TLS defines TLS is used
 	TLS bool `json:"tls,omitempty"`
 	// Host defines the host
@@ -53,18 +53,37 @@ type Server struct {
 	Port int `json:"port,omitempty"`
 }
 
-// URL returns URL address
-func (s *Server) URL(fragment string) string {
+// Server describes the http configuration
+type Server struct {
+	// Internal address on the internal container
+	Internal Address `json:"internal,omitempty"`
+
+	// External address on the web
+	External Address `json:"external,omitempty"`
+}
+
+// InternalURL returns internal URL address
+func (s *Server) InternalURL(fragment string) string {
+	return url(s.Internal, fragment)
+}
+
+// ExternalURL returns external URL address
+func (s *Server) ExternalURL(fragment string) string {
+	return url(s.External, fragment)
+}
+
+// url returns URL address
+func url(addr Address, fragment string) string {
 	protocol := "http"
-	if s.TLS {
+	if addr.TLS {
 		protocol = "https"
 	}
 
-	if s.Port > 0 {
-		return strs.Concat(protocol, "://", s.Host, ":", strconv.Itoa(s.Port), "/", fragment)
+	if addr.Port > 0 {
+		return strs.Concat(protocol, "://", addr.Host, ":", strconv.Itoa(addr.Port), "/", fragment)
 	}
 
-	return strs.Concat(protocol, "://", s.Host, "/", fragment)
+	return strs.Concat(protocol, "://", addr.Host, "/", fragment)
 }
 
 // Auth defines the auth external system based on oauth2
@@ -99,8 +118,6 @@ type Auth struct {
 	JWKURL string `json:"jwkUrl,omitempty"`
 	// TokenURL is the URL to get token
 	TokenURL string `json:"tokenUrl,omitempty"`
-	// RevokeTokenURL is the URL to rovoke token
-	RevokeTokenURL string `json:"revokeTokenUrl,omitempty"`
 	// RedirectURL is the base URL for redirecting provider requests
 	// If not defined, it will be formed based on the information in the Server configuration.
 	RedirectURL string `json:"redirectProxy,omitempty"`
@@ -168,7 +185,7 @@ func (c *Config) AuthRedirectURI(fragment string) string {
 	fragment = strings.TrimPrefix(fragment, "/")
 
 	if len(c.Auth.RedirectURL) == 0 {
-		return c.Server.URL(fragment)
+		return c.Server.ExternalURL(fragment)
 	}
 
 	return strs.Concat(c.Auth.RedirectURL, "/", fragment)
@@ -177,9 +194,16 @@ func (c *Config) AuthRedirectURI(fragment string) string {
 func Default() Config {
 	return Config{
 		Server: Server{
-			TLS:  false,
-			Host: "localhost",
-			Port: 8080,
+			Internal: Address{
+				TLS:  false,
+				Host: "localhost",
+				Port: 5000,
+			},
+			External: Address{
+				TLS:  false,
+				Host: "localhost",
+				Port: 5000,
+			},
 		},
 		Zap: Zap{
 			Development: true,

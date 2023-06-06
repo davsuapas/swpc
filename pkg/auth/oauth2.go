@@ -35,7 +35,7 @@ const (
 	errRevokeTk     = "OAuth2-> Revoke token"
 	errJWKCode      = "OAuth2-> Get JWK"
 	errRequest      = "OAuth2-> New http request"
-	errHTTPPut      = "OAuth2-> Request using put method"
+	errHTTPPost     = "OAuth2-> Request using post method"
 	errHTTPReadBody = "OAuth2-> Read body from response"
 	errUnmarshallTk = "OAuth2-> Unmarshall token from response"
 	errJWTTk        = "OAuth2-> Get JWT token"
@@ -122,7 +122,7 @@ func post(url string, data url.Values) ([]byte, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, errHTTPPut)
+		return nil, errors.Wrap(err, errHTTPPost)
 	}
 	defer resp.Body.Close()
 
@@ -134,7 +134,7 @@ func post(url string, data url.Values) ([]byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		return body, errors.New(
 			stringss.Concat(
-				errHTTPPut,
+				errHTTPPost,
 				", StatusCode: ", resp.Status,
 				", Response: ", string(body)))
 	}

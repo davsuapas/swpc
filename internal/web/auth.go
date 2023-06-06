@@ -32,8 +32,6 @@ import (
 const (
 	errTkInvalid     = "Auth -> Token invalid"
 	errStateInvalid  = "Auth -> Auth state invalid"
-	errRevokeTk      = "Auth -> Revoke token caused by logoff"
-	errGetTk         = "Auth -> Getting auth token from web request"
 	errGetWSClientID = "Auth -> Getting web socket client id from web request"
 )
 
@@ -123,24 +121,6 @@ func (o *AuthFlow) Logout(ctx echo.Context) error {
 	o.Log.Info(infLogoff)
 
 	if !unregisterHub(ctx, o.Log, o.Hub) {
-		return ctx.NoContent(http.StatusInternalServerError)
-	}
-
-	token, err := ctx.Cookie(AuthHeaderName)
-	if err != nil {
-		o.Log.Error(errGetTk, zap.Error(err))
-
-		return ctx.NoContent(http.StatusInternalServerError)
-	}
-
-	params := auth.OA2RevokeTokenInput{
-		URL:   o.Config.Auth.RevokeTokenURL,
-		Token: token.Value,
-	}
-
-	if err := o.Service.RevokeToken(params); err != nil {
-		o.Log.Error(errRevokeTk, zap.Error(err))
-
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
