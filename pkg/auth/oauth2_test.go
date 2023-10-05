@@ -55,7 +55,7 @@ func TestOAuth2_Token(t *testing.T) {
 				body:       "{\"access_token\":\"eyJraWQiOiI0REFFckV4d1ZkNEd3SzBpUEMrUjVqU1I2T1dDQTZvbWNOQmZ0aDN3NDV3PSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiJhN2FlNWNlZi0wZGQyLTQyYWItYjRkYy0zMWI5Yzg1N2UzMzEiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9VWWgzM1dlbGoiLCJ2ZXJzaW9uIjoyLCJjbGllbnRfaWQiOiI2c3RkZ3Y0ZDYxcmJuNmZka3FqYmEwN3ZoNCIsImV2ZW50X2lkIjoiYjJkNjgzNWUtZTMwNS00NmI0LTliNDgtNjU1OTNhNjlhOWQ2IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwic2NvcGUiOiJvcGVuaWQgZW1haWwiLCJhdXRoX3RpbWUiOjE2ODI5MjI1NDksImV4cCI6MTY4MjkyNjE0OSwiaWF0IjoxNjgyOTIyNTQ5LCJqdGkiOiI0N2Y0YmMzMC01ZWU1LTRkMmUtOTZlYS0yNGI0OTdlMDA2ODciLCJ1c2VybmFtZSI6ImRhdnN1YXBhcyJ9.GRvxrannCQpMEMnE1WYXa39BxP62hF5BfnQcvjsBB3odnGCLBIghwE2wKAG0ufHkvM6Z3uoHPDJesleMKkcGny6RPaQNSRfvvgklQpjTXr5WL-lXEOMjTKzNIZdamiwbDnmQ-qF_zQQpVlDvdPp-zpv-ZwwakETFcxSmGLVfux9PJcPZLs-UmB5wn2dPGUDnxY19_uVY8nPoTB9-ZgbCb-fOoMmbmvGKMWHRZpzQS4O0CUsC5anhIAvBAcTlZa85N4v9U_iPfQO_Uvgy2qqSRsx2e3eBqefrFwVXyaB75oe_SiUXmKYfzXywSN3RCTlu9K-tGCRi7dCC4jRQxc_wIQ\",\"expires_in\":123}",
 				statusCode: http.StatusOK,
 			},
-			wantErr: "Token is expired",
+			wantErr: "token is expired",
 		},
 		{
 			name: "Token unmarshal error",

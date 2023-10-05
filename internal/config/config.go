@@ -33,7 +33,9 @@ const (
 	errLogEncoding = "The log encoding param must be configured to ('json' or 'console')"
 	errLogLevel    = "The log level param must be configured to " +
 		"(-1: debug, 0: info, 1: Warn, 2: Error, 3: DPanic, 4: Panic, 5: Fatal)"
-	errAuthProvider = "The auth provider param must be configured to (test, oauth2)"
+	errAuthProvider  = "The auth provider param must be configured to (test, oauth2)"
+	errCloudProvider = "The auth provider param must be configured to (dev, aws)"
+	errGets          = "Cannot obtain supplier's secret"
 )
 
 type AuthProvider string
@@ -42,6 +44,28 @@ const (
 	AuthProviderDev    AuthProvider = "dev"
 	AuthProviderOauth2 AuthProvider = "oauth2"
 )
+
+type CloudProvider string
+
+const (
+	CloudNoProvider  CloudProvider = "no"
+	CloudAWSProvider CloudProvider = "aws"
+)
+
+// Secret manages the secrets
+type Secret interface {
+	// Get gets the secret in plain text
+	Get(secretName string) (map[string]string, error)
+}
+
+type DummySecret struct {
+}
+
+// Get gets the secret in plain text
+// Does not perform any transformation.
+func (s *DummySecret) Get(_ string) (map[string]string, error) {
+	return make(map[string]string), nil
+}
 
 // Server address
 type Address struct {
@@ -170,6 +194,29 @@ type Zap struct {
 	Encoding string `json:"encoding,omitempty"`
 }
 
+type Cloud struct {
+	Provider CloudProvider `json:"provider,omitempty"`
+	AWS      AWS           `json:"aws,omitempty"`
+}
+
+// AWSSecret defines the configuration for Secret Manager
+type AWSSecret struct {
+	// Region is the region identifier
+	Region string `json:"region,omitempty"`
+	// Name is the secret name
+	Name string `json:"name,omitempty"`
+}
+
+// AWS defines the configuration for AWS
+type AWS struct {
+	// Secret is the secret manager configuration
+	Secret AWSSecret `json:"secret,omitempty"`
+	// Access key ID
+	AKID string `json:"akid,omitempty"`
+	// Secret key ID
+	SecretKey string `json:"secretKey,omitempty"`
+}
+
 // Config defines the global information
 type Config struct {
 	Server   `json:"server,omitempty"`
@@ -177,6 +224,7 @@ type Config struct {
 	Web      `json:"web,omitempty"`
 	API      `json:"api,omitempty"`
 	Hub      `json:"hub,omitempty"`
+	Cloud    Cloud  `json:"cloud,omitempty"`
 	DataPath string `json:"dataPath,omitempty"`
 }
 
@@ -229,12 +277,25 @@ func Default() Config {
 			TaskTime:         8,
 			NotificationTime: 8,
 		},
+		Cloud: Cloud{
+			Provider: CloudNoProvider,
+		},
 		DataPath: "./data",
 	}
 }
 
+// String returns struct as string
+func (c *Config) String() string {
+	r, err := json.Marshal(c)
+	if err != nil {
+		return ""
+	}
+
+	return string(r)
+}
+
 // LoadConfig loads the configuration from environment variable
-func LoadConfig() Config {
+func LoadConfig() Config { //nolint:cyclop
 	cnf := Default()
 
 	env := os.Getenv(ENVConfig)
@@ -257,15 +318,38 @@ func LoadConfig() Config {
 		panic(errAuthProvider)
 	}
 
+	if cnf.Cloud.Provider != CloudNoProvider && cnf.Cloud.Provider != CloudAWSProvider {
+		panic(errCloudProvider)
+	}
+
 	return cnf
 }
 
-// String returns struct as string
-func (c *Config) String() string {
-	r, err := json.Marshal(c)
+// ApplySecret calls the secret provider and if the configuration value exists
+// contains a secret name preceded by "#",
+// applies the value of the secret to the configuration key
+func ApplySecret(s Secret, config *Config) {
+	secrets, err := s.Get(config.Cloud.AWS.Secret.Name)
 	if err != nil {
-		return ""
+		panic(strs.Format(errGets, strs.FMTValue("Name", err.Error())))
 	}
 
-	return string(r)
+	if len(secrets) == 0 {
+		return
+	}
+
+	config.Auth.ClientID = getSecretValue(secrets, config.Auth.ClientID)
+
+	config.API.ClientID = getSecretValue(secrets, config.API.ClientID)
+	config.API.TokenSecretKey = getSecretValue(secrets, config.API.TokenSecretKey)
+
+	config.Web.SecretKey = getSecretValue(secrets, config.Web.SecretKey)
+}
+
+func getSecretValue(secrets map[string]string, value string) string {
+	if !strings.HasPrefix(value, "@@") {
+		return value
+	}
+
+	return secrets[value[2:]]
 }

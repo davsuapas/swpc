@@ -22,11 +22,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/swpoolcontroller/internal/config"
+	"github.com/swpoolcontroller/internal/config/mocks"
 )
 
 func TestLoadConfig(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name string
 		env  string
@@ -75,6 +74,17 @@ func TestLoadConfig(t *testing.T) {
 					"tokenSecretKey": "123"
 				},
 				"hub": {"taskTime": 6, "notificationTime": 7},
+				"cloud": {
+					"provider": "aws",
+					"aws": {
+						"akid": "akid",
+						"secretKey": "secretKey",
+						"secret": {
+							"region": "region",
+							"name": "name"
+						}
+					}
+				},
 				"dataPath": "./datas"
 			}`,
 			res: config.Config{
@@ -118,6 +128,17 @@ func TestLoadConfig(t *testing.T) {
 					TaskTime:         6,
 					NotificationTime: 7,
 				},
+				Cloud: config.Cloud{
+					Provider: config.CloudAWSProvider,
+					AWS: config.AWS{
+						AKID:      "akid",
+						SecretKey: "secretKey",
+						Secret: config.AWSSecret{
+							Region: "region",
+							Name:   "name",
+						},
+					},
+				},
 				DataPath: "./datas",
 			},
 		},
@@ -133,8 +154,6 @@ func TestLoadConfig(t *testing.T) {
 }
 
 func TestLoadConfig_Panic(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name string
 		env  string
@@ -154,6 +173,10 @@ func TestLoadConfig_Panic(t *testing.T) {
 		{
 			name: "Config. Auth provider incorrect",
 			env:  `{"web": {"auth": { "provider": "no_exist"}}}`,
+		},
+		{
+			name: "Config. Cloud provider incorrect",
+			env:  `{"cloud": { "provider": "no_exist"}}`,
 		},
 	}
 
@@ -178,7 +201,7 @@ func TestServer_InternalURL(t *testing.T) {
 		want   string
 	}{
 		{
-			name: "URL with TSL",
+			name: "URL with TLS",
 			fields: fields{
 				TSL:  true,
 				Port: 0,
@@ -290,4 +313,98 @@ func TestServerConfig_String(t *testing.T) {
 	res := c.String()
 
 	assert.NotEmpty(t, res)
+}
+
+func TestApplySecret(t *testing.T) {
+	t.Parallel()
+
+	type args struct {
+		config  config.Config
+		secrets map[string]string
+	}
+
+	tests := []struct {
+		name     string
+		args     args
+		expected config.Config
+	}{
+		{
+			name: "Apply Secret. Secret name not exists. It should return the same configuration values",
+			args: args{
+				config: config.Config{
+					Web: config.Web{
+						SecretKey: "@@SecretKey",
+						Auth: config.Auth{
+							ClientID: "@@ClientID",
+						},
+					},
+					API: config.API{
+						ClientID:       "@@ClientID",
+						TokenSecretKey: "@@TokenSecretKey",
+					},
+					DataPath: "",
+				},
+				secrets: map[string]string{},
+			},
+			expected: config.Config{
+				Web: config.Web{
+					SecretKey: "@@SecretKey",
+					Auth: config.Auth{
+						ClientID: "@@ClientID",
+					},
+				},
+				API: config.API{
+					ClientID:       "@@ClientID",
+					TokenSecretKey: "@@TokenSecretKey",
+				},
+				DataPath: "",
+			},
+		},
+		{
+			name: "Apply Secret. Secret name exists. It should return the configuration values applying secrets",
+			args: args{
+				config: config.Config{
+					Web: config.Web{
+						SecretKey: "@@SecretKey",
+						Auth: config.Auth{
+							ClientID: "@@ClientID",
+						},
+					},
+					API: config.API{
+						ClientID:       "ClientID",
+						TokenSecretKey: "@@TokenSecretKey",
+					},
+				},
+				secrets: map[string]string{
+					"SecretKey":      "123",
+					"TokenSecretKey": "1234",
+				},
+			},
+			expected: config.Config{
+				Web: config.Web{
+					SecretKey: "123",
+					Auth: config.Auth{
+						ClientID: "",
+					},
+				},
+				API: config.API{
+					ClientID:       "ClientID",
+					TokenSecretKey: "1234",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := mocks.NewSecret(t)
+			s.On("Get", tt.args.config.Cloud.AWS.Secret.Name).Return(tt.args.secrets, nil)
+
+			config.ApplySecret(s, &tt.args.config)
+
+			assert.Equal(t, tt.expected, tt.args.config)
+
+			s.AssertExpectations(t)
+		})
+	}
 }

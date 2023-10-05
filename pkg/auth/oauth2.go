@@ -25,7 +25,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 	stringss "github.com/swpoolcontroller/pkg/strings"
 )

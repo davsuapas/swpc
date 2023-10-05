@@ -12,7 +12,6 @@ if [[ $no_build != "--no-release" ]]; then
 	$path_scripts/build.sh
 fi
 
-
 echo "Target Deployment: '$path_target'"
 
 cp ./deploy/Dockerfile $path_target/

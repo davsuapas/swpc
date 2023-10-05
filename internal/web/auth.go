@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/xid"
 	"github.com/swpoolcontroller/internal/config"
@@ -77,7 +77,7 @@ func (o *AuthFlow) Login(ctx echo.Context) error {
 
 	o.Log.Info(infLogin, zap.String("Code", code), zap.String("State", state))
 
-	if _, err := auth.DecodeState([]byte(o.Config.SecretKey), state); err != nil {
+	if _, err := auth.DecodeState([]byte(o.Config.Web.SecretKey), state); err != nil {
 		o.Log.Error(errStateInvalid, zap.Error(err))
 
 		return ctx.Redirect(http.StatusFound, RedirectErrorAuth)

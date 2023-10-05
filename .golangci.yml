@@ -24,6 +24,7 @@ linters:
     - forbidigo
     - exhaustruct
     - varnamelen
+    - ireturn
 linters-settings:
   lll:
     line-length: 120

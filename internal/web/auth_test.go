@@ -24,7 +24,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/swpoolcontroller/internal/config"
@@ -217,8 +217,8 @@ func TestAuthFlow_Login(t *testing.T) {
 
 			r := rec.Result()
 			defer r.Body.Close()
-			assert.Equal(t, tt.want.cookies, len(r.Cookies()), "Cookies")
 
+			assert.Equal(t, tt.want.cookies, len(r.Cookies()), "Cookies")
 			assert.Equal(t, tt.want.redirect, rec.Header().Get("Location"))
 
 			oa.AssertExpectations(t)

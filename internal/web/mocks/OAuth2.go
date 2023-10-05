@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	jwt "github.com/golang-jwt/jwt/v4"
+	jwt "github.com/golang-jwt/jwt/v5"
 	auth "github.com/swpoolcontroller/pkg/auth"
 
 	mock "github.com/stretchr/testify/mock"

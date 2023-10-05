@@ -58,7 +58,7 @@ type AppConfig struct {
 func (c *AppConfig) Load(ctx echo.Context) error {
 	state := xid.New().String()
 
-	statec, err := auth.EncodeState([]byte(c.Config.SecretKey), []byte(state))
+	statec, err := auth.EncodeState([]byte(c.Config.Web.SecretKey), []byte(state))
 	if err != nil {
 		c.Log.Error(errEncodeState, zap.Error(err))
 
