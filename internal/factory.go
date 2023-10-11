@@ -19,10 +19,10 @@ package internal
 
 import (
 	"context"
-	"path"
 	"time"
 
-	aws "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsc "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/labstack/echo/v4"
 	"github.com/swpoolcontroller/internal/api"
@@ -39,12 +39,10 @@ import (
 )
 
 const (
-	errReadConfig   = "Reading the configuration of the micro controller from config file"
-	errCreateZap    = "Error creating zap logger"
-	errCreateSecret = "Error creating secret maanger"
+	errReadConfig = "Reading the configuration of the micro controller from config file"
+	errCreateZap  = "Error creating zap logger"
+	errAWSConfig  = "Error creating secret maanger"
 )
-
-const dataFile = "micro-config.dat"
 
 // APIHandler Micro API handler
 type APIHandler struct {
@@ -79,45 +77,35 @@ type Factory struct {
 // NewFactory creates the horizontal services of the app
 func NewFactory() *Factory {
 	cnf := config.LoadConfig()
-
-	s := secretProvider(cnf)
-	config.ApplySecret(s, &cnf)
+	awscnf := newAWSConfig(cnf)
 
 	log := newLogger(cnf)
 
-	dataFile := path.Join(cnf.DataPath, dataFile)
+	s := secretProvider(cnf, awscnf)
+	config.ApplySecret(s, &cnf)
 
-	mconfigRead := &micro.ConfigRead{
-		Log:      log,
-		DataFile: dataFile,
-	}
+	mconfigRead := microConfigRead(cnf, awscnf, log)
 
-	configm, err := mconfigRead.Read()
+	microc, err := mconfigRead.Read()
 	if err != nil {
 		log.Panic(errReadConfig)
 	}
 
-	hubt, hub := newHub(log, cnf, configm)
+	hubt, hub := newHub(log, cnf, microc)
 
 	mcontrol := &micro.Controller{
 		Log:                log,
 		Hub:                hub,
-		Config:             configm,
+		Config:             microc,
 		CheckTransTime:     uint8(cnf.CheckTransTime),
 		CollectMetricsTime: uint16(cnf.CollectMetricsTime),
-	}
-
-	mconfigWrite := &micro.ConfigWrite{
-		Log:      log,
-		MControl: mcontrol,
-		Hub:      hub,
-		Config:   cnf,
-		DataFile: dataFile,
 	}
 
 	jwt := &auth.JWT{
 		JWKFetch: auth.NewJWKFetch(cnf.Auth.JWKURL),
 	}
+
+	mconfigWrite := microConfigWrite(cnf, awscnf, log, mcontrol, hub)
 
 	return &Factory{
 		Config:     cnf,
@@ -134,28 +122,44 @@ func NewFactory() *Factory {
 	}
 }
 
-func secretProvider(cnf config.Config) config.Secret {
-	if cnf.Cloud.Provider == config.CloudAWSProvider && len(cnf.Cloud.AWS.Secret.Name) > 0 {
-		options := func(cfg *aws.LoadOptions) error {
-			if len(cnf.Cloud.AWS.Secret.Region) > 0 {
-				cfg.Region = cnf.Cloud.AWS.Secret.Region
-			}
+func microConfigRead(
+	cnf config.Config,
+	cnfaws *awsConfig,
+	log *zap.Logger) micro.ConfigRead {
+	//
+	if cnf.Data.Provider == config.CloudDataProvider && cnf.Cloud.Provider != config.CloudNoProvider {
+		return micro.NewAWSConfigRead(log, cnfaws.get(), cnf.Data.AWS.TableName)
+	}
 
-			if len(cnf.Cloud.AWS.AKID) > 0 && len(cnf.Cloud.AWS.SecretKey) > 0 {
-				cfg.Credentials = credentials.NewStaticCredentialsProvider(
-					cnf.Cloud.AWS.AKID, cnf.Cloud.AWS.SecretKey, "")
-			}
+	return &micro.FileConfigRead{
+		Log:      log,
+		DataFile: cnf.Data.File.FilePath,
+	}
+}
 
-			return nil
-		}
+func microConfigWrite(
+	cnf config.Config,
+	cnfaws *awsConfig,
+	log *zap.Logger,
+	mc *micro.Controller,
+	hub *sockets.Hub) micro.ConfigWrite {
+	//
+	if cnf.Data.Provider == config.CloudDataProvider && cnf.Cloud.Provider != config.CloudNoProvider {
+		return micro.NewAWSConfigWrite(log, mc, hub, cnf, cnfaws.get(), cnf.Data.AWS.TableName)
+	}
 
-		cfg, err := aws.LoadDefaultConfig(context.TODO(), options)
+	return &micro.FileConfigWrite{
+		Log:      log,
+		MControl: mc,
+		Hub:      hub,
+		Config:   cnf,
+		DataFile: cnf.Data.File.FilePath,
+	}
+}
 
-		if err != nil {
-			panic(strings.Format(errCreateSecret, strings.FMTValue("Description", err.Error())))
-		}
-
-		return crypto.NewAWSSecret(cfg)
+func secretProvider(cnf config.Config, cnfaws *awsConfig) config.Secret {
+	if cnf.Cloud.Provider == config.CloudAWSProvider && len(cnf.Secret.Name) > 0 {
+		return crypto.NewAWSSecret(cnfaws.get())
 	}
 
 	return &config.DummySecret{}
@@ -166,8 +170,8 @@ func newWeb(
 	cnf config.Config,
 	hub *sockets.Hub,
 	jwt *auth.JWT,
-	mconfigRead *micro.ConfigRead,
-	mconfigWrite *micro.ConfigWrite) *WebHandler {
+	mconfigRead micro.ConfigRead,
+	mconfigWrite micro.ConfigWrite) *WebHandler {
 	//
 	var oauth2 web.Auth
 
@@ -248,4 +252,46 @@ func newLogger(ctx config.Config) *zap.Logger {
 	}
 
 	return l
+}
+
+type awsConfig struct {
+	Config config.Config
+	c      aws.Config
+	load   bool
+}
+
+func newAWSConfig(cnf config.Config) *awsConfig {
+	return &awsConfig{
+		Config: cnf,
+	}
+}
+
+func (ac *awsConfig) get() aws.Config {
+	if ac.load {
+		return ac.c
+	}
+
+	options := func(cfg *awsc.LoadOptions) error {
+		if len(ac.Config.Cloud.AWS.Region) > 0 {
+			cfg.Region = ac.Config.Cloud.AWS.Region
+		}
+
+		if len(ac.Config.Cloud.AWS.AKID) > 0 && len(ac.Config.Cloud.AWS.SecretKey) > 0 {
+			cfg.Credentials = credentials.NewStaticCredentialsProvider(
+				ac.Config.Cloud.AWS.AKID, ac.Config.Cloud.AWS.SecretKey, "")
+		}
+
+		return nil
+	}
+
+	cfg, err := awsc.LoadDefaultConfig(context.TODO(), options)
+
+	if err != nil {
+		panic(strings.Format(errAWSConfig, strings.FMTValue("Description", err.Error())))
+	}
+
+	ac.c = cfg
+	ac.load = true
+
+	return ac.c
 }

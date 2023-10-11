@@ -81,11 +81,11 @@ func TestConfigWeb_Load(t *testing.T) {
 
 			cf := &web.ConfigWeb{
 				Log: zap,
-				MicroR: &micro.ConfigRead{
+				MicroR: &micro.FileConfigRead{
 					Log:      zap,
 					DataFile: tt.dataFile,
 				},
-				MicroW: &micro.ConfigWrite{},
+				MicroW: &micro.FileConfigWrite{},
 			}
 
 			_ = cf.Load(c)
@@ -166,8 +166,8 @@ func TestConfigWeb_Save(t *testing.T) {
 
 			cf := &web.ConfigWeb{
 				Log:    zap,
-				MicroR: &micro.ConfigRead{},
-				MicroW: &micro.ConfigWrite{
+				MicroR: &micro.FileConfigRead{},
+				MicroW: &micro.FileConfigWrite{
 					Log:      zap,
 					MControl: &micro.Controller{},
 					Hub:      tt.field.hubf(),
@@ -179,7 +179,7 @@ func TestConfigWeb_Save(t *testing.T) {
 			_ = cf.Save(c)
 
 			if rec.Code == http.StatusOK {
-				if err := os.Remove(cf.MicroW.DataFile); err != nil {
+				if err := os.Remove(tt.field.dataFile); err != nil {
 					assert.Error(t, err, "Removing micro config file created")
 				}
 			}

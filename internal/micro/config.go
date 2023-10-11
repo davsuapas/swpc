@@ -18,10 +18,15 @@
 package micro
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/pkg/errors"
 	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/pkg/sockets"
@@ -42,6 +47,12 @@ const (
 	infSavingConfig  = "Saving configuration file"
 	infConfig        = "Config"
 	infFile          = "file"
+)
+
+const (
+	dynamoDBTableKeyValue   = "1"
+	dynamoDBTableKeyName    = "id"
+	dynamoDBTableConfigName = "config"
 )
 
 type Config struct {
@@ -77,22 +88,25 @@ func (c *Config) String() string {
 }
 
 // ConfigRead reads the micro controller configuration
-type ConfigRead struct {
+type ConfigRead interface {
+	// Read reads the configuration
+	Read() (Config, error)
+}
+
+// FileConfigWrite writes the micro controller configuration
+type ConfigWrite interface {
+	// Save saves the configuration
+	Save(data Config) error
+}
+
+// FileConfigRead reads the micro controller configuration from file
+type FileConfigRead struct {
 	Log      *zap.Logger
 	DataFile string
 }
 
-// ConfigWrite writes the micro controller configuration
-type ConfigWrite struct {
-	Log      *zap.Logger
-	MControl *Controller
-	Hub      Hub
-	Config   config.Config
-	DataFile string
-}
-
-// Read reads the configuration saved in disk. If the file not exists returns config default
-func (c *ConfigRead) Read() (Config, error) {
+// Read reads the configuration from disk. If the file not exists returns config default
+func (c *FileConfigRead) Read() (Config, error) {
 	c.Log.Info(infLoadingConfig, zap.String(infFile, c.DataFile))
 
 	data, err := os.ReadFile(c.DataFile)
@@ -111,7 +125,7 @@ func (c *ConfigRead) Read() (Config, error) {
 	if err := json.Unmarshal(data, &mc); err != nil {
 		c.Log.Error(errUnmarsConfig, zap.String(infFile, c.DataFile), zap.Error(err))
 
-		return DefaultConfig(), errors.Wrap(err, errUnmarsConfig)
+		return Config{}, errors.Wrap(err, errUnmarsConfig)
 	}
 
 	c.Log.Info(infConfigLoaded, zap.String(infConfig, mc.String()))
@@ -119,7 +133,17 @@ func (c *ConfigRead) Read() (Config, error) {
 	return mc, nil
 }
 
-func (c ConfigWrite) Save(data Config) error {
+// FileConfigWrite writes the micro controller configuration to file
+type FileConfigWrite struct {
+	Log      *zap.Logger
+	MControl *Controller
+	Hub      Hub
+	Config   config.Config
+	DataFile string
+}
+
+// Save saves the configuration to disk
+func (c FileConfigWrite) Save(data Config) error {
 	c.Log.Info(infSavingConfig, zap.String(infConfig, data.String()), zap.String(infFile, c.DataFile))
 
 	conf, err := json.Marshal(data)
@@ -131,15 +155,134 @@ func (c ConfigWrite) Save(data Config) error {
 		return errors.Wrap(err, strings.Concat(errSaveConfig, c.DataFile))
 	}
 
-	// it updates the controller with new configuration
-	c.MControl.SetConfig(data)
-
-	c.Hub.Config(sockets.Config{
-		TaskTime:         time.Duration(c.Config.TaskTime) * time.Second,
-		NotificationTime: time.Duration(c.Config.NotificationTime) * time.Second,
-		CommLatency:      time.Duration(c.Config.CommLatencyTime) * time.Second,
-		Buffer:           time.Duration(data.Buffer) * time.Second,
-	})
+	notifyHub(c.Config, data, c.MControl, c.Hub)
 
 	return nil
+}
+
+// ConfigRead reads the micro controller configuration from AWS dynamodb
+type AWSConfigRead struct {
+	log       *zap.Logger
+	tableName string
+	client    *dynamodb.Client
+}
+
+// NewAWSConfigRead creates the micro controller configuration from AWS dynamodb
+func NewAWSConfigRead(
+	log *zap.Logger,
+	cfg aws.Config,
+	tableName string) *AWSConfigRead {
+	//
+	return &AWSConfigRead{
+		log:       log,
+		tableName: tableName,
+		client:    dynamodb.NewFromConfig(cfg),
+	}
+}
+
+// Read reads the configuration from dynamodb table. If the file not exists returns config default
+func (c *AWSConfigRead) Read() (Config, error) {
+	c.log.Info(infLoadingConfig, zap.String(infFile, c.tableName))
+
+	res, err := c.client.GetItem(context.TODO(), &dynamodb.GetItemInput{
+		TableName: aws.String(c.tableName),
+		Key: map[string]types.AttributeValue{
+			"id": &types.AttributeValueMemberS{Value: dynamoDBTableKeyValue},
+		},
+	})
+	if err != nil {
+		c.log.Error(errReadConfig, zap.String(infFile, c.tableName), zap.Error(err))
+
+		return Config{}, errors.Wrap(err, errReadConfig)
+	}
+
+	resMap := make(map[string]string)
+	if err := attributevalue.UnmarshalMap(res.Item, &resMap); err != nil {
+		c.log.Error(errUnmarsConfig, zap.String(infFile, c.tableName), zap.Error(err))
+
+		return Config{}, errors.Wrap(err, errUnmarsConfig)
+	}
+
+	if len(resMap) == 0 {
+		return DefaultConfig(), nil
+	}
+
+	var mc Config
+
+	if err := json.Unmarshal([]byte(resMap[dynamoDBTableConfigName]), &mc); err != nil {
+		c.log.Error(errUnmarsConfig, zap.String(infFile, c.tableName), zap.Error(err))
+
+		return Config{}, errors.Wrap(err, errUnmarsConfig)
+	}
+
+	c.log.Info(infConfigLoaded, zap.String(infConfig, mc.String()))
+
+	return mc, nil
+}
+
+// ConfigWrite writes the micro controller configuration from AWS dynamodb
+type AWSConfigWrite struct {
+	log       *zap.Logger
+	mControl  *Controller
+	hub       Hub
+	config    config.Config
+	tableName string
+	client    *dynamodb.Client
+}
+
+// NewAWSConfigWrite creates the micro controller configuration from AWS dynamodb
+func NewAWSConfigWrite(
+	log *zap.Logger,
+	mControl *Controller,
+	hub Hub,
+	config config.Config,
+	cfg aws.Config,
+	tableName string) *AWSConfigWrite {
+	//
+	return &AWSConfigWrite{
+		log:       log,
+		mControl:  mControl,
+		hub:       hub,
+		config:    config,
+		tableName: tableName,
+		client:    dynamodb.NewFromConfig(cfg),
+	}
+}
+
+func (c AWSConfigWrite) Save(data Config) error {
+	c.log.Info(infSavingConfig, zap.String(infConfig, data.String()), zap.String(infFile, c.tableName))
+
+	conf, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrap(err, strings.Concat(errMarshallConfig, c.tableName))
+	}
+
+	_, err = c.client.PutItem(
+		context.TODO(),
+		&dynamodb.PutItemInput{
+			TableName: aws.String(c.tableName),
+			Item: map[string]types.AttributeValue{
+				dynamoDBTableKeyName:    &types.AttributeValueMemberS{Value: dynamoDBTableKeyValue},
+				dynamoDBTableConfigName: &types.AttributeValueMemberS{Value: string(conf)},
+			},
+		})
+
+	if err != nil {
+		return errors.Wrap(err, strings.Concat(errSaveConfig, c.tableName))
+	}
+
+	notifyHub(c.config, data, c.mControl, c.hub)
+
+	return nil
+}
+
+func notifyHub(c config.Config, data Config, mc *Controller, h Hub) {
+	mc.SetConfig(data)
+
+	h.Config(sockets.Config{
+		TaskTime:         time.Duration(c.TaskTime) * time.Second,
+		NotificationTime: time.Duration(c.NotificationTime) * time.Second,
+		CommLatency:      time.Duration(c.CommLatencyTime) * time.Second,
+		Buffer:           time.Duration(data.Buffer) * time.Second,
+	})
 }

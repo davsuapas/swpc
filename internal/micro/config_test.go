@@ -40,13 +40,13 @@ func TestConfigRead_Read(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		dataPath string
+		filePath string
 		expected micro.Config
 		err      errors
 	}{
 		{
 			name:     "Read config from file",
-			dataPath: "./testr/micro-config.dat",
+			filePath: "./testr/micro-config.dat",
 			expected: micro.Config{
 				IniSendTime: "10:00",
 				EndSendTime: "21:01",
@@ -59,7 +59,7 @@ func TestConfigRead_Read(t *testing.T) {
 		},
 		{
 			name:     "Read config when the file don't exist",
-			dataPath: "./testr/micro-no_exist.dat",
+			filePath: "./testr/micro-no_exist.dat",
 			expected: micro.DefaultConfig(),
 			err: errors{
 				want: false,
@@ -67,8 +67,8 @@ func TestConfigRead_Read(t *testing.T) {
 		},
 		{
 			name:     "Read config. Error unserialize",
-			dataPath: "./testr/micro-config-error.dat",
-			expected: micro.DefaultConfig(),
+			filePath: "./testr/micro-config-error.dat",
+			expected: micro.Config{},
 			err: errors{
 				want: true,
 				msg:  "Unmarshalling the configuration",
@@ -82,9 +82,9 @@ func TestConfigRead_Read(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			c := micro.ConfigRead{
+			c := micro.FileConfigRead{
 				Log:      zap.NewExample(),
-				DataFile: tt.dataPath,
+				DataFile: tt.filePath,
 			}
 
 			res, err := c.Read()
@@ -172,7 +172,7 @@ func TestConfigWrite_Save(t *testing.T) {
 				h.On("Config", tt.res.scnf)
 			}
 
-			c := micro.ConfigWrite{
+			c := micro.FileConfigWrite{
 				Log:      zap.NewExample(),
 				MControl: &micro.Controller{},
 				Hub:      h,

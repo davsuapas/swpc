@@ -79,13 +79,21 @@ func TestLoadConfig(t *testing.T) {
 					"aws": {
 						"akid": "akid",
 						"secretKey": "secretKey",
-						"secret": {
-							"region": "region",
-							"name": "name"
-						}
+						"region": "region"
 					}
 				},
-				"dataPath": "./datas"
+				"secret": {
+					"name": "name"
+				},
+				"data": {
+					"provider": "cloud",
+					"file": {
+						"filePath": "./file.dat"
+					},
+					"aws": {
+						"tableName": "tabla"
+					}
+				}
 			}`,
 			res: config.Config{
 				Server: config.Server{
@@ -133,13 +141,21 @@ func TestLoadConfig(t *testing.T) {
 					AWS: config.AWS{
 						AKID:      "akid",
 						SecretKey: "secretKey",
-						Secret: config.AWSSecret{
-							Region: "region",
-							Name:   "name",
-						},
+						Region:    "region",
 					},
 				},
-				DataPath: "./datas",
+				Secret: config.Secrets{
+					Name: "name",
+				},
+				Data: config.Data{
+					Provider: config.CloudDataProvider,
+					File: config.FileData{
+						FilePath: "./file.dat",
+					},
+					AWS: config.AWSData{
+						TableName: "tabla",
+					},
+				},
 			},
 		},
 	}
@@ -177,6 +193,10 @@ func TestLoadConfig_Panic(t *testing.T) {
 		{
 			name: "Config. Cloud provider incorrect",
 			env:  `{"cloud": { "provider": "no_exist"}}`,
+		},
+		{
+			name: "Config. Data provider incorrect",
+			env:  `{"data": { "provider": "no_exist"}}`,
 		},
 	}
 
@@ -342,7 +362,6 @@ func TestApplySecret(t *testing.T) {
 						ClientID:       "@@ClientID",
 						TokenSecretKey: "@@TokenSecretKey",
 					},
-					DataPath: "",
 				},
 				secrets: map[string]string{},
 			},
@@ -357,7 +376,6 @@ func TestApplySecret(t *testing.T) {
 					ClientID:       "@@ClientID",
 					TokenSecretKey: "@@TokenSecretKey",
 				},
-				DataPath: "",
 			},
 		},
 		{
@@ -398,7 +416,7 @@ func TestApplySecret(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := mocks.NewSecret(t)
-			s.On("Get", tt.args.config.Cloud.AWS.Secret.Name).Return(tt.args.secrets, nil)
+			s.On("Get", tt.args.config.Secret.Name).Return(tt.args.secrets, nil)
 
 			config.ApplySecret(s, &tt.args.config)
 

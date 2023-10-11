@@ -31,14 +31,14 @@ const (
 	errSavingConfig  = "Saving config request"
 )
 
-// ConfigWeb manages the web configuration
+// ConfigWeb manages the web configurationhttps://github.com/aws/aws-sdk-go-v2/tree/main/service/dynamodb
 type ConfigWeb struct {
 	Log    *zap.Logger
-	MicroR *micro.ConfigRead
-	MicroW *micro.ConfigWrite
+	MicroR micro.ConfigRead
+	MicroW micro.ConfigWrite
 }
 
-// Load loads the configuration saved into disk file
+// Load loads the configuration from disk file
 func (cf *ConfigWeb) Load(ctx echo.Context) error {
 	data, err := cf.MicroR.Read()
 	if err != nil {

@@ -34,7 +34,8 @@ const (
 	errLogLevel    = "The log level param must be configured to " +
 		"(-1: debug, 0: info, 1: Warn, 2: Error, 3: DPanic, 4: Panic, 5: Fatal)"
 	errAuthProvider  = "The auth provider param must be configured to (test, oauth2)"
-	errCloudProvider = "The auth provider param must be configured to (dev, aws)"
+	errCloudProvider = "The cloud provider param must be configured to (none, aws)"
+	errDataProvider  = "The data provider param must be configured to (file, cloud)"
 	errGets          = "Cannot obtain supplier's secret"
 )
 
@@ -48,8 +49,15 @@ const (
 type CloudProvider string
 
 const (
-	CloudNoProvider  CloudProvider = "no"
+	CloudNoProvider  CloudProvider = "none"
 	CloudAWSProvider CloudProvider = "aws"
+)
+
+type DataProvider string
+
+const (
+	FileDataProvider  DataProvider = "file"
+	CloudDataProvider DataProvider = "cloud"
 )
 
 // Secret manages the secrets
@@ -199,33 +207,54 @@ type Cloud struct {
 	AWS      AWS           `json:"aws,omitempty"`
 }
 
-// AWSSecret defines the configuration for Secret Manager
-type AWSSecret struct {
-	// Region is the region identifier
-	Region string `json:"region,omitempty"`
-	// Name is the secret name
-	Name string `json:"name,omitempty"`
-}
-
-// AWS defines the configuration for AWS
+// AWS defines the global configuration for AWS
 type AWS struct {
-	// Secret is the secret manager configuration
-	Secret AWSSecret `json:"secret,omitempty"`
 	// Access key ID
 	AKID string `json:"akid,omitempty"`
 	// Secret key ID
 	SecretKey string `json:"secretKey,omitempty"`
+	// Region is the region identifier
+	Region string `json:"region,omitempty"`
+}
+
+// AWSData defines AWS data configuration
+type AWSData struct {
+	// TableName is the name table dynamodb
+	TableName string `json:"tableName,omitempty"`
+}
+
+// FileData defines file data configuration
+type FileData struct {
+	// FilePath is the data path
+	FilePath string `json:"filePath,omitempty"`
+}
+
+// Data defines the data configuration
+type Data struct {
+	// Provider is the data provider
+	Provider DataProvider `json:"provider,omitempty"`
+	// File is the file data provider
+	File FileData `json:"file,omitempty"`
+	// AWS is the aws data provider
+	AWS AWSData `json:"aws,omitempty"`
+}
+
+// Secrets  defiles the secrets configuration
+type Secrets struct {
+	// Name is the secrets name
+	Name string `json:"name,omitempty"`
 }
 
 // Config defines the global information
 type Config struct {
-	Server   `json:"server,omitempty"`
-	Zap      `json:"log,omitempty"`
-	Web      `json:"web,omitempty"`
-	API      `json:"api,omitempty"`
-	Hub      `json:"hub,omitempty"`
-	Cloud    Cloud  `json:"cloud,omitempty"`
-	DataPath string `json:"dataPath,omitempty"`
+	Server `json:"server,omitempty"`
+	Zap    `json:"log,omitempty"`
+	Web    `json:"web,omitempty"`
+	API    `json:"api,omitempty"`
+	Hub    `json:"hub,omitempty"`
+	Cloud  Cloud   `json:"cloud,omitempty"`
+	Secret Secrets `json:"secret,omitempty"`
+	Data   Data    `json:"data,omitempty"`
 }
 
 // AuthRedirectURI forms a uri to redirect requests from oauth2 providers
@@ -280,7 +309,12 @@ func Default() Config {
 		Cloud: Cloud{
 			Provider: CloudNoProvider,
 		},
-		DataPath: "./data",
+		Data: Data{
+			Provider: FileDataProvider,
+			File: FileData{
+				FilePath: "./data/micro-config.dat",
+			},
+		},
 	}
 }
 
@@ -322,6 +356,10 @@ func LoadConfig() Config { //nolint:cyclop
 		panic(errCloudProvider)
 	}
 
+	if cnf.Data.Provider != FileDataProvider && cnf.Data.Provider != CloudDataProvider {
+		panic(errCloudProvider)
+	}
+
 	return cnf
 }
 
@@ -329,7 +367,7 @@ func LoadConfig() Config { //nolint:cyclop
 // contains a secret name preceded by "#",
 // applies the value of the secret to the configuration key
 func ApplySecret(s Secret, config *Config) {
-	secrets, err := s.Get(config.Cloud.AWS.Secret.Name)
+	secrets, err := s.Get(config.Secret.Name)
 	if err != nil {
 		panic(strs.Format(errGets, strs.FMTValue("Name", err.Error())))
 	}
