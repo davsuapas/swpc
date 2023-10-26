@@ -23,22 +23,26 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
+	s "strings"
 	"time"
 
+	conf "github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/pkg/strings"
 )
 
 const (
-	URL              = "http://localhost:5000"
-	URLAUTH          = URL + "/auth"
-	URLAPI           = URL + "/micro/api"
-	sID              = "sw3kf$fekdy56dfh"
+	URLAUTH          = "/auth"
+	URLAPI           = "/micro/api"
 	retryTimeSeconds = 10
 )
 
@@ -94,7 +98,17 @@ var (
 	lastError       string
 )
 
+var url = flag.String("url", "http://localhost:5000", "Hub url")
+var clientID = flag.String("clientID", conf.Default().API.ClientID, "API Client Identifier")
+var crt = flag.String("crt", "swpc.crt", "Client Identifier")
+
 func main() {
+	flag.Parse()
+
+	fmt.Println("Args. url: " + *url)
+	fmt.Println("Args. clientID: " + *clientID)
+	fmt.Println("Args. crt: " + *crt)
+
 	setup()
 
 	for {
@@ -157,7 +171,7 @@ func doTrasnmisssion() bool {
 func do(method string, uri string, body string, actionRetry uint8, maxRetry uint8) bool {
 	var res string
 
-	if !REST(method, strings.Concat(URLAPI, uri), body, &res) {
+	if !REST(method, strings.Concat(*url+URLAPI, uri), body, &res) {
 		retryAction(actionRetry, maxRetry)
 
 		return false
@@ -350,7 +364,29 @@ func restInternal(
 		req.Header.Add("Authorization", strings.Concat("Bearer ", securToken))
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	transport := &http.Transport{}
+
+	if s.Contains(url, "https") {
+		caCert, err := os.ReadFile(*crt)
+		if err != nil {
+			panic(err)
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:            caCertPool,
+				InsecureSkipVerify: true,
+			},
+		}
+	}
+
+	c := &http.Client{
+		Transport: transport,
+	}
+
+	resp, err := c.Do(req)
 	if err != nil {
 		setLastError(err.Error())
 
@@ -396,7 +432,14 @@ func oAuthToken() bool {
 	if len(securToken) == 0 {
 		var res string
 
-		if err := restInternal(false, false, http.MethodGet, strings.Concat(URLAUTH, "/token/", sID), "", &res); !err {
+		if err := restInternal(
+			false,
+			false,
+			http.MethodGet,
+			strings.Concat(*url+URLAUTH, "/token/", *clientID),
+			"",
+			&res); !err {
+
 			return false
 		}
 

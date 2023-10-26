@@ -13,5 +13,5 @@ path_web="$path_web/public"
 cd ui
 npm run build
 cd ..
-rm -R $path_web
-cp -R ./ui/build $path_web
+rm -R "$path_web"
+cp -R ./ui/build "$path_web"

@@ -66,7 +66,7 @@ func (s *Server) Kill() {
 
 // Start starts the graceful http server and services
 func (s *Server) Start() error {
-	s.factory.Log.Info(infStartingServer, zap.String("Config", s.factory.Config.String()))
+	s.factory.Log.Info(infStartingServer)
 
 	// Start server
 	go func() {
@@ -80,7 +80,7 @@ func (s *Server) Start() error {
 		s.factory.Hub.Run()
 
 		if err := s.factory.Webs.Start(address); err != nil {
-			s.factory.Log.Info(infStoppedWebServer)
+			s.factory.Log.Info(infStoppedWebServer + ". " + err.Error())
 		}
 	}()
 

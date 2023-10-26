@@ -32,6 +32,12 @@ const (
 	parseEndTimeError   = "MicroController.Status-> Parser end time. The micro-controller is set sleep status"
 )
 
+const (
+	infoHubCLosed      = "Controller.API-> Hub closed. Actions: sleep"
+	infoWindowTransmit = "Time window to transmmit"
+	infoNowCompare     = "Now to compare"
+)
+
 const layaoutTime = "15:04"
 
 // Actions are the Actions communication between the device and server
@@ -73,6 +79,7 @@ type Controller struct {
 	Log                *zap.Logger
 	Hub                Hub
 	Config             Config
+	Location           *time.Location
 	CheckTransTime     uint8
 	CollectMetricsTime uint16
 
@@ -126,6 +133,8 @@ func (c *Controller) actions() Actions {
 	hstatus := <-resp
 
 	if hstatus == sockets.Closed {
+		c.Log.Debug(infoHubCLosed)
+
 		return Sleep
 	}
 
@@ -150,7 +159,26 @@ func (c *Controller) actions() Actions {
 		return Sleep
 	}
 
-	n := time.Now()
+	now := c.now(iniTime)
+
+	// Can transmit within the time zone set by the user.
+	// It is on schedule but there are no clients (the hub is deactivated)
+	if now.After(iniTime) && now.Before(endTime) {
+		return CheckTransmission
+	}
+
+	// It is not on schedule and there are no clients (the hub is deactivated)
+	return Sleep
+}
+
+func (c *Controller) now(iniTime time.Time) time.Time {
+	var n time.Time
+	if c.Location == nil {
+		n = time.Now()
+	} else {
+		n = time.Now().In(c.Location)
+	}
+
 	now := time.Date(
 		iniTime.Year(),
 		iniTime.Month(),
@@ -161,12 +189,12 @@ func (c *Controller) actions() Actions {
 		iniTime.Nanosecond(),
 		iniTime.Location())
 
-	// Can transmit within the time zone set by the user.
-	// It is on schedule but there are no clients (the hub is deactivated)
-	if now.After(iniTime) && now.Before(endTime) {
-		return CheckTransmission
-	}
+	c.Log.Debug(
+		infoWindowTransmit,
+		zap.String("InitTime", iniTime.String()),
+		zap.String("EndTime", iniTime.String()))
 
-	// It is not on schedule and there are no clients (the hub is deactivated)
-	return Sleep
+	c.Log.Debug(infoNowCompare, zap.String("Now", now.String()))
+
+	return now
 }

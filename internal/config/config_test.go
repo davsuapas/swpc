@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/config/mocks"
+	"go.uber.org/zap"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -39,6 +40,9 @@ func TestLoadConfig(t *testing.T) {
 		{
 			name: "Config. Custom",
 			env: `{
+				"location": {
+					"zone": "Europe/Milan"
+				},
 				"server": {
 					"Internal": {
 						"tls": true,
@@ -96,6 +100,9 @@ func TestLoadConfig(t *testing.T) {
 				}
 			}`,
 			res: config.Config{
+				Location: config.Location{
+					Zone: "Europe/Milan",
+				},
 				Server: config.Server{
 					Internal: config.Address{
 						TLS:  true,
@@ -418,7 +425,7 @@ func TestApplySecret(t *testing.T) {
 			s := mocks.NewSecret(t)
 			s.On("Get", tt.args.config.Secret.Name).Return(tt.args.secrets, nil)
 
-			config.ApplySecret(s, &tt.args.config)
+			config.ApplySecret(zap.NewExample(), s, &tt.args.config)
 
 			assert.Equal(t, tt.expected, tt.args.config)
 

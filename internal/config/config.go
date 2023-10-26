@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	strs "github.com/swpoolcontroller/pkg/strings"
+	"go.uber.org/zap"
 )
 
 const ENVConfig = "SW_POOL_CONTROLLER_CONFIG"
@@ -37,6 +38,10 @@ const (
 	errCloudProvider = "The cloud provider param must be configured to (none, aws)"
 	errDataProvider  = "The data provider param must be configured to (file, cloud)"
 	errGets          = "Cannot obtain supplier's secret"
+)
+
+const (
+	infoApplySecret = "Secret applies"
 )
 
 type AuthProvider string
@@ -239,22 +244,29 @@ type Data struct {
 	AWS AWSData `json:"aws,omitempty"`
 }
 
-// Secrets  defiles the secrets configuration
+// Secrets defines the secrets configuration
 type Secrets struct {
 	// Name is the secrets name
 	Name string `json:"name,omitempty"`
 }
 
+// Location defines the location info
+type Location struct {
+	// Location zone
+	Zone string `json:"zone,omitempty"`
+}
+
 // Config defines the global information
 type Config struct {
-	Server `json:"server,omitempty"`
-	Zap    `json:"log,omitempty"`
-	Web    `json:"web,omitempty"`
-	API    `json:"api,omitempty"`
-	Hub    `json:"hub,omitempty"`
-	Cloud  Cloud   `json:"cloud,omitempty"`
-	Secret Secrets `json:"secret,omitempty"`
-	Data   Data    `json:"data,omitempty"`
+	Location Location `json:"location,omitempty"`
+	Server   `json:"server,omitempty"`
+	Zap      `json:"log,omitempty"`
+	Web      `json:"web,omitempty"`
+	API      `json:"api,omitempty"`
+	Hub      `json:"hub,omitempty"`
+	Cloud    Cloud   `json:"cloud,omitempty"`
+	Secret   Secrets `json:"secret,omitempty"`
+	Data     Data    `json:"data,omitempty"`
 }
 
 // AuthRedirectURI forms a uri to redirect requests from oauth2 providers
@@ -270,6 +282,9 @@ func (c *Config) AuthRedirectURI(fragment string) string {
 
 func Default() Config {
 	return Config{
+		Location: Location{
+			Zone: "Europe/Madrid",
+		},
 		Server: Server{
 			Internal: Address{
 				TLS:  false,
@@ -366,7 +381,7 @@ func LoadConfig() Config { //nolint:cyclop
 // ApplySecret calls the secret provider and if the configuration value exists
 // contains a secret name preceded by "#",
 // applies the value of the secret to the configuration key
-func ApplySecret(s Secret, config *Config) {
+func ApplySecret(log *zap.Logger, s Secret, config *Config) {
 	secrets, err := s.Get(config.Secret.Name)
 	if err != nil {
 		panic(strs.Format(errGets, strs.FMTValue("Name", err.Error())))
@@ -376,18 +391,20 @@ func ApplySecret(s Secret, config *Config) {
 		return
 	}
 
-	config.Auth.ClientID = getSecretValue(secrets, config.Auth.ClientID)
+	config.Auth.ClientID = getSecretValue(log, secrets, config.Auth.ClientID)
 
-	config.API.ClientID = getSecretValue(secrets, config.API.ClientID)
-	config.API.TokenSecretKey = getSecretValue(secrets, config.API.TokenSecretKey)
+	config.API.ClientID = getSecretValue(log, secrets, config.API.ClientID)
+	config.API.TokenSecretKey = getSecretValue(log, secrets, config.API.TokenSecretKey)
 
-	config.Web.SecretKey = getSecretValue(secrets, config.Web.SecretKey)
+	config.Web.SecretKey = getSecretValue(log, secrets, config.Web.SecretKey)
 }
 
-func getSecretValue(secrets map[string]string, value string) string {
+func getSecretValue(log *zap.Logger, secrets map[string]string, value string) string {
 	if !strings.HasPrefix(value, "@@") {
 		return value
 	}
+
+	log.Info(infoApplySecret, zap.String("Secret", value))
 
 	return secrets[value[2:]]
 }

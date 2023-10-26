@@ -20,4 +20,5 @@
 __debug_bin
 
 # Environment variables
-/deploy/swpc.env
+deploy/swpc.env
+deploy/self-certificate

@@ -44,6 +44,10 @@ const (
 	errAWSConfig  = "Error creating secret maanger"
 )
 
+const (
+	infConfigLoaded = "The configuration is loaded"
+)
+
 // APIHandler Micro API handler
 type APIHandler struct {
 	Auth   *api.Auth
@@ -81,8 +85,10 @@ func NewFactory() *Factory {
 
 	log := newLogger(cnf)
 
+	log.Info(infConfigLoaded, zap.String("Config", cnf.String()))
+
 	s := secretProvider(cnf, awscnf)
-	config.ApplySecret(s, &cnf)
+	config.ApplySecret(log, s, &cnf)
 
 	mconfigRead := microConfigRead(cnf, awscnf, log)
 
@@ -93,7 +99,13 @@ func NewFactory() *Factory {
 
 	hubt, hub := newHub(log, cnf, microc)
 
+	loc, err := time.LoadLocation(cnf.Location.Zone)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+
 	mcontrol := &micro.Controller{
+		Location:           loc,
 		Log:                log,
 		Hub:                hub,
 		Config:             microc,
