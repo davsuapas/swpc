@@ -77,5 +77,6 @@ func (w *WS) Register(ctx echo.Context) error {
 
 	w.hub.Register(sockets.NewClient(id.Value, ws, time.Duration(w.sessionc.SessionExpiration)*time.Minute))
 
-	return ctx.NoContent(http.StatusOK)
+	// Upgrade update the response. No need to return the error
+	return nil
 }

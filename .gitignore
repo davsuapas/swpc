@@ -19,6 +19,5 @@
 /cmd/*/data
 __debug_bin
 
-# Environment variables
-deploy/swpc.env
+# Certificates
 deploy/self-certificate
