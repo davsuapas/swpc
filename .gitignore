@@ -13,6 +13,7 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+build
 
 # Auto generated for debugging
 /cmd/*/public
