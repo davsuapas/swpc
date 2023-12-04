@@ -29,7 +29,9 @@ func Has[T comparable](arr []T, item T) bool {
 }
 
 // Remove removes the elements of an array that match the positions
-func Remove[T any, T1 uint8 | uint16 | uint32 | uint64](arr []T, pos ...T1) []T {
+func Remove[T any, T1 uint8 | uint16 | uint32 | uint64](
+	arr []T, pos ...T1) []T {
+	//
 	pnil := -1
 
 	for i := 0; i < len(arr); i++ {

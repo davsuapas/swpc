@@ -31,13 +31,17 @@ const ENVConfig = "SW_POOL_CONTROLLER_CONFIG"
 
 const (
 	errEnvConfig   = "Environment configuration variable cannot be loaded"
-	errLogEncoding = "The log encoding param must be configured to ('json' or 'console')"
-	errLogLevel    = "The log level param must be configured to " +
+	errLogEncoding = "The log encoding param must be configured to " +
+		"('json' or 'console')"
+	errLogLevel = "The log level param must be configured to " +
 		"(-1: debug, 0: info, 1: Warn, 2: Error, 3: DPanic, 4: Panic, 5: Fatal)"
-	errAuthProvider  = "The auth provider param must be configured to (test, oauth2)"
-	errCloudProvider = "The cloud provider param must be configured to (none, aws)"
-	errDataProvider  = "The data provider param must be configured to (file, cloud)"
-	errGets          = "Cannot obtain supplier's secret"
+	errAuthProvider = "The auth provider param must be configured to " +
+		"(test, oauth2)"
+	errCloudProvider = "The cloud provider param must be configured to " +
+		"(none, aws)"
+	errDataProvider = "The data provider param must be configured to " +
+		"(file, cloud)"
+	errGets = "Cannot obtain supplier's secret"
 )
 
 const (
@@ -117,7 +121,13 @@ func url(addr Address, fragment string) string {
 	}
 
 	if addr.Port > 0 {
-		return strs.Concat(protocol, "://", addr.Host, ":", strconv.Itoa(addr.Port), "/", fragment)
+		return strs.Concat(
+			protocol, "://",
+			addr.Host,
+			":",
+			strconv.Itoa(addr.Port),
+			"/",
+			fragment)
 	}
 
 	return strs.Concat(protocol, "://", addr.Host, "/", fragment)
@@ -156,24 +166,28 @@ type Auth struct {
 	// TokenURL is the URL to get token
 	TokenURL string `json:"tokenUrl,omitempty"`
 	// RedirectURL is the base URL for redirecting provider requests
-	// If not defined, it will be formed based on the information in the Server configuration.
+	// If not defined,
+	// it will be formed based on the information in the Server configuration.
 	RedirectURL string `json:"redirectProxy,omitempty"`
 }
 
 type API struct {
 	// SessionExpiration defines the session expiration in minutes
 	SessionExpiration int `json:"expirationSession,omitempty"`
-	// CommLatencyTime sets the possible communication latency between the device and the hub, in seconds
+	// CommLatencyTime sets the possible communication latency
+	// between the device and the hub, in seconds
 	CommLatencyTime int `json:"commLatencyTime,omitempty"`
 	// CollectMetricsTime defines how often metrics are collected in miliseconds
 	CollectMetricsTime int `json:"collectMetricsTime,omitempty"`
-	// CheckTransTime defines when the micro-controller is in the time window to transmit in case there are no clients,
+	// CheckTransTime defines when the micro-controller is in
+	// the time window to transmit in case there are no clients,
 	// every so often it checks when to transmit
 	CheckTransTime int `json:"checkTransTime,omitempty"`
 	// ClientID is a identifier that allows the device
 	// and the hub to communicate securely.
 	ClientID string `json:"clientId,omitempty"`
-	// SecretKey defines the secret key to generate the token that allows the device
+	// SecretKey defines the secret key to generate the token
+	// that allows the device
 	// and the hub to communicate securely.
 	TokenSecretKey string `json:"tokenSecretKey,omitempty"`
 }
@@ -182,7 +196,8 @@ type API struct {
 type Web struct {
 	// SessionExpiration defines the session expiration in minutes
 	SessionExpiration int `json:"expirationSession,omitempty"`
-	// SecretKey defines a secret key to AES. It's used in state dance to avoid CRSF.
+	// SecretKey defines a secret key to AES.
+	// It's used in state dance to avoid CRSF.
 	// Must be of 32 bytes
 	SecretKey string `json:"secretKey,omitempty"`
 	// Auth defines the auth external system
@@ -351,7 +366,8 @@ func LoadConfig() Config { //nolint:cyclop
 
 	if len(env) != 0 {
 		if err := json.Unmarshal([]byte(env), &cnf); err != nil {
-			panic(strs.Format(errEnvConfig, strs.FMTValue("Description", err.Error())))
+			panic(
+				strs.Format(errEnvConfig, strs.FMTValue("Description", err.Error())))
 		}
 	}
 
@@ -363,15 +379,18 @@ func LoadConfig() Config { //nolint:cyclop
 		panic(errLogLevel)
 	}
 
-	if cnf.Auth.Provider != AuthProviderDev && cnf.Auth.Provider != AuthProviderOauth2 {
+	if cnf.Auth.Provider != AuthProviderDev &&
+		cnf.Auth.Provider != AuthProviderOauth2 {
 		panic(errAuthProvider)
 	}
 
-	if cnf.Cloud.Provider != CloudNoProvider && cnf.Cloud.Provider != CloudAWSProvider {
+	if cnf.Cloud.Provider != CloudNoProvider &&
+		cnf.Cloud.Provider != CloudAWSProvider {
 		panic(errCloudProvider)
 	}
 
-	if cnf.Data.Provider != FileDataProvider && cnf.Data.Provider != CloudDataProvider {
+	if cnf.Data.Provider != FileDataProvider &&
+		cnf.Data.Provider != CloudDataProvider {
 		panic(errCloudProvider)
 	}
 
@@ -394,12 +413,18 @@ func ApplySecret(log *zap.Logger, s Secret, config *Config) {
 	config.Auth.ClientID = getSecretValue(log, secrets, config.Auth.ClientID)
 
 	config.API.ClientID = getSecretValue(log, secrets, config.API.ClientID)
-	config.API.TokenSecretKey = getSecretValue(log, secrets, config.API.TokenSecretKey)
+	config.API.TokenSecretKey = getSecretValue(
+		log,
+		secrets,
+		config.API.TokenSecretKey)
 
 	config.Web.SecretKey = getSecretValue(log, secrets, config.Web.SecretKey)
 }
 
-func getSecretValue(log *zap.Logger, secrets map[string]string, value string) string {
+func getSecretValue(
+	log *zap.Logger,
+	secrets map[string]string,
+	value string) string {
 	if !strings.HasPrefix(value, "@@") {
 		return value
 	}

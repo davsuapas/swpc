@@ -16,7 +16,8 @@
  */
 
 // Simulates the process on an arduino board,
-// in charge of collecting metrics from a pool to be sent in real time to a server.
+// in charge of collecting metrics from a pool to be sent in real time
+// to a server.
 // The code is thought as if it was for the C language.
 package main
 
@@ -99,7 +100,10 @@ var (
 )
 
 var url = flag.String("url", "http://localhost:5000", "Hub url")
-var clientID = flag.String("clientID", conf.Default().API.ClientID, "API Client Identifier")
+var clientID = flag.String(
+	"clientID",
+	conf.Default().API.ClientID,
+	"API Client Identifier")
 var crt = flag.String("crt", "swpc.crt", "Client Identifier")
 
 func main() {
@@ -150,7 +154,8 @@ func loop() {
 	}
 }
 
-// queryNextAction checks against the server the new actions to be performed on the micro-controller
+// queryNextAction checks against the server the new actions to be performed
+// on the micro-controller
 // If there is error retry previous action. Also it set next action
 func queryNextAction(actionRetry uint8) {
 	fmt.Println("queryNextAction")
@@ -162,13 +167,21 @@ func queryNextAction(actionRetry uint8) {
 func doTrasnmisssion() bool {
 	fmt.Println("doTrasnmisssion")
 
-	buffer := strings.Concat(buffer.bufferTemp, ";", buffer.bufferPH, ";", buffer.bufferCL)
+	buffer := strings.Concat(
+		buffer.bufferTemp, ";",
+		buffer.bufferPH, ";",
+		buffer.bufferCL)
 
 	return do(http.MethodPost, "/download", buffer, transmit, 60)
 }
 
 // do makes http server request, also controls failures
-func do(method string, uri string, body string, actionRetry uint8, maxRetry uint8) bool {
+func do(
+	method string,
+	uri string,
+	body string,
+	actionRetry uint8,
+	maxRetry uint8) bool {
 	var res string
 
 	if !REST(method, strings.Concat(*url+URLAPI, uri), body, &res) {
@@ -195,9 +208,11 @@ func do(method string, uri string, body string, actionRetry uint8, maxRetry uint
 }
 
 // wakeupBuffer collects metrics each seconds
-// if it reaches the maximum buffer time, it performs the action indicated in config.Buffer
+// if it reaches the maximum buffer time,
+// it performs the action indicated in config.Buffer
 func wakeupBuffer() {
-	timeElapsedMetricsSec := (time.Now().UnixMilli() - buffer.timeStartChrono) / 1000
+	timeElapsedMetricsSec :=
+		(time.Now().UnixMilli() - buffer.timeStartChrono) / 1000
 
 	if timeElapsedMetricsSec > int64(config.Buffer) {
 		fmt.Println(
@@ -231,7 +246,11 @@ func wakeupRetry() {
 
 		retry.counter++
 
-		fmt.Println("wakeupRetry.counter: ", retry.counter, ", action: ", printAction(retry.action))
+		fmt.Println(
+			"wakeupRetry.counter: ",
+			retry.counter,
+			", action: ",
+			printAction(retry.action))
 
 		action = retry.action
 	}
@@ -262,7 +281,8 @@ func setNextAction(actionServer uint8) {
 	fmt.Println("nextAction: ", printAction(action))
 }
 
-// collectBuffer requests to perform the action of collecting and it set next action by nextAction param
+// collectBuffer requests to perform the action of collecting
+// and it set next action by nextAction param
 func collectBuffer(nextAction uint8) {
 	fmt.Println("collectBuffer.nextAction: ", printAction(nextAction))
 
@@ -285,7 +305,9 @@ func collectMetrics() {
 		buffer.bufferTemp = strings.Concat(buffer.bufferTemp, ",")
 	}
 
-	buffer.bufferTemp = strings.Concat(buffer.bufferTemp, strconv.Itoa(tempSensor()))
+	buffer.bufferTemp = strings.Concat(
+		buffer.bufferTemp,
+		strconv.Itoa(tempSensor()))
 
 	if len(buffer.bufferPH) > 0 {
 		buffer.bufferPH = strings.Concat(buffer.bufferPH, ",")
@@ -297,7 +319,9 @@ func collectMetrics() {
 		buffer.bufferCL = strings.Concat(buffer.bufferCL, ",")
 	}
 
-	buffer.bufferCL = strings.Concat(buffer.bufferCL, fmt.Sprintf("%f", clSensor()))
+	buffer.bufferCL = strings.Concat(
+		buffer.bufferCL,
+		fmt.Sprintf("%f", clSensor()))
 }
 
 func tempSensor() int {
@@ -338,7 +362,8 @@ func restInternal(
 	url string,
 	body string,
 	result *string) bool {
-	// If there is no security token, it requests it to be added to the request header.
+	// If there is no security token,
+	// it requests it to be added to the request header.
 	if auth {
 		oAuthToken()
 	}
@@ -427,7 +452,8 @@ func restInternal(
 }
 
 // oAuthToken gets token of security
-// If there is no security token, it requests it to be added to the request header
+// If there is no security token,
+// it requests it to be added to the request header
 func oAuthToken() bool {
 	if len(securToken) == 0 {
 		var res string

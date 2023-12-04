@@ -39,7 +39,8 @@ func (s *AWSSecret) Get(secretName string) (map[string]string, error) {
 		return secretValues, errors.Wrap(err, errSValue)
 	}
 
-	if err := json.Unmarshal([]byte(*result.SecretString), &secretValues); err != nil {
+	if err := json.Unmarshal(
+		[]byte(*result.SecretString), &secretValues); err != nil {
 		return secretValues, errors.Wrap(err, errSValue)
 	}
 

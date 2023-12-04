@@ -28,8 +28,10 @@ import (
 )
 
 const (
-	parseStartTimeError = "MicroController.Status-> Parser start time. The micro-controller is set sleep status"
-	parseEndTimeError   = "MicroController.Status-> Parser end time. The micro-controller is set sleep status"
+	parseStartTimeError = "MicroController.Status-> Parser start time. " +
+		"The micro-controller is set sleep status"
+	parseEndTimeError = "MicroController.Status-> Parser end time. " +
+		"The micro-controller is set sleep status"
 )
 
 const (
@@ -55,7 +57,8 @@ const (
 type Behavior struct {
 	// WakeUpTime is the time set to wake up the micro-controller.
 	WakeUpTime uint8
-	// CheckTransTime is the time set for the micro to check the status of the clients
+	// CheckTransTime is the time set for the micro
+	// to check the status of the clients
 	// and whether or not it has to transmit metric
 	CheckTransTime uint8
 	// CollectMetricsTime defines how often metrics are collected
@@ -74,7 +77,8 @@ func (b *Behavior) String() string {
 		", Action: ", string(b.Action))
 }
 
-// Controller controllers the information status on how the micro controller should behave
+// Controller controllers the information status
+// on how the micro controller should behave
 type Controller struct {
 	Log                *zap.Logger
 	Hub                Hub
@@ -139,7 +143,8 @@ func (c *Controller) actions() Actions {
 	}
 
 	if hstatus != sockets.Deactivated {
-		// All states other than deactivated and closed are susceptible to transmission
+		// All states other than deactivated and closed
+		// are susceptible to transmission
 		return Transmit
 	}
 

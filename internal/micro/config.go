@@ -35,8 +35,10 @@ import (
 )
 
 const (
-	errReadConfig     = "Reading the configuration of the micro controller from config file"
-	errUnmarsConfig   = "Unmarshalling the configuration of the micro controller from config file"
+	errReadConfig = "Reading the configuration of the micro controller " +
+		"from config file"
+	errUnmarsConfig = "Unmarshalling the configuration " +
+		"of the micro controller from config file"
 	errMarshallConfig = "Marshalling the configuration of the micro controller: "
 	errSaveConfig     = "Saving the configuration for the micro controller: "
 )
@@ -60,7 +62,8 @@ type Config struct {
 	IniSendTime string `json:"iniSendTime"`
 	// EndSendTime is the range for ending metric sends
 	EndSendTime string `json:"endSendTime"`
-	// Wakeup is how often in minutes the micro-controller wakes up to check for sending
+	// Wakeup is how often in minutes the micro-controller wakes up
+	// to check for sending
 	Wakeup uint8 `json:"wakeup"`
 	// Buffer is the buffer in seconds to store metrics int the micro-controller.
 	// It must be taken into account that if the buffer is for example 3 seconds,
@@ -105,7 +108,8 @@ type FileConfigRead struct {
 	DataFile string
 }
 
-// Read reads the configuration from disk. If the file not exists returns config default
+// Read reads the configuration from disk.
+// If the file not exists returns config default
 func (c *FileConfigRead) Read() (Config, error) {
 	c.Log.Info(infLoadingConfig, zap.String(infFile, c.DataFile))
 
@@ -123,7 +127,10 @@ func (c *FileConfigRead) Read() (Config, error) {
 	var mc Config
 
 	if err := json.Unmarshal(data, &mc); err != nil {
-		c.Log.Error(errUnmarsConfig, zap.String(infFile, c.DataFile), zap.Error(err))
+		c.Log.Error(
+			errUnmarsConfig,
+			zap.String(infFile, c.DataFile),
+			zap.Error(err))
 
 		return Config{}, errors.Wrap(err, errUnmarsConfig)
 	}
@@ -144,7 +151,9 @@ type FileConfigWrite struct {
 
 // Save saves the configuration to disk
 func (c FileConfigWrite) Save(data Config) error {
-	c.Log.Info(infSavingConfig, zap.String(infConfig, data.String()), zap.String(infFile, c.DataFile))
+	c.Log.Info(
+		infSavingConfig,
+		zap.String(infConfig, data.String()), zap.String(infFile, c.DataFile))
 
 	conf, err := json.Marshal(data)
 	if err != nil {
@@ -180,7 +189,8 @@ func NewAWSConfigRead(
 	}
 }
 
-// Read reads the configuration from dynamodb table. If the file not exists returns config default
+// Read reads the configuration from dynamodb table.
+// If the file not exists returns config default
 func (c *AWSConfigRead) Read() (Config, error) {
 	c.log.Info(infLoadingConfig, zap.String(infFile, c.tableName))
 
@@ -198,7 +208,10 @@ func (c *AWSConfigRead) Read() (Config, error) {
 
 	resMap := make(map[string]string)
 	if err := attributevalue.UnmarshalMap(res.Item, &resMap); err != nil {
-		c.log.Error(errUnmarsConfig, zap.String(infFile, c.tableName), zap.Error(err))
+		c.log.Error(
+			errUnmarsConfig,
+			zap.String(infFile, c.tableName),
+			zap.Error(err))
 
 		return Config{}, errors.Wrap(err, errUnmarsConfig)
 	}
@@ -209,8 +222,12 @@ func (c *AWSConfigRead) Read() (Config, error) {
 
 	var mc Config
 
-	if err := json.Unmarshal([]byte(resMap[dynamoDBTableConfigName]), &mc); err != nil {
-		c.log.Error(errUnmarsConfig, zap.String(infFile, c.tableName), zap.Error(err))
+	if err := json.Unmarshal(
+		[]byte(resMap[dynamoDBTableConfigName]), &mc); err != nil {
+		c.log.Error(
+			errUnmarsConfig,
+			zap.String(infFile, c.tableName),
+			zap.Error(err))
 
 		return Config{}, errors.Wrap(err, errUnmarsConfig)
 	}
@@ -230,7 +247,8 @@ type AWSConfigWrite struct {
 	client    *dynamodb.Client
 }
 
-// NewAWSConfigWrite creates the micro controller configuration from AWS dynamodb
+// NewAWSConfigWrite creates the micro controller configuration
+// from AWS dynamodb
 func NewAWSConfigWrite(
 	log *zap.Logger,
 	mControl *Controller,
@@ -250,7 +268,10 @@ func NewAWSConfigWrite(
 }
 
 func (c AWSConfigWrite) Save(data Config) error {
-	c.log.Info(infSavingConfig, zap.String(infConfig, data.String()), zap.String(infFile, c.tableName))
+	c.log.Info(
+		infSavingConfig,
+		zap.String(infConfig, data.String()),
+		zap.String(infFile, c.tableName))
 
 	conf, err := json.Marshal(data)
 	if err != nil {
@@ -262,8 +283,10 @@ func (c AWSConfigWrite) Save(data Config) error {
 		&dynamodb.PutItemInput{
 			TableName: aws.String(c.tableName),
 			Item: map[string]types.AttributeValue{
-				dynamoDBTableKeyName:    &types.AttributeValueMemberS{Value: dynamoDBTableKeyValue},
-				dynamoDBTableConfigName: &types.AttributeValueMemberS{Value: string(conf)},
+				dynamoDBTableKeyName: &types.AttributeValueMemberS{
+					Value: dynamoDBTableKeyValue},
+				dynamoDBTableConfigName: &types.AttributeValueMemberS{
+					Value: string(conf)},
 			},
 		})
 

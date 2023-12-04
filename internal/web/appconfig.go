@@ -97,7 +97,8 @@ type AppConfigDev struct {
 	Config config.Config
 }
 
-// / Load loads the app configuration setting up authentication in development mode
+// Load loads the app configuration setting up authentication
+// in development mode
 func (c *AppConfigDev) Load(ctx echo.Context) error {
 	config := configDTO{
 		AuthLoginURL:  RedirectLogin,

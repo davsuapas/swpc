@@ -41,7 +41,10 @@ func TestBehavior_String(t *testing.T) {
 
 	s := b.String()
 
-	assert.Equal(t, "WakeUpTime: \x01, CheckTransTime: \x01, CollectMetricsTime: 1, Buffer: \x01, Action: \x01", s)
+	assert.Equal(t,
+		"WakeUpTime: \x01, CheckTransTime: \x01, CollectMetricsTime: 1, "+
+			"Buffer: \x01, Action: \x01",
+		s)
 }
 
 func TestController_SetConfig(t *testing.T) {
@@ -166,13 +169,16 @@ func TestController_Download(t *testing.T) {
 			mhub := mocks.NewHub(t)
 
 			mhub.On("Send", metrics)
-			mhub.On("Status", mock.AnythingOfType("chan sockets.Status")).Run(func(args mock.Arguments) {
-				if s, ok := args.Get(0).(chan sockets.Status); ok {
-					go func() {
-						s <- tt.fields.status
-					}()
-				}
-			})
+			mhub.On(
+				"Status",
+				mock.AnythingOfType("chan sockets.Status")).Run(
+				func(args mock.Arguments) {
+					if s, ok := args.Get(0).(chan sockets.Status); ok {
+						go func() {
+							s <- tt.fields.status
+						}()
+					}
+				})
 
 			c := &micro.Controller{
 				Log:                zap.NewExample(),

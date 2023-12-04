@@ -77,7 +77,8 @@ func (o *AuthFlow) Login(ctx echo.Context) error {
 
 	o.Log.Info(infLogin, zap.String("Code", code), zap.String("State", state))
 
-	if _, err := auth.DecodeState([]byte(o.Config.Web.SecretKey), state); err != nil {
+	if _, err := auth.DecodeState(
+		[]byte(o.Config.Web.SecretKey), state); err != nil {
 		o.Log.Error(errStateInvalid, zap.Error(err))
 
 		return ctx.Redirect(http.StatusFound, RedirectErrorAuth)
@@ -97,12 +98,17 @@ func (o *AuthFlow) Login(ctx echo.Context) error {
 	}
 
 	// Save the security token in the cookies
-	// MaxAge is the same time than token expiration except expiration for jwt token.
+	// MaxAge is the same time than token expiration
+	// except expiration for jwt token.
 	// The expiration of the cookie with the token is kept 5 minutes longer than
-	// the internal expiration of the token, in case a new request is made from the browser.
-	// In this way, the server will return permission denied instead of bad request
-	// (this case would be because when the cookie expires the request would come without a token).
-	expiration := time.Now().Add(time.Duration(o.Config.Web.SessionExpiration) * time.Minute)
+	// the internal expiration of the token, in case a new request is made
+	// from the browser.
+	// In this way, the server will return permission denied
+	// instead of bad request
+	// (this case would be because when the cookie expires
+	// the request would come without a token).
+	expiration := time.Now().Add(
+		time.Duration(o.Config.Web.SessionExpiration) * time.Minute)
 	cookie := cookies(AuthHeaderName, token.Raw, expiration.Add(5*time.Minute))
 	ctx.SetCookie(cookie)
 
@@ -145,7 +151,8 @@ type AuthFlowDev struct {
 func (o *AuthFlowDev) Login(ctx echo.Context) error {
 	o.Log.Info(infLogin)
 
-	expiration := time.Now().Add(time.Duration(o.Webc.SessionExpiration) * time.Minute)
+	expiration := time.Now().Add(
+		time.Duration(o.Webc.SessionExpiration) * time.Minute)
 
 	cookie := cookieAuthCheckName(expiration)
 	ctx.SetCookie(cookie)
@@ -192,7 +199,10 @@ func cookieAuthCheckName(expiration time.Time) *http.Cookie {
 }
 
 func cookieWSClientIDName(expiration time.Time) *http.Cookie {
-	cookie := cookies(WSClientIDName, xid.New().String(), expiration.Add(5*time.Minute))
+	cookie := cookies(
+		WSClientIDName,
+		xid.New().String(),
+		expiration.Add(5*time.Minute))
 
 	return cookie
 }

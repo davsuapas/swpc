@@ -56,7 +56,8 @@ func TestHub_Register(t *testing.T) {
 			args: args{
 				clientID: "1",
 			},
-			expected: "Hub-> Client registered (ClientID: 1, Length: 1, Length: Active, )",
+			expected: "Hub-> Client registered " +
+				"(ClientID: 1, Length: 1, Length: Active, )",
 		},
 		{
 			name: "Register a client with other client already registered",
@@ -66,7 +67,8 @@ func TestHub_Register(t *testing.T) {
 			args: args{
 				clientID: "2",
 			},
-			expected: "Hub-> Client registered (ClientID: 2, Length: 2, Length: Active, )",
+			expected: "Hub-> Client registered " +
+				"(ClientID: 2, Length: 2, Length: Active, )",
 		},
 		{
 			name: "Register a client with connection error",
@@ -76,8 +78,9 @@ func TestHub_Register(t *testing.T) {
 			args: args{
 				clientID: "0",
 			},
-			err:      "Unregistering existing client when trying to register",
-			expected: "Hub-> Client registered (ClientID: 0, Length: 1, Length: Active, )",
+			err: "Unregistering existing client when trying to register",
+			expected: "Hub-> Client registered " +
+				"(ClientID: 0, Length: 1, Length: Active, )",
 		},
 	}
 
@@ -159,7 +162,8 @@ func TestHub_Unregister(t *testing.T) {
 			},
 			expected: []string{
 				"Hub-> The hub is set to deactivated",
-				"Hub-> Client unregisted (ClientID: 1, Length: 0, Status: Deactivated, )",
+				"Hub-> Client unregisted " +
+					"(ClientID: 1, Length: 0, Status: Deactivated, )",
 			},
 		},
 		{
@@ -184,7 +188,8 @@ func TestHub_Unregister(t *testing.T) {
 			},
 			err: "Unregistering client (Length: 0, )",
 			expected: []string{
-				"Hub-> Client unregisted (ClientID: 1, Length: 0, Status: Deactivated, )",
+				"Hub-> Client unregisted " +
+					"(ClientID: 1, Length: 0, Status: Deactivated, )",
 			},
 		},
 	}
@@ -265,7 +270,8 @@ func TestHub_Config(t *testing.T) {
 
 	assert.Equal(
 		t,
-		"Hub-> The configuration has been changed (Config: {\"commLatency\":1000000000,\"buffer\":2000000000,"+
+		"Hub-> The configuration has been changed "+
+			"(Config: {\"commLatency\":1000000000,\"buffer\":2000000000,"+
 			"\"taskTime\":3600000000000,\"notificationTime\":3000000000}, )",
 		<-info)
 }
@@ -350,7 +356,8 @@ func TestHub_Send(t *testing.T) {
 				statusPrevious: sockets.Active,
 			},
 			mSend: "message4",
-			err:   "Hub-> Sending a message. The client will be removed (ClientID: 0, )",
+			err: "Hub-> Sending a message. " +
+				"The client will be removed (ClientID: 0, )",
 			expected: expected{
 				status: sockets.Deactivated,
 			},
@@ -384,7 +391,9 @@ func TestHub_Send(t *testing.T) {
 
 			h.Run()
 
-			if tt.cases.statusPrevious == sockets.Active || tt.cases.statusPrevious == sockets.Streaming {
+			if tt.cases.statusPrevious == sockets.Active ||
+				tt.cases.statusPrevious == sockets.Streaming {
+				//
 				h.Register(sockets.NewClient("0", ws, 10*time.Second))
 				<-info
 			}
@@ -400,7 +409,9 @@ func TestHub_Send(t *testing.T) {
 
 			h.Send(tt.mSend)
 
-			if tt.cases.statusPrevious == sockets.Active || tt.cases.statusPrevious == sockets.Streaming {
+			if tt.cases.statusPrevious == sockets.Active ||
+				tt.cases.statusPrevious == sockets.Streaming {
+				//
 				readMessage(t, wc, err, info, tt.err, tt.expected.message)
 			}
 
@@ -660,7 +671,10 @@ func TestHub_RemoveDeadClient(t *testing.T) {
 
 	<-info
 
-	assert.Equal(t, "Hub-> Array size after removing expired clients (Length: 0, )", res)
+	assert.Equal(
+		t,
+		"Hub-> Array size after removing expired clients (Length: 0, )",
+		res)
 }
 
 func Test_statusString(t *testing.T) {
@@ -715,7 +729,10 @@ func Test_statusString(t *testing.T) {
 	}
 }
 
-func assertArrayAllEqual(t assert.TestingT, exptected []string, actual chan string, msg string) {
+func assertArrayAllEqual(
+	t assert.TestingT,
+	exptected []string, actual chan string,
+	msg string) {
 	for _, e := range exptected {
 		assert.Equal(t, e, <-actual, msg)
 	}

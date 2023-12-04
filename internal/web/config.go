@@ -31,7 +31,7 @@ const (
 	errSavingConfig  = "Saving config request"
 )
 
-// ConfigWeb manages the web configurationhttps://github.com/aws/aws-sdk-go-v2/tree/main/service/dynamodb
+// ConfigWeb manages the web configuration
 type ConfigWeb struct {
 	Log    *zap.Logger
 	MicroR micro.ConfigRead

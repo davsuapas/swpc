@@ -53,7 +53,12 @@ func TestWS_Register_WS_Should_Return_StatusOk(t *testing.T) {
 
 	u := "ws" + strings.TrimPrefix(s.URL, "http")
 
-	cookie := http.Cookie{Name: web.WSClientIDName, Value: "1234", Path: "/", HttpOnly: true, Secure: false}
+	cookie := http.Cookie{
+		Name:     web.WSClientIDName,
+		Value:    "1234",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false}
 	header := make(http.Header)
 	header.Add("Cookie", cookie.String())
 
@@ -85,7 +90,8 @@ func TestWS_Register_Http_Should_Return_StatusBadRequest(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
-func TestWS_Register_WS_Without_Socket_Should_Return_StatusInternalServerError(t *testing.T) {
+func TestWS_Register_WS_Without_Socket_Should_Return_StatusInternalServerError(
+	t *testing.T) {
 	t.Parallel()
 
 	cstatusCode := make(chan int)

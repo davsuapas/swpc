@@ -117,7 +117,9 @@ func TestAuthFlow_Login(t *testing.T) {
 		err   error
 	}
 
-	state, err := auth.EncodeState([]byte(config.Default().SecretKey), []byte("state"))
+	state, err := auth.EncodeState(
+		[]byte(config.Default().SecretKey),
+		[]byte("state"))
 	if err != nil {
 		t.Error("Encode state error")
 
@@ -131,7 +133,8 @@ func TestAuthFlow_Login(t *testing.T) {
 		want want
 	}{
 		{
-			name: "Login with wrong state. It should return StatusFound with RedirectLoginURI",
+			name: `Login with wrong state. 
+						 It should return StatusFound with RedirectLoginURI`,
 			args: args{
 				state: "123",
 				code:  "123",
@@ -146,7 +149,8 @@ func TestAuthFlow_Login(t *testing.T) {
 			},
 		},
 		{
-			name: "Login with wrong token. It should return StatusFound with RedirectLoginURI",
+			name: `Login with wrong token. 
+						 It should return StatusFound with RedirectLoginURI`,
 			args: args{
 				state: state,
 				code:  "123",
@@ -190,7 +194,10 @@ func TestAuthFlow_Login(t *testing.T) {
 			queryParams := url.Values{}
 			queryParams.Set("state", tt.args.state)
 			queryParams.Set("code", tt.args.code)
-			req := httptest.NewRequest(http.MethodGet, "/login?"+queryParams.Encode(), nil)
+			req := httptest.NewRequest(
+				http.MethodGet,
+				"/login?"+queryParams.Encode(),
+				nil)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
@@ -246,7 +253,8 @@ func TestAuthFlow_Logout(t *testing.T) {
 		want       want
 	}{
 		{
-			name: "Logout without WSClientIDName cookie. it should return StatusInternalServerError",
+			name: `Logout without WSClientIDName cookie.
+			 		 	 it should return StatusInternalServerError`,
 			args: args{
 				clientName: "error",
 			},

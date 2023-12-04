@@ -27,7 +27,7 @@ linters:
     - ireturn
 linters-settings:
   lll:
-    line-length: 120
+    line-length: 80
   wrapcheck:
     ignoreSigs:
       - .String(

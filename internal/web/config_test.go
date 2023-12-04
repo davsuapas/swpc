@@ -55,7 +55,8 @@ func TestConfigWeb_Load(t *testing.T) {
 			dataFile: "./testr/micro-config.dat",
 			res: res{
 				status: http.StatusOK,
-				body:   "{\"iniSendTime\":\"10:00\",\"endSendTime\":\"21:01\",\"wakeup\":16,\"buffer\":3}\n",
+				body: "{\"iniSendTime\":\"10:00\",\"endSendTime\":\"21:01\"," +
+					"\"wakeup\":16,\"buffer\":3}\n",
 			},
 		},
 		{
@@ -128,7 +129,8 @@ func TestConfigWeb_Save(t *testing.T) {
 				},
 				dataFile: "./testr/micro-config-write-sucess.dat",
 			},
-			argBody:   `{"iniSendTime": "12:00", "endSendTime": "12:00", "wakeup": 10, "buffer": 10}`,
+			argBody: `{"iniSendTime": "12:00", "endSendTime": "12:00",
+			 "wakeup": 10, "buffer": 10}`,
 			resStatus: http.StatusOK,
 		},
 		{
@@ -146,7 +148,8 @@ func TestConfigWeb_Save(t *testing.T) {
 				hubf:     func() micro.Hub { return mocks.NewHub(t) },
 				dataFile: "./not_exist/micro-config-write.dat",
 			},
-			argBody:   `{"iniSendTime": "12:00", "endSendTime": "12:00", "wakeup": 10, "buffer": 10}`,
+			argBody: `{"iniSendTime": "12:00", "endSendTime": "12:00",
+			 "wakeup": 10, "buffer": 10}`,
 			resStatus: http.StatusInternalServerError,
 		},
 	}

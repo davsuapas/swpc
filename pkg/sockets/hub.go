@@ -36,50 +36,58 @@ const (
 )
 
 const (
-	infSendStatusDesac = "Hub-> An attempt has been made to send a message but the hub is not in transmission mode"
-	infCheckerDes      = "Hub-> The check timer is deactivated because there are no clients"
-	infClientReg       = "Hub-> Client registered"
-	infClientExists    = "Hub-> Unregistering existing client when trying to register "
-	infClientUnReg     = "Hub-> Unregistering client"
-	infClientUnRegd    = "Hub-> Client unregisted"
-	infHubStreaming    = "Hub-> The hub is set to streaming"
-	infHubInactive     = "Hub-> The hub is set to inactive. Previous status: active"
-	infHubDeactived    = "Hub-> The hub is set to deactivated"
-	infClientDied      = "Hub-> Client died by expiration"
-	infArraySize       = "Hub-> Array size after removing expired clients"
-	infNotify          = "Hub-> Notifying status"
-	infConfigChanged   = "Hub-> The configuration has been changed"
-	infClientID        = "ClientID"
-	infLength          = "Length"
-	infStatus          = "Status"
-	infLastMsgDate     = "Last message date"
-	infExpirationDate  = "Expiration date"
-	infActualDate      = "Actual date"
-	infPrevStatus      = "Previous status"
-	infLastNotify      = "Last notification date"
-	infConfig          = "Config"
+	infSendStatusDesac = "Hub-> An attempt has been made to send " +
+		"a message but the hub is not in transmission mode"
+	infCheckerDes = "Hub-> The check timer is deactivated " +
+		"because there are no clients"
+	infClientReg    = "Hub-> Client registered"
+	infClientExists = "Hub-> Unregistering existing client " +
+		"when trying to register "
+	infClientUnReg  = "Hub-> Unregistering client"
+	infClientUnRegd = "Hub-> Client unregisted"
+	infHubStreaming = "Hub-> The hub is set to streaming"
+	infHubInactive  = "Hub-> The hub is set to inactive. " +
+		"Previous status: active"
+	infHubDeactived   = "Hub-> The hub is set to deactivated"
+	infClientDied     = "Hub-> Client died by expiration"
+	infArraySize      = "Hub-> Array size after removing expired clients"
+	infNotify         = "Hub-> Notifying status"
+	infConfigChanged  = "Hub-> The configuration has been changed"
+	infClientID       = "ClientID"
+	infLength         = "Length"
+	infStatus         = "Status"
+	infLastMsgDate    = "Last message date"
+	infExpirationDate = "Expiration date"
+	infActualDate     = "Actual date"
+	infPrevStatus     = "Previous status"
+	infLastNotify     = "Last notification date"
+	infConfig         = "Config"
 )
 
 // Status are the communication status between the sender and the hub
 type Status int
 
 const (
-	// Deactivated the hub is in non-transmit mode (there are not clients connected)
+	// Deactivated the hub is in non-transmit mode
+	// (there are not clients connected)
 	Deactivated Status = iota
 	// Active is when the hub is in transmit mode (there are clients connected)
 	// but there is not transmission from sender
 	Active
 	// Streaming is when the hub is receiving information from the sender
 	Streaming
-	// Inactive is when the hub was in streaming mode but there is no transmission from the sender
+	// Inactive is when the hub was in streaming mode
+	// but there is no transmission from the sender
 	Inactive
-	// Closed the hub is closed. Do not exit the go routine so as not to cause deadlock,
+	// Closed the hub is closed.
+	// Do not exit the go routine so as not to cause deadlock,
 	// although no request will take effect in this state.
 	Closed
 )
 
 type Config struct {
-	// CommLatency is the time in seconds before the communication goes to the inactive state
+	// CommLatency is the time in seconds
+	// before the communication goes to the inactive state
 	CommLatency time.Duration `json:"commLatency"`
 	// Buffer is the time in seconds to store metrics before sending to the hub
 	Buffer time.Duration `json:"buffer"`
@@ -106,9 +114,13 @@ type Client struct {
 	expiration time.Time
 }
 
-// NewClient builds client struct. id identifies the session. The client expires
-// depending of the expiration parameter
-func NewClient(id string, conn *websocket.Conn, expiration time.Duration) Client {
+// NewClient builds client struct. id identifies the session.
+// The client expires depending of the expiration parameter
+func NewClient(
+	id string,
+	conn *websocket.Conn,
+	expiration time.Duration) Client {
+	//
 	return Client{
 		id:         id,
 		conn:       conn,
@@ -116,9 +128,10 @@ func NewClient(id string, conn *websocket.Conn, expiration time.Duration) Client
 	}
 }
 
-// Hub manages the socket pool. The hub registers clients across of the reg channel, unregisters
-// clients, broadcast messages and returns errors to the sender. Also the hub checks communication
-// status, socket, etc.
+// Hub manages the socket pool.
+// The hub registers clients across of the reg channel, unregisters
+// clients, broadcast messages and returns errors to the sender.
+// Also the hub checks communication status, socket, etc.
 // The life cycle is: Deactivated -> Active; Active -> Deactivated, Streaming;
 // Streaming -> Inactive, Deactivated; Inactive -> Streaming, Deactivated
 type Hub struct {
@@ -192,12 +205,14 @@ func (h *Hub) Status(resp chan Status) {
 	h.statusc <- resp
 }
 
-// Stop finishes the hub. The force param closes all channels and force to exist of the goroutine
+// Stop finishes the hub.
+// The force param closes all channels and force to exist of the goroutine
 func (h *Hub) Stop(force bool) {
 	h.closec <- force
 }
 
-// Run registers and unregisters clients, sends messages and remove died clients. Launches a gouroutine
+// Run registers and unregisters clients,
+// sends messages and remove died clients. Launches a gouroutine
 func (h *Hub) Run() {
 	go func() {
 		check := time.NewTimer(h.config.TaskTime)
@@ -214,7 +229,9 @@ func (h *Hub) Run() {
 				resps <- h.status
 			case cnf := <-h.sconfig:
 				h.config = cnf
-				h.info <- strings.Format(infConfigChanged, strings.FMTValue(infConfig, h.config.string()))
+				h.info <- strings.Format(
+					infConfigChanged,
+					strings.FMTValue(infConfig, h.config.string()))
 			case <-check.C:
 				h.idleController()
 				h.notifyStatus()
@@ -317,7 +334,9 @@ func (h *Hub) unregister(id string) {
 // If sending the message throw a error, the client is removed
 func (h *Hub) sendMessageToClients(message string) {
 	if h.status == Deactivated || h.status == Closed {
-		h.info <- strings.Format(infSendStatusDesac, strings.FMTValue(infPrevStatus, StatusString(h.status)))
+		h.info <- strings.Format(
+			infSendStatusDesac,
+			strings.FMTValue(infPrevStatus, StatusString(h.status)))
 
 		return
 	}
@@ -331,15 +350,20 @@ func (h *Hub) sendMessageToClients(message string) {
 
 	// sendMessage can set status to deactivated
 	if h.status != Deactivated && h.status != Streaming {
-		h.info <- strings.Format(infHubStreaming, strings.FMTValue(infPrevStatus, StatusString(status)))
+		h.info <- strings.Format(
+			infHubStreaming,
+			strings.FMTValue(infPrevStatus, StatusString(status)))
+
 		h.status = Streaming
 	}
 }
 
-// idleController checks whether there is still activity since the last communication
+// idleController checks whether there is still activity
+// since the last communication
 func (h *Hub) idleController() {
 	if h.status == Streaming {
-		// The idle time is the sum of the time it takes for the sender to create the buffer
+		// The idle time is the sum of the time it takes
+		// for the sender to create the buffer
 		// and a possible latency time
 		idleTime := h.config.Buffer + h.config.CommLatency
 
@@ -353,7 +377,8 @@ func (h *Hub) idleController() {
 	}
 }
 
-// notifyStatus sends the status to the web client (Only for these states Active or Inactive)
+// notifyStatus sends the status to the web client
+// (Only for these states Active or Inactive)
 func (h *Hub) notifyStatus() {
 	if h.status != Active && h.status != Inactive {
 		return
@@ -361,7 +386,8 @@ func (h *Hub) notifyStatus() {
 
 	timeout := h.lastNotification.Add(h.config.NotificationTime)
 
-	// If the time for the next notification has not elapsed, it does not send the next notification
+	// If the time for the next notification has not elapsed,
+	// it does not send the next notification
 	if timeout.After(time.Now()) {
 		return
 	}
@@ -385,7 +411,10 @@ func (h *Hub) sendMessage(message string, errMessage string) {
 	var brokenclients []uint16
 
 	for i, c := range h.clients {
-		if err := c.conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+		if err := c.conn.WriteMessage(
+			websocket.TextMessage,
+			[]byte(message)); err != nil {
+			//
 			brokenclients = append(brokenclients, uint16(i))
 
 			if err := h.closeClient(uint16(i)); err != nil {
@@ -400,7 +429,9 @@ func (h *Hub) sendMessage(message string, errMessage string) {
 
 	if len(brokenclients) > 0 {
 		h.removeClientByPos(brokenclients...)
-		h.info <- strings.Format(infArraySize, strings.FMTValue(infLength, strconv.Itoa(len(h.clients))))
+		h.info <- strings.Format(
+			infArraySize,
+			strings.FMTValue(infLength, strconv.Itoa(len(h.clients))))
 	}
 }
 
@@ -427,7 +458,9 @@ func (h *Hub) removeDeadClient() {
 			if err := h.closeClient(uint16(i)); err != nil {
 				h.err <- errors.Wrap(
 					err,
-					strings.Format(errRemovingDiedClient, strings.FMTValue(infClientID, clientID)))
+					strings.Format(
+						errRemovingDiedClient,
+						strings.FMTValue(infClientID, clientID)))
 			}
 
 			h.info <- strings.Format(
@@ -440,7 +473,9 @@ func (h *Hub) removeDeadClient() {
 
 	if len(deadClients) > 0 {
 		h.removeClientByPos(deadClients...)
-		h.info <- strings.Format(infArraySize, strings.FMTValue(infLength, strconv.Itoa(len(h.clients))))
+		h.info <- strings.Format(
+			infArraySize,
+			strings.FMTValue(infLength, strconv.Itoa(len(h.clients))))
 	}
 }
 
@@ -485,7 +520,11 @@ func (h *Hub) closeClient(pos uint16) error {
 	clientID := h.clients[pos].id
 
 	if err := h.clients[pos].conn.Close(); err != nil {
-		return errors.Wrap(err, strings.Format(errClosingClient, strings.FMTValue(infClientID, clientID)))
+		return errors.Wrap(
+			err,
+			strings.Format(
+				errClosingClient,
+				strings.FMTValue(infClientID, clientID)))
 	}
 
 	return nil

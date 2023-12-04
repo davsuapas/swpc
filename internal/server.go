@@ -129,7 +129,10 @@ func (s *Server) Route() {
 	wa := s.factory.Webs.Group("/auth")
 	wa.GET("/login", s.factory.WebHandler.Auth.Login)
 	wa.GET("/api/logout", s.factory.WebHandler.Auth.Logout)
-	wa.GET(strings.Concat("/token/:", api.ClientIDName), s.factory.APIHandler.Auth.Token)
+	wa.GET(strings.Concat(
+		"/token/:",
+		api.ClientIDName),
+		s.factory.APIHandler.Auth.Token)
 
 	// API Restricted by JWT
 

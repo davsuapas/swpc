@@ -356,7 +356,8 @@ func TestApplySecret(t *testing.T) {
 		expected config.Config
 	}{
 		{
-			name: "Apply Secret. Secret name not exists. It should return the same configuration values",
+			name: `Apply Secret. Secret name not exists.
+			 			It should return the same configuration values`,
 			args: args{
 				config: config.Config{
 					Web: config.Web{
@@ -386,7 +387,8 @@ func TestApplySecret(t *testing.T) {
 			},
 		},
 		{
-			name: "Apply Secret. Secret name exists. It should return the configuration values applying secrets",
+			name: `Apply Secret. Secret name exists.
+						It should return the configuration values applying secrets`,
 			args: args{
 				config: config.Config{
 					Web: config.Web{

@@ -39,9 +39,10 @@ import (
 )
 
 const (
-	errReadConfig = "Reading the configuration of the micro controller from config file"
-	errCreateZap  = "Error creating zap logger"
-	errAWSConfig  = "Error creating secret maanger"
+	errReadConfig = "Reading the configuration of the micro controller " +
+		"from config file"
+	errCreateZap = "Error creating zap logger"
+	errAWSConfig = "Error creating secret maanger"
 )
 
 const (
@@ -139,7 +140,8 @@ func microConfigRead(
 	cnfaws *awsConfig,
 	log *zap.Logger) micro.ConfigRead {
 	//
-	if cnf.Data.Provider == config.CloudDataProvider && cnf.Cloud.Provider != config.CloudNoProvider {
+	if cnf.Data.Provider == config.CloudDataProvider &&
+		cnf.Cloud.Provider != config.CloudNoProvider {
 		return micro.NewAWSConfigRead(log, cnfaws.get(), cnf.Data.AWS.TableName)
 	}
 
@@ -156,8 +158,14 @@ func microConfigWrite(
 	mc *micro.Controller,
 	hub *sockets.Hub) micro.ConfigWrite {
 	//
-	if cnf.Data.Provider == config.CloudDataProvider && cnf.Cloud.Provider != config.CloudNoProvider {
-		return micro.NewAWSConfigWrite(log, mc, hub, cnf, cnfaws.get(), cnf.Data.AWS.TableName)
+	if cnf.Data.Provider == config.CloudDataProvider &&
+		cnf.Cloud.Provider != config.CloudNoProvider {
+		return micro.NewAWSConfigWrite(
+			log,
+			mc,
+			hub,
+			cnf,
+			cnfaws.get(), cnf.Data.AWS.TableName)
 	}
 
 	return &micro.FileConfigWrite{
@@ -205,7 +213,8 @@ func newWeb(
 			Config: cnf,
 		}
 	} else {
-		log.Warn("Authentication has been configured in development mode. Never use this configuration in production.")
+		log.Warn("Authentication has been configured in development mode. " +
+			"Never use this configuration in production.")
 
 		oauth2 = &web.AuthFlowDev{
 			Log:  log,
@@ -231,7 +240,11 @@ func newWeb(
 	}
 }
 
-func newHub(log *zap.Logger, config config.Config, configm micro.Config) (*hub.Trace, *sockets.Hub) {
+func newHub(
+	log *zap.Logger,
+	config config.Config,
+	configm micro.Config) (*hub.Trace, *sockets.Hub) {
+	//
 	hubt := hub.NewTrace(log)
 	hub := sockets.NewHub(
 		sockets.Config{
@@ -260,7 +273,11 @@ func newLogger(ctx config.Config) *zap.Logger {
 
 	l, err := log.Build()
 	if err != nil {
-		panic(strings.Format(errCreateZap, strings.FMTValue("Description", err.Error())))
+		panic(
+			strings.Format(
+				errCreateZap,
+				strings.FMTValue("Description",
+					err.Error())))
 	}
 
 	return l
@@ -288,7 +305,9 @@ func (ac *awsConfig) get() aws.Config {
 			cfg.Region = ac.Config.Cloud.AWS.Region
 		}
 
-		if len(ac.Config.Cloud.AWS.AKID) > 0 && len(ac.Config.Cloud.AWS.SecretKey) > 0 {
+		if len(ac.Config.Cloud.AWS.AKID) > 0 &&
+			len(ac.Config.Cloud.AWS.SecretKey) > 0 {
+			//
 			cfg.Credentials = credentials.NewStaticCredentialsProvider(
 				ac.Config.Cloud.AWS.AKID, ac.Config.Cloud.AWS.SecretKey, "")
 		}
@@ -299,7 +318,10 @@ func (ac *awsConfig) get() aws.Config {
 	cfg, err := awsc.LoadDefaultConfig(context.TODO(), options)
 
 	if err != nil {
-		panic(strings.Format(errAWSConfig, strings.FMTValue("Description", err.Error())))
+		panic(
+			strings.Format(
+				errAWSConfig,
+				strings.FMTValue("Description", err.Error())))
 	}
 
 	ac.c = cfg

@@ -23,7 +23,8 @@ const (
 	infRegTraces = "Starting the process to register hub traces"
 )
 
-// Trace manages the info and errors sent by the hub. This info and errors are write into log
+// Trace manages the info and errors sent by the hub.
+// This info and errors are write into log
 type Trace struct {
 	log   *zap.Logger
 	Info  chan string
@@ -39,7 +40,8 @@ func NewTrace(log *zap.Logger) *Trace {
 	}
 }
 
-// Run registers errors generated into the hub into the log. Launches a gouroutine
+// Run registers errors generated into the hub into the log.
+// Launches a gouroutine
 func (h *Trace) Register() {
 	h.log.Info(infRegTraces)
 

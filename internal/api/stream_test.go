@@ -48,7 +48,10 @@ func TestStream_Actions(t *testing.T) {
 
 	mhub := mocks.NewHub(t)
 
-	mhub.On("Status", mock.AnythingOfType("chan sockets.Status")).Run(func(args mock.Arguments) {
+	mhub.On(
+		"Status",
+		mock.AnythingOfType("chan sockets.Status")).Run(func(args mock.Arguments) {
+		//
 		if s, ok := args.Get(0).(chan sockets.Status); ok {
 			go func() {
 				s <- sockets.Closed
@@ -69,7 +72,8 @@ func TestStream_Actions(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(
 		t,
-		"{\"WakeUpTime\":30,\"CheckTransTime\":10,\"CollectMetricsTime\":20,\"Buffer\":3,\"Action\":0}\n",
+		"{\"WakeUpTime\":30,\"CheckTransTime\":10,"+
+			"\"CollectMetricsTime\":20,\"Buffer\":3,\"Action\":0}\n",
 		rec.Body.String())
 
 	mhub.AssertExpectations(t)
@@ -89,7 +93,10 @@ func TestStream_Download(t *testing.T) {
 	mhub := mocks.NewHub(t)
 
 	mhub.On("Send", metrics)
-	mhub.On("Status", mock.AnythingOfType("chan sockets.Status")).Run(func(args mock.Arguments) {
+	mhub.On(
+		"Status",
+		mock.AnythingOfType("chan sockets.Status")).Run(func(args mock.Arguments) {
+		//
 		if s, ok := args.Get(0).(chan sockets.Status); ok {
 			go func() {
 				s <- sockets.Closed
@@ -110,7 +117,8 @@ func TestStream_Download(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(
 		t,
-		"{\"WakeUpTime\":30,\"CheckTransTime\":10,\"CollectMetricsTime\":20,\"Buffer\":3,\"Action\":0}\n",
+		"{\"WakeUpTime\":30,\"CheckTransTime\":10,"+
+			"\"CollectMetricsTime\":20,\"Buffer\":3,\"Action\":0}\n",
 		rec.Body.String())
 
 	mhub.AssertExpectations(t)

@@ -53,7 +53,8 @@ type respToken struct {
 	ExpiresIn   int    `json:"expires_in"`   //nolint:golint,tagliatelle
 }
 
-// OA2RevokeTokenInput defines the parameters of the oauth2 input to revoke token
+// OA2RevokeTokenInput defines the parameters of the oauth2 input
+// to revoke token
 type OA2RevokeTokenInput struct {
 	URL   string
 	Token string
@@ -111,7 +112,11 @@ func (o *OAuth2) RevokeToken(params OA2RevokeTokenInput) error {
 func post(url string, data url.Values) ([]byte, error) {
 	ctx := context.TODO()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		url,
+		strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, errors.Wrap(err, errRequest)
 	}
@@ -143,7 +148,11 @@ func post(url string, data url.Values) ([]byte, error) {
 }
 
 // Oauth2URL returns a valid URL compatible with oauth2
-func Oauth2URL(url string, clientID string, redirectURL string, state string) string {
+func Oauth2URL(
+	url string,
+	clientID string,
+	redirectURL string,
+	state string) string {
 	signURL := strings.ReplaceAll(url, "%client_id", clientID)
 	signURL = strings.ReplaceAll(signURL, "%redirect_uri", redirectURL)
 	signURL = strings.ReplaceAll(signURL, "%state", state)
