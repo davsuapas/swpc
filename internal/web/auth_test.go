@@ -47,8 +47,8 @@ func TestAuthFlowDev_Login_Should_Return_StatusFound(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	o := &web.AuthFlowDev{
-		Log:  zap.NewExample(),
-		Webc: config.Default().Web,
+		Log:    zap.NewExample(),
+		Config: config.Default(),
 	}
 
 	_ = o.Login(c)
@@ -81,9 +81,9 @@ func TestAuthFlowDev_Logout_Should_Return_StatusFound(t *testing.T) {
 	hub.On("Unregister", clientID)
 
 	o := &web.AuthFlowDev{
-		Log:  zap.NewExample(),
-		Hub:  hub,
-		Webc: config.Default().Web,
+		Log:    zap.NewExample(),
+		Hub:    hub,
+		Config: config.Default(),
 	}
 
 	_ = o.Logout(c)

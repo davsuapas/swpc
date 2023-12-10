@@ -100,23 +100,27 @@ func (o *AuthFlow) Login(ctx echo.Context) error {
 	// Save the security token in the cookies
 	// MaxAge is the same time than token expiration
 	// except expiration for jwt token.
-	// The expiration of the cookie with the token is kept 5 minutes longer than
-	// the internal expiration of the token, in case a new request is made
-	// from the browser.
+	// The expiration of the cookie with the token is
+	// kept 5 minutes longer than the internal expiration
+	// of the token, in case a new request is made from
+	// the browser.
 	// In this way, the server will return permission denied
-	// instead of bad request
-	// (this case would be because when the cookie expires
-	// the request would come without a token).
+	// instead of bad request (this case would be because
+	// when the cookie expires the request would come without
+	// a token).
 	expiration := time.Now().Add(
 		time.Duration(o.Config.Web.SessionExpiration) * time.Minute)
 	cookie := cookies(AuthHeaderName, token.Raw, expiration.Add(5*time.Minute))
+	cookie.Secure = o.Config.External.TLS
 	ctx.SetCookie(cookie)
 
 	cookie = cookieAuthCheckName(expiration)
+	cookie.Secure = o.Config.External.TLS
 	ctx.SetCookie(cookie)
 
 	// ID for hub client
 	cookie = cookieWSClientIDName(expiration)
+	cookie.Secure = o.Config.External.TLS
 	ctx.SetCookie(cookie)
 
 	return ctx.Redirect(http.StatusFound, RedirectLoginOk)
@@ -132,9 +136,11 @@ func (o *AuthFlow) Logout(ctx echo.Context) error {
 
 	cookie := cookies(AuthHeaderName, "", time.Time{})
 	cookie.MaxAge = 0 // Remove cookie
+	cookie.Secure = o.Config.External.TLS
 	ctx.SetCookie(cookie)
 
 	cookie = removeCookieAuthCheckName()
+	cookie.Secure = o.Config.External.TLS
 	ctx.SetCookie(cookie)
 
 	return ctx.NoContent(http.StatusOK)
@@ -142,9 +148,9 @@ func (o *AuthFlow) Logout(ctx echo.Context) error {
 
 // AuthFlowDev manages authentication only for develoment
 type AuthFlowDev struct {
-	Log  *zap.Logger
-	Hub  Hub
-	Webc config.Web
+	Log    *zap.Logger
+	Hub    Hub
+	Config config.Config
 }
 
 // Login enables insecure tokenless access
@@ -152,13 +158,15 @@ func (o *AuthFlowDev) Login(ctx echo.Context) error {
 	o.Log.Info(infLogin)
 
 	expiration := time.Now().Add(
-		time.Duration(o.Webc.SessionExpiration) * time.Minute)
+		time.Duration(o.Config.Web.SessionExpiration) * time.Minute)
 
 	cookie := cookieAuthCheckName(expiration)
+	cookie.Secure = o.Config.External.TLS
 	ctx.SetCookie(cookie)
 
 	// ID for hub client
 	cookie = cookieWSClientIDName(expiration)
+	cookie.Secure = o.Config.External.TLS
 	ctx.SetCookie(cookie)
 
 	return ctx.Redirect(http.StatusFound, RedirectLoginOk)
@@ -173,6 +181,7 @@ func (o *AuthFlowDev) Logout(ctx echo.Context) error {
 	}
 
 	cookie := removeCookieAuthCheckName()
+	cookie.Secure = o.Config.External.TLS
 	ctx.SetCookie(cookie)
 
 	return ctx.Redirect(http.StatusFound, RedirectLoginOk)
@@ -215,7 +224,11 @@ func removeCookieAuthCheckName() *http.Cookie {
 	return cookie
 }
 
-func cookies(name string, value string, expiration time.Time) *http.Cookie {
+func cookies(
+	name string,
+	value string,
+	expiration time.Time) *http.Cookie {
+	//
 	cookie := &http.Cookie{}
 	cookie.Name = name
 	cookie.Value = value

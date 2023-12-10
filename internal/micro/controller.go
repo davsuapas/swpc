@@ -55,7 +55,7 @@ const (
 )
 
 type Behavior struct {
-	// WakeUpTime is the time set to wake up the micro-controller.
+	// WakeUpTime is the time set to wake up the micro-controller in minutes.
 	WakeUpTime uint8
 	// CheckTransTime is the time set for the micro
 	// to check the status of the clients

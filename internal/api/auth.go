@@ -34,6 +34,8 @@ const (
 	errSign  = "OAuth.Token-> Error signing token"
 )
 
+const dbgGetTk = "OAuth.Token -> Getting token"
+
 // Auth controllers the access of the API
 type Auth struct {
 	log *zap.Logger
@@ -49,6 +51,8 @@ func NewAuth(log *zap.Logger, ac config.API) *Auth {
 
 // Token gets security token
 func (o *Auth) Token(ctx echo.Context) error {
+	o.log.Debug(dbgGetTk)
+
 	sID := ctx.Param(ClientIDName)
 
 	if sID != o.ac.ClientID {

@@ -217,9 +217,9 @@ func newWeb(
 			"Never use this configuration in production.")
 
 		oauth2 = &web.AuthFlowDev{
-			Log:  log,
-			Hub:  hub,
-			Webc: cnf.Web,
+			Log:    log,
+			Hub:    hub,
+			Config: cnf,
 		}
 
 		appConfig = &web.AppConfigDev{
