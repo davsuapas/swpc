@@ -31,14 +31,14 @@ import (
 )
 
 const (
-	errTk           = "OAuth2-> Get token"
-	errRevokeTk     = "OAuth2-> Revoke token"
-	errJWKCode      = "OAuth2-> Get JWK"
-	errRequest      = "OAuth2-> New http request"
-	errHTTPPost     = "OAuth2-> Request using post method"
-	errHTTPReadBody = "OAuth2-> Read body from response"
-	errUnmarshallTk = "OAuth2-> Unmarshall token from response"
-	errJWTTk        = "OAuth2-> Get JWT token"
+	errTk           = "Get token"
+	errRevokeTk     = "Revoke token"
+	errJWKCode      = "Get JWK"
+	errRequest      = "New http request"
+	errHTTPPost     = "Request using post method"
+	errHTTPReadBody = "Read body from response"
+	errUnmarshallTk = "Unmarshall token from response"
+	errJWTTk        = "Get JWT token"
 )
 
 // OA2TokenInput defines the parameters of the oauth2 token input

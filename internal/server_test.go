@@ -58,7 +58,7 @@ func TestServer_Route_Auth_Provider_Oauth2(t *testing.T) {
 
 	s.Route()
 
-	assert.Equal(t, 13, len(f.Webs.Router().Routes()))
+	assert.Equal(t, 12, len(f.Webs.Router().Routes()))
 }
 
 func TestServer_Route_Auth_Provider_Dev(t *testing.T) {
@@ -69,5 +69,5 @@ func TestServer_Route_Auth_Provider_Dev(t *testing.T) {
 
 	s.Route()
 
-	assert.Equal(t, 11, len(f.Webs.Router().Routes()))
+	assert.Equal(t, 10, len(f.Webs.Router().Routes()))
 }

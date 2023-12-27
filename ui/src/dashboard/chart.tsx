@@ -174,7 +174,7 @@ class Model {
   private readBuffer(): boolean {
     if (this.hasBuffer()) {
       if (this.cumuSize % 10 == 0) {
-        console.log("Chart (warning) -> More metrics are received than extracted: " + this.cumuSize +
+        console.log("Chart (warning).More metrics are received than extracted: " + this.cumuSize +
          ". Tamaño buffer: " + this.buffer.length);
       }
 

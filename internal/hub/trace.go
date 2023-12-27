@@ -48,9 +48,17 @@ func (h *Trace) Register() {
 	go func() {
 		for {
 			select {
-			case e := <-h.Error:
+			case e, ok := <-h.Error:
+				if !ok {
+					return
+				}
+
 				h.log.Error("Hub errors", zap.Error(e))
-			case i := <-h.Info:
+			case i, ok := <-h.Info:
+				if !ok {
+					return
+				}
+
 				h.log.Info(i)
 			}
 		}

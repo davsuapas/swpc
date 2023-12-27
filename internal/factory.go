@@ -25,14 +25,13 @@ import (
 	awsc "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/labstack/echo/v4"
-	"github.com/swpoolcontroller/internal/api"
 	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/hub"
-	"github.com/swpoolcontroller/internal/micro"
+	iotc "github.com/swpoolcontroller/internal/iot"
 	"github.com/swpoolcontroller/internal/web"
 	"github.com/swpoolcontroller/pkg/auth"
 	"github.com/swpoolcontroller/pkg/crypto"
-	"github.com/swpoolcontroller/pkg/sockets"
+	"github.com/swpoolcontroller/pkg/iot"
 	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -49,10 +48,10 @@ const (
 	infConfigLoaded = "The configuration is loaded"
 )
 
-// APIHandler Micro API handler
+// APIHandler is the device API handler
 type APIHandler struct {
-	Auth   *api.Auth
-	Stream *api.Stream
+	Auth *iotc.Auth
+	WS   *iotc.WS
 }
 
 // WebHandler Web handler
@@ -73,7 +72,7 @@ type Factory struct {
 	JWT *auth.JWT
 
 	Hubt *hub.Trace
-	Hub  *sockets.Hub
+	Hub  *iot.Hub
 
 	WebHandler *WebHandler
 	APIHandler *APIHandler
@@ -98,27 +97,18 @@ func NewFactory() *Factory {
 		log.Panic(errReadConfig)
 	}
 
-	hubt, hub := newHub(log, cnf, microc)
-
 	loc, err := time.LoadLocation(cnf.Location.Zone)
 	if err != nil {
 		log.Panic(err.Error())
 	}
 
-	mcontrol := &micro.Controller{
-		Location:           loc,
-		Log:                log,
-		Hub:                hub,
-		Config:             microc,
-		CheckTransTime:     uint8(cnf.CheckTransTime),
-		CollectMetricsTime: uint16(cnf.CollectMetricsTime),
-	}
+	hubt, hub := newHub(log, cnf, microc, loc)
 
 	jwt := &auth.JWT{
 		JWKFetch: auth.NewJWKFetch(cnf.Auth.JWKURL),
 	}
 
-	mconfigWrite := microConfigWrite(cnf, awscnf, log, mcontrol, hub)
+	mconfigWrite := microConfigWrite(cnf, awscnf, log, hub)
 
 	return &Factory{
 		Config:     cnf,
@@ -129,8 +119,8 @@ func NewFactory() *Factory {
 		Hub:        hub,
 		WebHandler: newWeb(log, cnf, hub, jwt, mconfigRead, mconfigWrite),
 		APIHandler: &APIHandler{
-			Auth:   api.NewAuth(log, cnf.API),
-			Stream: api.NewStream(mcontrol),
+			Auth: iotc.NewAuth(log, cnf.API),
+			WS:   iotc.NewWS(log, hub),
 		},
 	}
 }
@@ -138,14 +128,14 @@ func NewFactory() *Factory {
 func microConfigRead(
 	cnf config.Config,
 	cnfaws *awsConfig,
-	log *zap.Logger) micro.ConfigRead {
+	log *zap.Logger) iotc.ConfigRead {
 	//
 	if cnf.Data.Provider == config.CloudDataProvider &&
 		cnf.Cloud.Provider != config.CloudNoProvider {
-		return micro.NewAWSConfigRead(log, cnfaws.get(), cnf.Data.AWS.TableName)
+		return iotc.NewAWSConfigRead(log, cnfaws.get(), cnf.Data.AWS.TableName)
 	}
 
-	return &micro.FileConfigRead{
+	return &iotc.FileConfigRead{
 		Log:      log,
 		DataFile: cnf.Data.File.FilePath,
 	}
@@ -155,22 +145,19 @@ func microConfigWrite(
 	cnf config.Config,
 	cnfaws *awsConfig,
 	log *zap.Logger,
-	mc *micro.Controller,
-	hub *sockets.Hub) micro.ConfigWrite {
+	hub *iot.Hub) iotc.ConfigWrite {
 	//
 	if cnf.Data.Provider == config.CloudDataProvider &&
 		cnf.Cloud.Provider != config.CloudNoProvider {
-		return micro.NewAWSConfigWrite(
+		return iotc.NewAWSConfigWrite(
 			log,
-			mc,
 			hub,
 			cnf,
 			cnfaws.get(), cnf.Data.AWS.TableName)
 	}
 
-	return &micro.FileConfigWrite{
+	return &iotc.FileConfigWrite{
 		Log:      log,
-		MControl: mc,
 		Hub:      hub,
 		Config:   cnf,
 		DataFile: cnf.Data.File.FilePath,
@@ -188,10 +175,10 @@ func secretProvider(cnf config.Config, cnfaws *awsConfig) config.Secret {
 func newWeb(
 	log *zap.Logger,
 	cnf config.Config,
-	hub *sockets.Hub,
+	hub *iot.Hub,
 	jwt *auth.JWT,
-	mconfigRead micro.ConfigRead,
-	mconfigWrite micro.ConfigWrite) *WebHandler {
+	mconfigRead iotc.ConfigRead,
+	mconfigWrite iotc.ConfigWrite) *WebHandler {
 	//
 	var oauth2 web.Auth
 
@@ -243,15 +230,23 @@ func newWeb(
 func newHub(
 	log *zap.Logger,
 	config config.Config,
-	configm micro.Config) (*hub.Trace, *sockets.Hub) {
+	microc iotc.Config,
+	loc *time.Location) (*hub.Trace, *iot.Hub) {
 	//
 	hubt := hub.NewTrace(log)
-	hub := sockets.NewHub(
-		sockets.Config{
+	hub := iot.NewHub(
+		iot.Config{
+			DeviceConfig: iot.DeviceConfig{
+				WakeUpTime:         microc.Wakeup,
+				CollectMetricsTime: config.CollectMetricsTime,
+				Buffer:             microc.Buffer,
+			},
+			Location:         loc,
 			CommLatency:      time.Duration(config.CommLatencyTime) * time.Second,
-			Buffer:           time.Duration(configm.Buffer) * time.Second,
 			TaskTime:         time.Duration(config.TaskTime) * time.Second,
 			NotificationTime: time.Duration(config.NotificationTime) * time.Second,
+			IniSendTime:      microc.IniSendTime,
+			EndSendTime:      microc.EndSendTime,
 		},
 		hubt.Info,
 		hubt.Error)

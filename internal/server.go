@@ -27,8 +27,8 @@ import (
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/errors"
-	"github.com/swpoolcontroller/internal/api"
 	"github.com/swpoolcontroller/internal/config"
+	"github.com/swpoolcontroller/internal/iot"
 	"github.com/swpoolcontroller/internal/web"
 	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
@@ -100,7 +100,7 @@ func (s *Server) Start() error {
 	}
 
 	s.factory.Log.Info(infStoppingHub)
-	s.factory.Hub.Stop(false)
+	s.factory.Hub.Stop()
 
 	s.factory.Log.Info(infStoppedServer)
 
@@ -128,16 +128,16 @@ func (s *Server) Route() {
 
 	wa := s.factory.Webs.Group("/auth")
 	wa.GET("/login", s.factory.WebHandler.Auth.Login)
-	wa.GET("/api/logout", s.factory.WebHandler.Auth.Logout)
+	wa.GET("/logout", s.factory.WebHandler.Auth.Logout)
 	wa.GET(strings.Concat(
 		"/token/:",
-		api.ClientIDName),
+		iot.ClientIDName),
 		s.factory.APIHandler.Auth.Token)
 
 	// API Restricted by JWT
 
 	// Web
-	wapi := s.factory.Webs.Group("/web/api")
+	wapi := s.factory.Webs.Group("/api/web")
 
 	if s.factory.Config.Auth.Provider == config.AuthProviderOauth2 {
 		config := echojwt.Config{
@@ -152,9 +152,9 @@ func (s *Server) Route() {
 
 	wapi.GET("/ws", s.factory.WebHandler.WS.Register)
 
-	// Micro controller API
-	mapi := s.factory.Webs.Group("/micro/api")
+	// Device API
+	mapi := s.factory.Webs.Group("/api/device")
 	mapi.Use(echojwt.JWT([]byte(s.factory.Config.API.TokenSecretKey)))
-	mapi.GET("/action", s.factory.APIHandler.Stream.Actions)
-	mapi.POST("/download", s.factory.APIHandler.Stream.Download)
+
+	mapi.GET("/ws", s.factory.APIHandler.WS.Register)
 }

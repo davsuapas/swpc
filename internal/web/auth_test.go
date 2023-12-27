@@ -78,7 +78,7 @@ func TestAuthFlowDev_Logout_Should_Return_StatusFound(t *testing.T) {
 	req.AddCookie(cookie)
 
 	hub := mocks.NewHub(t)
-	hub.On("Unregister", clientID)
+	hub.On("UnregisterClient", clientID)
 
 	o := &web.AuthFlowDev{
 		Log:    zap.NewExample(),
@@ -302,7 +302,7 @@ func TestAuthFlow_Logout(t *testing.T) {
 			}
 
 			if tt.mockHubUse {
-				h.On("Unregister", tt.args.clientID)
+				h.On("UnregisterClient", tt.args.clientID)
 			}
 
 			_ = o.Logout(c)

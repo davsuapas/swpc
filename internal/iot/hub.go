@@ -15,18 +15,14 @@
  *   limitations under the License.
  */
 
-package micro
+package iot
 
-import "github.com/swpoolcontroller/pkg/sockets"
+import "github.com/swpoolcontroller/pkg/iot"
 
 // Hub manages the socket pool and distribute messages
 type Hub interface {
-	// Send sends message to the all clients into hub
-	Send(message string)
-
-	// Status request hub status via channel
-	Status(resp chan sockets.Status)
-
 	// Config sends the config to the hub
-	Config(cnf sockets.Config)
+	Config(cnf iot.DeviceConfig)
+	// RegisterDevice registers iot device into the hub
+	RegisterDevice(d iot.Device)
 }

@@ -15,42 +15,33 @@
  *   limitations under the License.
  */
 
-package web
+package iot
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
-	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/pkg/iot"
 	"go.uber.org/zap"
 )
 
 const (
-	WSClientIDName = "WSClientID"
-)
-
-const (
-	errGenSocket   = "WS. Generating socket from web request"
-	errGettingAuth = "WS. Getting auth token from web request"
+	errGenSocket = "WS Device. Generating socket from device request"
 )
 
 // WS register sockets
 type WS struct {
 	log      *zap.Logger
 	hub      Hub
-	sessionc config.Web
 	upgrader websocket.Upgrader
 }
 
 // NewWS builds WS service
-func NewWS(log *zap.Logger, sessionc config.Web, hub Hub) *WS {
+func NewWS(log *zap.Logger, hub Hub) *WS {
 	return &WS{
-		log:      log,
-		hub:      hub,
-		sessionc: sessionc,
+		log: log,
+		hub: hub,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -58,7 +49,7 @@ func NewWS(log *zap.Logger, sessionc config.Web, hub Hub) *WS {
 	}
 }
 
-// Register registers sockets from web request
+// Register registers sockets from device request
 func (w *WS) Register(ctx echo.Context) error {
 	ws, err := w.upgrader.Upgrade(ctx.Response(), ctx.Request(), nil)
 	if err != nil {
@@ -68,17 +59,13 @@ func (w *WS) Register(ctx echo.Context) error {
 		return nil
 	}
 
-	id, err := ctx.Cookie(WSClientIDName)
-	if err != nil {
-		w.log.Error(errGettingAuth, zap.Error(err))
+	deviceID := ctx.Request().Header.Get("id")
 
-		return ctx.NoContent(http.StatusInternalServerError)
-	}
-
-	w.hub.RegisterClient(iot.NewClient(
-		id.Value,
-		ws,
-		time.Duration(w.sessionc.SessionExpiration)*time.Minute))
+	w.hub.RegisterDevice(
+		iot.Device{
+			ID:         deviceID,
+			Connection: ws,
+		})
 
 	// Upgrade update the response. No need to return the error
 	return ctx.NoContent(http.StatusOK)

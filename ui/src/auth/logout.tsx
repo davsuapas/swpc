@@ -30,7 +30,7 @@ export default class Logout extends React.Component<URLProps, LogoutState> {
 
   async componentDidMount() {
     try {
-      const res = await fetch("/auth/api/logout", {method: "GET"});
+      const res = await fetch("/auth/logout", {method: "GET"});
       if (res.status == 200) {
         this.setState({logoutNav: logoutNav.completed});
         return

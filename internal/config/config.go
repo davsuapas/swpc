@@ -172,7 +172,7 @@ type Auth struct {
 }
 
 type API struct {
-	// SessionExpiration defines the session expiration in minutes
+	// SessionExpiration defines the session expiration in seconds
 	SessionExpiration int `json:"expirationSession,omitempty"`
 	// CommLatencyTime sets the possible communication latency
 	// between the device and the hub, in seconds
@@ -325,7 +325,7 @@ func Default() Config {
 			},
 		},
 		API: API{
-			SessionExpiration:  60,
+			SessionExpiration:  10,
 			CommLatencyTime:    2,
 			CollectMetricsTime: 800,
 			CheckTransTime:     5,

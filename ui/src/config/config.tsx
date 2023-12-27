@@ -78,7 +78,7 @@ export default class Config extends React.Component<any, ConfigState> {
         actions.activeLoadingConfig(true);
         this.init();
     
-        this.fetch?.send("/web/api/config", {
+        this.fetch?.send("/api/web/config", {
             method: "GET"
         },
         async (result: Response) => {
@@ -169,7 +169,7 @@ export default class Config extends React.Component<any, ConfigState> {
       if (this.valid()) {
         this.setState({saving: true});
 
-        this.fetch?.send("/web/api/config", {
+        this.fetch?.send("/api/web/config", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"

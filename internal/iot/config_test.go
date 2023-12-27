@@ -15,18 +15,17 @@
  *   limitations under the License.
  */
 
-package micro_test
+package iot_test
 
 import (
 	"os"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/swpoolcontroller/internal/config"
-	"github.com/swpoolcontroller/internal/micro"
-	"github.com/swpoolcontroller/internal/micro/mocks"
-	"github.com/swpoolcontroller/pkg/sockets"
+	iotc "github.com/swpoolcontroller/internal/iot"
+	"github.com/swpoolcontroller/internal/iot/mocks"
+	"github.com/swpoolcontroller/pkg/iot"
 	"go.uber.org/zap"
 )
 
@@ -41,13 +40,13 @@ func TestConfigRead_Read(t *testing.T) {
 	tests := []struct {
 		name     string
 		filePath string
-		expected micro.Config
+		expected iotc.Config
 		err      errors
 	}{
 		{
 			name:     "Read config from file",
 			filePath: "./testr/micro-config.dat",
-			expected: micro.Config{
+			expected: iotc.Config{
 				IniSendTime: "10:00",
 				EndSendTime: "21:01",
 				Wakeup:      16,
@@ -60,7 +59,7 @@ func TestConfigRead_Read(t *testing.T) {
 		{
 			name:     "Read config when the file don't exist",
 			filePath: "./testr/micro-no_exist.dat",
-			expected: micro.DefaultConfig(),
+			expected: iotc.DefaultConfig(),
 			err: errors{
 				want: false,
 			},
@@ -68,7 +67,7 @@ func TestConfigRead_Read(t *testing.T) {
 		{
 			name:     "Read config. Error unserialize",
 			filePath: "./testr/micro-config-error.dat",
-			expected: micro.Config{},
+			expected: iotc.Config{},
 			err: errors{
 				want: true,
 				msg:  "Unmarshalling the configuration",
@@ -82,7 +81,7 @@ func TestConfigRead_Read(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			c := micro.FileConfigRead{
+			c := iotc.FileConfigRead{
 				Log:      zap.NewExample(),
 				DataFile: tt.filePath,
 			}
@@ -105,11 +104,11 @@ func TestConfigWrite_Save(t *testing.T) {
 	}
 
 	type args struct {
-		data micro.Config
+		data iotc.Config
 	}
 
 	type res struct {
-		scnf sockets.Config
+		scnf iot.DeviceConfig
 	}
 
 	type errors struct {
@@ -130,14 +129,13 @@ func TestConfigWrite_Save(t *testing.T) {
 				DataFile: "./testr/micro-config-write-sucess.dat",
 			},
 			args: args{
-				data: micro.DefaultConfig(),
+				data: iotc.DefaultConfig(),
 			},
 			res: res{
-				scnf: sockets.Config{
-					CommLatency:      2 * time.Second,
-					Buffer:           3 * time.Second,
-					TaskTime:         8 * time.Second,
-					NotificationTime: 8 * time.Second,
+				scnf: iot.DeviceConfig{
+					WakeUpTime:         30,
+					CollectMetricsTime: 800,
+					Buffer:             3,
 				},
 			},
 			err: errors{
@@ -150,7 +148,7 @@ func TestConfigWrite_Save(t *testing.T) {
 				DataFile: "./no_exist/micro-config-write.dat",
 			},
 			args: args{
-				data: micro.DefaultConfig(),
+				data: iotc.DefaultConfig(),
 			},
 			err: errors{
 				want: true,
@@ -172,9 +170,8 @@ func TestConfigWrite_Save(t *testing.T) {
 				h.On("Config", tt.res.scnf)
 			}
 
-			c := micro.FileConfigWrite{
+			c := iotc.FileConfigWrite{
 				Log:      zap.NewExample(),
-				MControl: &micro.Controller{},
 				Hub:      h,
 				Config:   cnf,
 				DataFile: tt.fields.DataFile,

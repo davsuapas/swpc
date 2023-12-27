@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-package web_test
+package iot_test
 
 import (
 	"net/http"
@@ -27,9 +27,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/swpoolcontroller/internal/config"
-	"github.com/swpoolcontroller/internal/web"
-	"github.com/swpoolcontroller/internal/web/mocks"
+	"github.com/swpoolcontroller/internal/iot"
+	"github.com/swpoolcontroller/internal/iot/mocks"
 	"go.uber.org/zap"
 )
 
@@ -39,10 +38,10 @@ func TestWS_Register_WS_Should_Return_StatusOk(t *testing.T) {
 	cstatusCode := make(chan int)
 
 	hubm := mocks.NewHub(t)
-	hubm.On("RegisterClient", mock.AnythingOfType("iot.Client"))
+	hubm.On("RegisterDevice", mock.AnythingOfType("iot.Device"))
 
 	regh := func(w http.ResponseWriter, r *http.Request) {
-		ws := web.NewWS(zap.NewExample(), config.Default().Web, hubm)
+		ws := iot.NewWS(zap.NewExample(), hubm)
 		c := echo.New().NewContext(r, w)
 		_ = ws.Register(c)
 		cstatusCode <- c.Response().Status
@@ -53,14 +52,8 @@ func TestWS_Register_WS_Should_Return_StatusOk(t *testing.T) {
 
 	u := "ws" + strings.TrimPrefix(s.URL, "http")
 
-	cookie := http.Cookie{
-		Name:     web.WSClientIDName,
-		Value:    "1234",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false}
 	header := make(http.Header)
-	header.Add("Cookie", cookie.String())
+	header.Add("id", "1")
 
 	ws, r, err := websocket.DefaultDialer.Dial(u, header)
 
@@ -83,37 +76,9 @@ func TestWS_Register_Http_Should_Return_StatusBadRequest(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	ws := web.NewWS(zap.NewExample(), config.Default().Web, mocks.NewHub(t))
+	ws := iot.NewWS(zap.NewExample(), mocks.NewHub(t))
 
 	_ = ws.Register(c)
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
-}
-
-func TestWS_Register_WS_Without_Socket_Should_Return_StatusInternalServerError(
-	t *testing.T) {
-	t.Parallel()
-
-	cstatusCode := make(chan int)
-
-	regh := func(w http.ResponseWriter, r *http.Request) {
-		ws := web.NewWS(zap.NewExample(), config.Default().Web, mocks.NewHub(t))
-		c := echo.New().NewContext(r, w)
-		_ = ws.Register(c)
-		cstatusCode <- c.Response().Status
-	}
-
-	s := httptest.NewServer(http.HandlerFunc(regh))
-	defer s.Close()
-
-	u := "ws" + strings.TrimPrefix(s.URL, "http")
-
-	ws, r, err := websocket.DefaultDialer.Dial(u, nil)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-	defer r.Body.Close()
-	defer ws.Close()
-
-	assert.Equal(t, http.StatusInternalServerError, <-cstatusCode)
 }

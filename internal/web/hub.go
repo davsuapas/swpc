@@ -17,12 +17,12 @@
 
 package web
 
-import "github.com/swpoolcontroller/pkg/sockets"
+import "github.com/swpoolcontroller/pkg/iot"
 
 type Hub interface {
-	// Register registers client into the hub
-	Register(client sockets.Client)
+	// RegisterClient registers client into the hub
+	RegisterClient(client iot.Client)
 
-	// Unregister unregisters client into the hub
-	Unregister(id string)
+	// UnregisterClient unregisters client into the hub
+	UnregisterClient(id string)
 }

@@ -15,13 +15,12 @@
  *   limitations under the License.
  */
 
-package micro
+package iot
 
 import (
 	"context"
 	"encoding/json"
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -29,7 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/pkg/errors"
 	"github.com/swpoolcontroller/internal/config"
-	"github.com/swpoolcontroller/pkg/sockets"
+	"github.com/swpoolcontroller/pkg/iot"
 	"github.com/swpoolcontroller/pkg/strings"
 	"go.uber.org/zap"
 )
@@ -143,7 +142,6 @@ func (c *FileConfigRead) Read() (Config, error) {
 // FileConfigWrite writes the micro controller configuration to file
 type FileConfigWrite struct {
 	Log      *zap.Logger
-	MControl *Controller
 	Hub      Hub
 	Config   config.Config
 	DataFile string
@@ -164,7 +162,7 @@ func (c FileConfigWrite) Save(data Config) error {
 		return errors.Wrap(err, strings.Concat(errSaveConfig, c.DataFile))
 	}
 
-	notifyHub(c.Config, data, c.MControl, c.Hub)
+	notifyHub(c.Config, data, c.Hub)
 
 	return nil
 }
@@ -240,7 +238,6 @@ func (c *AWSConfigRead) Read() (Config, error) {
 // ConfigWrite writes the micro controller configuration from AWS dynamodb
 type AWSConfigWrite struct {
 	log       *zap.Logger
-	mControl  *Controller
 	hub       Hub
 	config    config.Config
 	tableName string
@@ -251,7 +248,6 @@ type AWSConfigWrite struct {
 // from AWS dynamodb
 func NewAWSConfigWrite(
 	log *zap.Logger,
-	mControl *Controller,
 	hub Hub,
 	config config.Config,
 	cfg aws.Config,
@@ -259,7 +255,6 @@ func NewAWSConfigWrite(
 	//
 	return &AWSConfigWrite{
 		log:       log,
-		mControl:  mControl,
 		hub:       hub,
 		config:    config,
 		tableName: tableName,
@@ -294,18 +289,15 @@ func (c AWSConfigWrite) Save(data Config) error {
 		return errors.Wrap(err, strings.Concat(errSaveConfig, c.tableName))
 	}
 
-	notifyHub(c.config, data, c.mControl, c.hub)
+	notifyHub(c.config, data, c.hub)
 
 	return nil
 }
 
-func notifyHub(c config.Config, data Config, mc *Controller, h Hub) {
-	mc.SetConfig(data)
-
-	h.Config(sockets.Config{
-		TaskTime:         time.Duration(c.TaskTime) * time.Second,
-		NotificationTime: time.Duration(c.NotificationTime) * time.Second,
-		CommLatency:      time.Duration(c.CommLatencyTime) * time.Second,
-		Buffer:           time.Duration(data.Buffer) * time.Second,
+func notifyHub(c config.Config, data Config, h Hub) {
+	h.Config(iot.DeviceConfig{
+		WakeUpTime:         data.Wakeup,
+		CollectMetricsTime: c.CollectMetricsTime,
+		Buffer:             data.Buffer,
 	})
 }

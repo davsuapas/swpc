@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-package api_test
+package iot_test
 
 import (
 	"net/http"
@@ -24,8 +24,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"github.com/swpoolcontroller/internal/api"
 	"github.com/swpoolcontroller/internal/config"
+	"github.com/swpoolcontroller/internal/iot"
 	"go.uber.org/zap"
 )
 
@@ -67,11 +67,11 @@ func TestAuth_Token(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/token/", nil)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetPath("/token/:" + api.ClientIDName)
-			c.SetParamNames(api.ClientIDName)
+			c.SetPath("/token/:" + iot.ClientIDName)
+			c.SetParamNames(iot.ClientIDName)
 			c.SetParamValues(tt.args.sID)
 
-			o := api.NewAuth(zap.NewExample(), config.API{SessionExpiration: 1})
+			o := iot.NewAuth(zap.NewExample(), config.API{SessionExpiration: 10})
 
 			_ = o.Token(c)
 

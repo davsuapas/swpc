@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-package api
+package iot
 
 import (
 	"net/http"
@@ -30,11 +30,11 @@ import (
 const ClientIDName = "client_id"
 
 const (
-	errBadID = "OAuth.Token-> The secretID is bad"
-	errSign  = "OAuth.Token-> Error signing token"
+	errBadID = "OAuth.Token.The secretID is bad"
+	errSign  = "OAuth.Token.Error signing token"
 )
 
-const dbgGetTk = "OAuth.Token -> Getting token"
+const dbgGetTk = "OAuth.Token.Getting token"
 
 // Auth controllers the access of the API
 type Auth struct {
@@ -64,7 +64,7 @@ func (o *Auth) Token(ctx echo.Context) error {
 	claims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(
 			time.Now().Add(
-				time.Duration(o.ac.SessionExpiration) * time.Minute)),
+				time.Duration(o.ac.SessionExpiration) * time.Second)),
 	}
 
 	// Create token with claims

@@ -30,14 +30,14 @@ import (
 )
 
 const (
-	errTkInvalid     = "Auth -> Token invalid"
-	errStateInvalid  = "Auth -> Auth state invalid"
-	errGetWSClientID = "Auth -> Getting web socket client id from web request"
+	errTkInvalid     = "Token invalid"
+	errStateInvalid  = "Auth state invalid"
+	errGetWSClientID = "Getting web socket client id from web request"
 )
 
 const (
-	infLogin  = "Auth -> Get token for login"
-	infLogoff = "Auth -> Remove token for logoff"
+	infLogin  = "Auth.Get token for login"
+	infLogoff = "Auth.Remove token for logoff"
 )
 
 const (
@@ -195,7 +195,7 @@ func unregisterHub(ctx echo.Context, log *zap.Logger, hub Hub) bool {
 		return false
 	}
 
-	hub.Unregister(id.Value)
+	hub.UnregisterClient(id.Value)
 
 	return true
 }

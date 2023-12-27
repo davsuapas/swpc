@@ -23,11 +23,8 @@ import Alert from "../info/alert";
 
 // CommStatus is the communications status
 enum CommStatus {
-    // activeComm is when the hub is in transmit mode. There are clients connected,
-    // but there is not transmission from sender
-    activeComm,
-    // inactiveComm is when the hub was in streaming mode but there is no transmission from the sender
-    inactiveComm
+    inactive,
+    active
 }
 
 export interface Metrics {
@@ -49,7 +46,7 @@ export default class SocketFactory {
 
     constructor(private alert: RefObject<Alert>, private actions: Actions) {
         const protocol = location.protocol == "https:" ? "wss" : "ws";
-        this.ws = new WebsocketBuilder(protocol + "://" + document.location.host + "/web/api/ws");
+        this.ws = new WebsocketBuilder(protocol + "://" + document.location.host + "/api/web/ws");
 
         this.event = {
             streamMetrics: () => {}
@@ -93,32 +90,18 @@ export default class SocketFactory {
                 if (message.messageType == MessageType.control ) {
                     const status = message.controlMessage();
 
-                    if (status == CommStatus.activeComm) {
-                        if (this.alert.current) {
-                            this.alert.current.content(
-                                "Comunicación con el micro controlador sin respuesta",
-                                "No se detecta ningún envío de métricas desde el micro controlador, seguiremos " +
-                                "intentado reestablecer la comunicación. Si persiste el problema, " +
-                                "asegúrese que el micro controlador se encuentra encedido y que la comunicación " +
-                                "se encuentra habilitada. También puede ser debido, a que no se encuentra " +
-                                "dentro del horario establecido para la recepción de las métricas, " +
-                                "o simplemente hay un retraso en las comunicaciones")
-                                
-                            this.alert.current.open();
-                            this.actions.activeStandby(true)
-                        }
-                    } else {
-                        if (this.alert.current) {
-                            this.alert.current.content(
-                                "Comunicación con el micro controlador sin respuesta, después de envíos satisfactorios",
-                                "Parece que la comunicación con el micro controlador se encuentra caída. " + 
-                                "Si persiste el problema, " +
-                                "asegúrese que el micro controlador se encuentra encedido y que la comunicación " +
-                                "se encuentra habilitada")
-
-                            this.alert.current.open();
-                            this.actions.activeStandby(true)
-                        }
+                    if (this.alert.current) {
+                        this.alert.current.content(
+                            "Comunicación con el micro controlador sin respuesta",
+                            "No se detecta ningún envío de métricas desde el micro controlador, seguiremos " +
+                            "intentado reestablecer la comunicación. Si persiste el problema, " +
+                            "asegúrese que el micro controlador se encuentra encedido y que la comunicación " +
+                            "se encuentra habilitada. También puede ser debido, a que no se encuentra " +
+                            "dentro del horario establecido para la recepción de las métricas, " +
+                            "o simplemente hay un retraso en las comunicaciones")
+                            
+                        this.alert.current.open();
+                        this.actions.activeStandby(true)
                     }
                 } else {
                     this.actions.activeStandby(false);
@@ -158,7 +141,9 @@ class MessageFactory {
 
     // controlMessage gets communication status
     controlMessage(): CommStatus {
-        return Number.parseInt(this.rawMessage) == 1 ? CommStatus.activeComm : CommStatus.inactiveComm
+        return Number.parseInt(this.rawMessage) == 1 ?
+         CommStatus.active : 
+         CommStatus.inactive
     }
 
     metricsMessage(): Metrics {

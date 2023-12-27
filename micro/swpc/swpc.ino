@@ -17,47 +17,49 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
-#include <HTTPClient.h>
+#include "tiny_websockets/message.hpp"
+#include "tiny_websockets/client.hpp"
 #include <ArduinoJson.h>
 #include <OneWire.h>                
 #include <DallasTemperature.h>
 
+using namespace websockets;
+
 // BRGIN configuration area
 const char *rootCACertificate = \
   "-----BEGIN CERTIFICATE-----\n" \
-  "MIIDZzCCAk8CFCtAzzSUwZs5ps9NJdV/xWP1xCBSMA0GCSqGSIb3DQEBCwUAMHAx\n" \
-  "CzAJBgNVBAYTAkVTMQ8wDQYDVQQIDAZNYWRyaWQxDzANBgNVBAcMBk1hZHJpZDER\n" \
-  "MA8GA1UECgwIZWxpcGNlcm8xLDAqBgNVBAMMI3N3cGMuZXUtd2VzdC0xLmVsYXN0\n" \ 
-  "aWNiZWFuc3RhbGsuY29tMB4XDTIzMTAyMzE1MDIyOFoXDTI0MTAyMjE1MDIyOFow\n" \
-  "cDELMAkGA1UEBhMCRVMxDzANBgNVBAgMBk1hZHJpZDEPMA0GA1UEBwwGTWFkcmlk\n" \
-  "MREwDwYDVQQKDAhlbGlwY2VybzEsMCoGA1UEAwwjc3dwYy5ldS13ZXN0LTEuZWxh\n" \
-  "c3RpY2JlYW5zdGFsay5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIB\n" \
-  "AQDJV8AvmkqnHOV9ZVG3ZxE/StTOKiPa6JtSCaz84BMIGs+cvezSz6NfAl/yJLUb\n" \
-  "92hwQoTtzJEbF6OmlaW99IIx6qUvpHfMZ4gOpyvwWzWExV365fkr9hz6GVWI1HMl\n" \
-  "RNeorLde/oklBe5bJN76QVdZ9OITyv0YJRi918GjOJxdfsG0ZZSWnLTG1A1z2oDe\n" \
-  "NDZi3SSN5rudKT10dnDe4rZU2KdqQi2JvlG2+2fsnfwDuK2Zj2XOvkwx823RqeYS\n" \
-  "U0BjPoOHGzrH5kawhE1BWJWzfrb/G7Ra6JNRI1rHls12PGcnBsn4FF65A094nGB3\n" \
-  "i2KNkThB5GcGvCDtllDqTHClAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACcZViq+\n" \
-  "xIvezg2UQ3LuEm+xpVS0781KvtOlQ8i4A2hvbOmvD1p+FhS4fXonSmDtd1pS/j7f\n" \
-  "CtvoDYcJajOPlpfFOkNsQNuXmxGZ+yoGAgzhA2yOJfUjnc55PCphXUEaXfBR19cZ\n" \
-  "niuArYvcA/WtoQO8YDY8H4a25wTSMNXml2xoMxIms0dqT73GMsANBscOmm9k6suI\n" \
-  "WEdCee0DOzbU9bZNtiioUldDfWZfUJiRzRUSSuk4eirtAQSc0qSp0Q1qVaeL5fSf\n" \
-  "3OTWa7LyJ7VVC/KF0GJ4CUQ2LfUsYnnOYrwwQR52sxiLOc2yIItR2Ic8XSe+9Fr3\n" \
+  "MIIDZzCCAk8CFCtAzzSUwZs5ps9NJdV/xWP1xCBSMA0GCSqGSIb3DQEBCwUAMHA\n" \
+  "CzAJBgNVBAYTAkVTMQ8wDQYDVQQIDAZNYWRyaWQxDzANBgNVBAcMBk1hZHJpZDE\n" \
+  "MA8GA1UECgwIZWxpcGNlcm8xLDAqBgNVBAMMI3N3cGMuZXUtd2VzdC0xLmVsYXN\n" \ 
+  "aWNiZWFuc3RhbGsuY29tMB4XDTIzMTAyMzE1MDIyOFoXDTI0MTAyMjE1MDIyOFo\n" \
+  "cDELMAkGA1UEBhMCRVMxDzANBgNVBAgMBk1hZHJpZDEPMA0GA1UEBwwGTWFkcml\n" \
+  "MREwDwYDVQQKDAhlbGlwY2VybzEsMCoGA1UEAwwjc3dwYy5ldS13ZXN0LTEuZWx\n" \
+  "c3RpY2JlYW5zdGFsay5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoI\n" \
+  "AQDJV8AvmkqnHOV9ZVG3ZxE/StTOKiPa6JtSCaz84BMIGs+cvezSz6NfAl/yJLU\n" \
+  "92hwQoTtzJEbF6OmlaW99IIx6qUvpHfMZ4gOpyvwWzWExV365fkr9hz6GVWI1HM\n" \
+  "RNeorLde/oklBe5bJN76QVdZ9OITyv0YJRi918GjOJxdfsG0ZZSWnLTG1A1z2oD\n" \
+  "NDZi3SSN5rudKT10dnDe4rZU2KdqQi2JvlG2+2fsnfwDuK2Zj2XOvkwx823RqeY\n" \
+  "U0BjPoOHGzrH5kawhE1BWJWzfrb/G7Ra6JNRI1rHls12PGcnBsn4FF65A094nGB\n" \
+  "i2KNkThB5GcGvCDtllDqTHClAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACcZViq\n" \
+  "xIvezg2UQ3LuEm+xpVS0781KvtOlQ8i4A2hvbOmvD1p+FhS4fXonSmDtd1pS/j7\n" \
+  "CtvoDYcJajOPlpfFOkNsQNuXmxGZ+yoGAgzhA2yOJfUjnc55PCphXUEaXfBR19c\n" \
+  "niuArYvcA/WtoQO8YDY8H4a25wTSMNXml2xoMxIms0dqT73GMsANBscOmm9k6su\n" \
+  "WEdCee0DOzbU9bZNtiioUldDfWZfUJiRzRUSSuk4eirtAQSc0qSp0Q1qVaeL5fS\n" \
+  "3OTWa7LyJ7VVC/KF0GJ4CUQ2LfUsYnnOYrwwQR52sxiLOc2yIItR2Ic8XSe+9Fr\n" \
   "jZQs53bE1qYvC6k=\n" \
   "-----END CERTIFICATE-----\n";
 
-#define URL "http://192.168.1.135:5000"  
+#define URL "ws://192.168.1.135:5000"  
 
 #define URLAPI URL "/micro/api"
 
 // clientID define the ID to connect to the server
-#define clientID "sw3kf$fekdy56dfh"
+#define clientID ""
 #define URIToken URL "/auth/token/" clientID
 
 // WIFI definition
-const char *ssid = "WIWI";
-const char *password = "SFR4GLY96NVB265HRPOI!";
+const char *ssid = "";
+const char *password = "";
 
 // retryTimeSeconds defines the the retry time to request server
 #define retryTimeSeconds 10
@@ -167,8 +169,7 @@ String lastError;
 // Communications
 // To improve performance, they are kept global,
 // as they are constantly used
-WiFiClientSecure *wifics = NULL;
-HTTPClient *http = NULL;
+WebsocketsClient *ws = NULL;
 
 OneWire *ourWire;                    
 DallasTemperature *temp;
@@ -224,16 +225,8 @@ void setup() {
 
   checkWIFIConnection();
 
-  if (strstr(URL, "https") == NULL) {
-    Serial.println("Using HTTP");
-  } else {
-    Serial.println("Using HTTPS");
-    wifics = new WiFiClientSecure();
-    wifics->setCACert(rootCACertificate);
-  }
-
-  http = new HTTPClient();
-
+  ws = new WebsocketsClient();
+  
   // Default settings. When connecting to the server
   // the configuration will change to the values configured
   // by the user.
@@ -673,6 +666,20 @@ void oAuthToken() {
 
         Serial.println("oAuthToken.securToken received");
     }
+}
+
+// checkWebSocket
+void checkWebSocket() {
+  if (!ws->available()) {
+    if (strstr(URL, "wss") == NULL) {
+      Serial.println("Using WS");
+    } else {
+      Serial.println("Using WSS");
+      ws->setCACert(rootCACertificate);
+    }
+
+    ws->connect()
+  }
 }
 
 // checkWIFIConnection checks for WIFI connection and if not, try again.

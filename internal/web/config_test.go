@@ -23,15 +23,14 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/swpoolcontroller/internal/config"
-	"github.com/swpoolcontroller/internal/micro"
-	"github.com/swpoolcontroller/internal/micro/mocks"
+	iotc "github.com/swpoolcontroller/internal/iot"
+	"github.com/swpoolcontroller/internal/iot/mocks"
 	"github.com/swpoolcontroller/internal/web"
-	"github.com/swpoolcontroller/pkg/sockets"
+	"github.com/swpoolcontroller/pkg/iot"
 	"go.uber.org/zap"
 )
 
@@ -82,11 +81,11 @@ func TestConfigWeb_Load(t *testing.T) {
 
 			cf := &web.ConfigWeb{
 				Log: zap,
-				MicroR: &micro.FileConfigRead{
+				MicroR: &iotc.FileConfigRead{
 					Log:      zap,
 					DataFile: tt.dataFile,
 				},
-				MicroW: &micro.FileConfigWrite{},
+				MicroW: &iotc.FileConfigWrite{},
 			}
 
 			_ = cf.Load(c)
@@ -103,7 +102,7 @@ func TestConfigWeb_Save(t *testing.T) {
 	zap := zap.NewExample()
 
 	type fields struct {
-		hubf     func() micro.Hub
+		hubf     func() iotc.Hub
 		dataFile string
 	}
 
@@ -116,13 +115,12 @@ func TestConfigWeb_Save(t *testing.T) {
 		{
 			name: "Save. StatusOk",
 			field: fields{
-				hubf: func() micro.Hub {
+				hubf: func() iotc.Hub {
 					h := mocks.NewHub(t)
-					h.On("Config", sockets.Config{
-						CommLatency:      2 * time.Second,
-						Buffer:           10 * time.Second,
-						TaskTime:         8 * time.Second,
-						NotificationTime: 8 * time.Second,
+					h.On("Config", iot.DeviceConfig{
+						WakeUpTime:         10,
+						CollectMetricsTime: 800,
+						Buffer:             10,
 					})
 
 					return h
@@ -136,7 +134,7 @@ func TestConfigWeb_Save(t *testing.T) {
 		{
 			name: "Save. StatusBadRequest",
 			field: fields{
-				hubf:     func() micro.Hub { return mocks.NewHub(t) },
+				hubf:     func() iotc.Hub { return mocks.NewHub(t) },
 				dataFile: "./testr/micro-config-write-sucess.dat",
 			},
 			argBody:   "{",
@@ -145,7 +143,7 @@ func TestConfigWeb_Save(t *testing.T) {
 		{
 			name: "Save. StatusInternalServerError",
 			field: fields{
-				hubf:     func() micro.Hub { return mocks.NewHub(t) },
+				hubf:     func() iotc.Hub { return mocks.NewHub(t) },
 				dataFile: "./not_exist/micro-config-write.dat",
 			},
 			argBody: `{"iniSendTime": "12:00", "endSendTime": "12:00",
@@ -169,10 +167,9 @@ func TestConfigWeb_Save(t *testing.T) {
 
 			cf := &web.ConfigWeb{
 				Log:    zap,
-				MicroR: &micro.FileConfigRead{},
-				MicroW: &micro.FileConfigWrite{
+				MicroR: &iotc.FileConfigRead{},
+				MicroW: &iotc.FileConfigWrite{
 					Log:      zap,
-					MControl: &micro.Controller{},
 					Hub:      tt.field.hubf(),
 					Config:   config.Default(),
 					DataFile: tt.field.dataFile,

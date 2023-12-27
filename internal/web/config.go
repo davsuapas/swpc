@@ -21,7 +21,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/swpoolcontroller/internal/micro"
+	"github.com/swpoolcontroller/internal/iot"
 	"go.uber.org/zap"
 )
 
@@ -34,8 +34,8 @@ const (
 // ConfigWeb manages the web configuration
 type ConfigWeb struct {
 	Log    *zap.Logger
-	MicroR micro.ConfigRead
-	MicroW micro.ConfigWrite
+	MicroR iot.ConfigRead
+	MicroW iot.ConfigWrite
 }
 
 // Load loads the configuration from disk file
@@ -52,7 +52,7 @@ func (cf *ConfigWeb) Load(ctx echo.Context) error {
 
 // Save saves the configuration to disk
 func (cf *ConfigWeb) Save(ctx echo.Context) error {
-	var conf micro.Config
+	var conf iot.Config
 
 	if err := ctx.Bind(&conf); err != nil {
 		cf.Log.Error(errGettingConfig, zap.Error(err))
