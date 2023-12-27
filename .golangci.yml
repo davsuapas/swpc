@@ -1,7 +1,5 @@
 run:
   deadline: 5m
-  skip-files:
-    - cmd/swpc-emulator/main.go
 linters:
   enable-all: true
   disable:
