@@ -59,8 +59,8 @@ const char *rootCACertificate = \
 #define clientID "sw3kf$fekdy56dfh"
 
 // WIFI definition
-const char *ssid = "WIWI";
-const char *password = "SFR4GLY96NVB265HRPOI!";
+const char *ssid = "";
+const char *password = "";
 
 // Device ID
 #define DeviceID "trescasas"
