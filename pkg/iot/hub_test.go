@@ -19,6 +19,7 @@ package iot_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -74,12 +75,17 @@ func TestHub_LifecycleNoTransmissionTimeWindows(t *testing.T) {
 			WakeUpTime:         1,
 			CollectMetricsTime: 800,
 			Buffer:             5,
+			IniSendTime:        "00:01",
+			EndSendTime:        "00:02",
 		},
 		CommLatency:      1 * time.Millisecond,
 		TaskTime:         50 * time.Second,
 		NotificationTime: 50 * time.Second,
-		IniSendTime:      "00:01",
-		EndSendTime:      "00:02",
+		HeartbeatConfig: iot.HeartbeatConfig{
+			HeartbeatInterval:     10 * time.Second,
+			HeartbeatPingTime:     0,
+			HeartbeatTimeoutCount: 1,
+		},
 	}
 
 	trace := newTrace()
@@ -174,13 +180,20 @@ func testHubBroadcastMessageToClientsFromNoTimeWindow(
 
 	assert.Equal(
 		t,
-		[]string{
-			"{\"t\":0,\"m\":\"{\\\"wut\\\":1,\\\"cmt\\\":800,\\\"buffer\\\":5}\"}",
-			"{\"t\":1,\"m\":\"1\"}"},
-		msgd,
-		"Device messages received")
+		iot.DeviceConfigDTO{
+			DeviceConfig: iot.DeviceConfig{
+				WakeUpTime:         1,
+				CollectMetricsTime: 800,
+				Buffer:             5,
+			},
+			HBI:  10,
+			HBTC: 1,
+		},
+		unmarshalHeartbeat(msgd[0]),
+		"Broadcast. Device config message")
+	assert.Equal(t, "\x011", msgd[1], "Broadcast. Device state message")
 
-	assert.Equal(t, []string{"1:message"}, msgc, "Client messages received")
+	assert.Equal(t, []string{"message"}, msgc, "Client messages received")
 
 	return false
 }
@@ -216,12 +229,19 @@ func testHubInactiveToActiveToSleepFromNoTimeWindow(
 
 	assert.Equal(
 		t,
-		[]string{
-			"{\"t\":0,\"m\":\"{\\\"wut\\\":1,\\\"cmt\\\":800,\\\"buffer\\\":5}\"}",
-			"{\"t\":1,\"m\":\"1\"}",
-			"{\"t\":1,\"m\":\"0\"}"},
-		msgd,
-		"Device messages sleep received")
+		iot.DeviceConfigDTO{
+			DeviceConfig: iot.DeviceConfig{
+				WakeUpTime:         1,
+				CollectMetricsTime: 800,
+				Buffer:             5,
+			},
+			HBI:  10,
+			HBTC: 1,
+		},
+		unmarshalHeartbeat(msgd[0]),
+		"Sleep. Device sleep config message")
+	assert.Equal(t, "\x011", msgd[1], "Sleep. Device state message")
+	assert.Equal(t, "\x010", msgd[2], "Sleep. Device state message")
 
 	return false
 }
@@ -234,12 +254,17 @@ func TestHub_InactiveStateTransmissionTimeWindowsStandbyAction(t *testing.T) {
 			WakeUpTime:         1,
 			CollectMetricsTime: 800,
 			Buffer:             5,
+			IniSendTime:        "00:00",
+			EndSendTime:        "23:59",
 		},
 		CommLatency:      1 * time.Millisecond,
 		TaskTime:         50 * time.Second,
 		NotificationTime: 50 * time.Second,
-		IniSendTime:      "00:00",
-		EndSendTime:      "23:59",
+		HeartbeatConfig: iot.HeartbeatConfig{
+			HeartbeatInterval:     10 * time.Second,
+			HeartbeatPingTime:     0,
+			HeartbeatTimeoutCount: 1,
+		},
 	}
 
 	trace := newTrace()
@@ -271,11 +296,18 @@ func TestHub_InactiveStateTransmissionTimeWindowsStandbyAction(t *testing.T) {
 
 	assert.Equal(
 		t,
-		[]string{
-			"{\"t\":0,\"m\":\"{\\\"wut\\\":1,\\\"cmt\\\":800,\\\"buffer\\\":5}\"}",
-			"{\"t\":1,\"m\":\"2\"}"},
-		msgd,
-		"Device messages received")
+		iot.DeviceConfigDTO{
+			DeviceConfig: iot.DeviceConfig{
+				WakeUpTime:         1,
+				CollectMetricsTime: 800,
+				Buffer:             5,
+			},
+			HBI:  10,
+			HBTC: 1,
+		},
+		unmarshalHeartbeat(msgd[0]),
+		"Device config message")
+	assert.Equal(t, "\x012", msgd[1], "Device state message")
 
 	assert.Subset(
 		t,
@@ -298,12 +330,17 @@ func TestHub_IdleBroadcast(t *testing.T) {
 			WakeUpTime:         1,
 			CollectMetricsTime: 800,
 			Buffer:             1,
+			IniSendTime:        "00:00",
+			EndSendTime:        "00:01",
 		},
 		CommLatency:      1 * time.Millisecond,
 		TaskTime:         50 * time.Millisecond,
 		NotificationTime: 50 * time.Second,
-		IniSendTime:      "00:00",
-		EndSendTime:      "00:01",
+		HeartbeatConfig: iot.HeartbeatConfig{
+			HeartbeatInterval:     10 * time.Second,
+			HeartbeatPingTime:     0,
+			HeartbeatTimeoutCount: 1,
+		},
 	}
 
 	trace := newTrace()
@@ -365,12 +402,17 @@ func TestHub_NotifyState(t *testing.T) {
 			WakeUpTime:         1,
 			CollectMetricsTime: 800,
 			Buffer:             1,
+			IniSendTime:        "00:00",
+			EndSendTime:        "00:01",
 		},
 		CommLatency:      1 * time.Millisecond,
 		TaskTime:         10 * time.Millisecond,
 		NotificationTime: 20 * time.Millisecond,
-		IniSendTime:      "00:00",
-		EndSendTime:      "00:01",
+		HeartbeatConfig: iot.HeartbeatConfig{
+			HeartbeatInterval:     10 * time.Second,
+			HeartbeatPingTime:     0,
+			HeartbeatTimeoutCount: 1,
+		},
 	}
 
 	trace := newTrace()
@@ -396,7 +438,7 @@ func TestHub_NotifyState(t *testing.T) {
 	assert.Equal(
 		t,
 		[]string{
-			"0:1"},
+			"01"},
 		msgd,
 		"Notify messages received")
 
@@ -411,12 +453,17 @@ func TestHub_SendConfigToDevice(t *testing.T) {
 			WakeUpTime:         1,
 			CollectMetricsTime: 800,
 			Buffer:             5,
+			IniSendTime:        "00:00",
+			EndSendTime:        "00:01",
 		},
 		CommLatency:      1 * time.Millisecond,
 		TaskTime:         50 * time.Second,
 		NotificationTime: 50 * time.Second,
-		IniSendTime:      "00:00",
-		EndSendTime:      "00:01",
+		HeartbeatConfig: iot.HeartbeatConfig{
+			HeartbeatInterval:     10 * time.Second,
+			HeartbeatPingTime:     1 * time.Second,
+			HeartbeatTimeoutCount: 1,
+		},
 	}
 
 	trace := newTrace()
@@ -444,15 +491,25 @@ func TestHub_SendConfigToDevice(t *testing.T) {
 		WakeUpTime:         1,
 		CollectMetricsTime: 1,
 		Buffer:             1,
+		IniSendTime:        "11:00",
+		EndSendTime:        "12:00",
 	})
 
 	msgd := readMessages(wsdc, 3)
 
 	assert.Equal(
 		t,
-		"{\"t\":0,\"m\":\"{\\\"wut\\\":1,\\\"cmt\\\":1,\\\"buffer\\\":1}\"}",
-		msgd[2],
-		"Device messages received")
+		iot.DeviceConfigDTO{
+			DeviceConfig: iot.DeviceConfig{
+				WakeUpTime:         1,
+				CollectMetricsTime: 1,
+				Buffer:             1,
+			},
+			HBI:  10,
+			HBTC: 1,
+		},
+		unmarshalHeartbeat(msgd[2]),
+		"Device config message")
 
 	assert.Len(t, trace.Errors, 0, "Errors")
 }
@@ -465,12 +522,17 @@ func TestHub_ClientDead(t *testing.T) {
 			WakeUpTime:         1,
 			CollectMetricsTime: 800,
 			Buffer:             1,
+			IniSendTime:        "00:00",
+			EndSendTime:        "00:01",
 		},
 		CommLatency:      1 * time.Millisecond,
 		TaskTime:         10 * time.Millisecond,
 		NotificationTime: 50 * time.Second,
-		IniSendTime:      "00:00",
-		EndSendTime:      "00:01",
+		HeartbeatConfig: iot.HeartbeatConfig{
+			HeartbeatInterval:     10 * time.Second,
+			HeartbeatPingTime:     0,
+			HeartbeatTimeoutCount: 1,
+		},
 	}
 
 	trace := newTrace()
@@ -500,11 +562,138 @@ func TestHub_ClientDead(t *testing.T) {
 			"Hub.The state has been changed (Previous state: Inactive, " +
 				"state: Dead, Clients empty: true, Device empty: true, " +
 				"Transmission time window: false, )",
-			"The check timer is deactivated because there are no clients",
+			"The check timer is deactivated because there are no activity",
 		},
 		"Info")
 
 	assert.Len(t, trace.Errors, 0, "Errors")
+}
+
+func TestHub_Multi_Link_Device(t *testing.T) {
+	t.Parallel()
+
+	cnf := iot.Config{
+		DeviceConfig: iot.DeviceConfig{
+			WakeUpTime:         1,
+			CollectMetricsTime: 800,
+			Buffer:             1,
+			IniSendTime:        "00:00",
+			EndSendTime:        "00:01",
+		},
+		CommLatency:      1 * time.Millisecond,
+		TaskTime:         50 * time.Second,
+		NotificationTime: 50 * time.Second,
+		HeartbeatConfig: iot.HeartbeatConfig{
+			HeartbeatInterval:     10 * time.Second,
+			HeartbeatPingTime:     0,
+			HeartbeatTimeoutCount: 1,
+		},
+	}
+
+	trace := newTrace()
+
+	wsds, wsdc, err := newWS()
+	if !assert.NoError(t, err, "New web device socket") {
+		return
+	}
+	defer wsds.Close()
+	defer wsdc.Close()
+
+	device := iot.Device{
+		ID:         "d1",
+		Connection: wsds,
+	}
+
+	hub := iot.NewHub(cnf, trace.CHInfo, trace.CHError)
+	defer hub.Stop()
+
+	hub.Run()
+
+	hub.RegisterDevice(device)
+	time.Sleep(10 * time.Millisecond)
+
+	wsds1, wsdc1, err1 := newWS()
+	if !assert.NoError(t, err1, "New web device1 socket") {
+		return
+	}
+	defer wsds1.Close()
+	defer wsdc1.Close()
+
+	device1 := iot.Device{
+		ID:         "d2",
+		Connection: wsds1,
+	}
+
+	hub.RegisterDevice(device1)
+	time.Sleep(10 * time.Millisecond)
+
+	msgd := readMessages(wsdc1, 1)
+
+	assert.Equal(
+		t,
+		iot.DeviceConfigDTO{
+			DeviceConfig: iot.DeviceConfig{
+				WakeUpTime:         1,
+				CollectMetricsTime: 800,
+				Buffer:             1,
+			},
+			HBI:  10,
+			HBTC: 1,
+		},
+		unmarshalHeartbeat(msgd[0]),
+		"Device config message")
+
+	assert.Len(t, trace.Errors, 0, "Errors")
+}
+
+func TestHub_HeartbeatTimeout(t *testing.T) {
+	t.Parallel()
+
+	cnf := iot.Config{
+		DeviceConfig: iot.DeviceConfig{
+			WakeUpTime:         1,
+			CollectMetricsTime: 800,
+			Buffer:             1,
+			IniSendTime:        "00:00",
+			EndSendTime:        "00:01",
+		},
+		CommLatency:      1 * time.Millisecond,
+		TaskTime:         50 * time.Second,
+		NotificationTime: 50 * time.Second,
+		HeartbeatConfig: iot.HeartbeatConfig{
+			HeartbeatInterval:     1 * time.Millisecond,
+			HeartbeatPingTime:     1 * time.Millisecond,
+			HeartbeatTimeoutCount: 2,
+		},
+	}
+
+	trace := newTrace()
+
+	wsds, wsdc, err := newWS()
+	if !assert.NoError(t, err, "New web device socket") {
+		return
+	}
+	defer wsds.Close()
+	defer wsdc.Close()
+
+	device := iot.Device{
+		ID:         "d1",
+		Connection: wsds,
+	}
+
+	hub := iot.NewHub(
+		cnf,
+		trace.CHInfo,
+		trace.CHError)
+
+	defer hub.Stop()
+
+	hub.Run()
+
+	hub.RegisterDevice(device)
+	time.Sleep(10 * time.Millisecond)
+
+	assert.Len(t, trace.Errors, 1, "Errors")
 }
 
 func Test_StatusString(t *testing.T) {
@@ -626,4 +815,11 @@ func readMessages(wsc *websocket.Conn, numMsg int) []string {
 	}
 
 	return msgs
+}
+
+func unmarshalHeartbeat(data string) iot.DeviceConfigDTO {
+	var res iot.DeviceConfigDTO
+	_ = json.Unmarshal([]byte(data[1:]), &res)
+
+	return res
 }

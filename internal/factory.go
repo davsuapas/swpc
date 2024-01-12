@@ -240,13 +240,20 @@ func newHub(
 				WakeUpTime:         microc.Wakeup,
 				CollectMetricsTime: config.CollectMetricsTime,
 				Buffer:             microc.Buffer,
+				IniSendTime:        microc.IniSendTime,
+				EndSendTime:        microc.EndSendTime,
 			},
 			Location:         loc,
 			CommLatency:      time.Duration(config.CommLatencyTime) * time.Second,
 			TaskTime:         time.Duration(config.TaskTime) * time.Second,
 			NotificationTime: time.Duration(config.NotificationTime) * time.Second,
-			IniSendTime:      microc.IniSendTime,
-			EndSendTime:      microc.EndSendTime,
+			HeartbeatConfig: iot.HeartbeatConfig{
+				HeartbeatInterval: time.Duration(config.HeartbeatInterval) *
+					time.Second,
+				HeartbeatPingTime: time.Duration(config.HeartbeatPingTime) *
+					time.Second,
+				HeartbeatTimeoutCount: config.HeartbeatTimeoutCount,
+			},
 		},
 		hubt.Info,
 		hubt.Error)

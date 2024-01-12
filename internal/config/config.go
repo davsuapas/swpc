@@ -41,7 +41,8 @@ const (
 		"(none, aws)"
 	errDataProvider = "The data provider param must be configured to " +
 		"(file, cloud)"
-	errGets = "Cannot obtain supplier's secret"
+	errHeatbeat = "The heratbeat must be confgured"
+	errGets     = "Cannot obtain supplier's secret"
 )
 
 const (
@@ -172,24 +173,28 @@ type Auth struct {
 }
 
 type API struct {
-	// SessionExpiration defines the session expiration in seconds
-	SessionExpiration int `json:"expirationSession,omitempty"`
 	// CommLatencyTime sets the possible communication latency
 	// between the device and the hub, in seconds
 	CommLatencyTime int `json:"commLatencyTime,omitempty"`
 	// CollectMetricsTime defines how often metrics are collected in miliseconds
 	CollectMetricsTime int `json:"collectMetricsTime,omitempty"`
-	// CheckTransTime defines when the micro-controller is in
-	// the time window to transmit in case there are no clients,
-	// every so often it checks when to transmit
-	CheckTransTime int `json:"checkTransTime,omitempty"`
 	// ClientID is a identifier that allows the device
 	// and the hub to communicate securely.
 	ClientID string `json:"clientId,omitempty"`
-	// SecretKey defines the secret key to generate the token
+	// TokenSecretKey defines the secret key to generate the token
 	// that allows the device
 	// and the hub to communicate securely.
 	TokenSecretKey string `json:"tokenSecretKey,omitempty"`
+	// HeartbeatInterval is the interval in seconds that
+	// the iot device sends a ping for heartbeat
+	HeartbeatInterval uint8 `json:"heartbeatInterval"`
+	// heartbeatPingTime is the additional time in seconds
+	// it may take for the ping to arrive from iot device.
+	// Zero does not check heartbeat
+	HeartbeatPingTime uint8 `json:"heartbeatPingTime"`
+	// HeartbeatTimeoutCount is the amount of timeout allowed
+	// before closing the connection to the device.
+	HeartbeatTimeoutCount uint8 `json:"heartbeatTimeoutCount"`
 }
 
 // Web describes the web configuration
@@ -325,12 +330,13 @@ func Default() Config {
 			},
 		},
 		API: API{
-			SessionExpiration:  10,
-			CommLatencyTime:    2,
-			CollectMetricsTime: 800,
-			CheckTransTime:     5,
-			ClientID:           "sw3kf$fekdy56dfh", // Only for dev
-			TokenSecretKey:     "A1Q2wsDE34RF!",    // Only for dev
+			CommLatencyTime:       2,
+			CollectMetricsTime:    1000,
+			ClientID:              "sw3kf$fekdy56dfh", // Only for dev
+			TokenSecretKey:        "A1Q2wsDE34RF!",    // Only for dev
+			HeartbeatInterval:     30,
+			HeartbeatPingTime:     5,
+			HeartbeatTimeoutCount: 2,
 		},
 		Hub: Hub{
 			TaskTime:         8,
@@ -392,6 +398,11 @@ func LoadConfig() Config { //nolint:cyclop
 	if cnf.Data.Provider != FileDataProvider &&
 		cnf.Data.Provider != CloudDataProvider {
 		panic(errCloudProvider)
+	}
+
+	if cnf.HeartbeatInterval == 0 ||
+		cnf.HeartbeatTimeoutCount == 0 {
+		panic(errHeatbeat)
 	}
 
 	return cnf

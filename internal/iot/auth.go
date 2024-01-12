@@ -63,8 +63,7 @@ func (o *Auth) Token(ctx echo.Context) error {
 
 	claims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(
-			time.Now().Add(
-				time.Duration(o.ac.SessionExpiration) * time.Second)),
+			time.Now().Add(time.Duration(5) * time.Minute)),
 	}
 
 	// Create token with claims

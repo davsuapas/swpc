@@ -296,8 +296,10 @@ func (c AWSConfigWrite) Save(data Config) error {
 
 func notifyHub(c config.Config, data Config, h Hub) {
 	h.Config(iot.DeviceConfig{
-		WakeUpTime:         data.Wakeup,
 		CollectMetricsTime: c.CollectMetricsTime,
+		WakeUpTime:         data.Wakeup,
 		Buffer:             data.Buffer,
+		IniSendTime:        data.IniSendTime,
+		EndSendTime:        data.EndSendTime,
 	})
 }

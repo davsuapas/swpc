@@ -134,9 +134,8 @@ class MessageFactory {
     private rawMessage: string;
 
     constructor(msg: string) {
-        const tokens = msg.split(":")
-        this.messageType = tokens[0] == "0" ? MessageType.control : MessageType.metrics
-        this.rawMessage = tokens[1]
+        this.messageType = msg.at(0) == "0" ? MessageType.control : MessageType.metrics
+        this.rawMessage = msg.substring(1)
     }
 
     // controlMessage gets communication status
@@ -147,17 +146,11 @@ class MessageFactory {
     }
 
     metricsMessage(): Metrics {
-        const metrics = this.rawMessage.split(";");
+        const metrics = JSON.parse(this.rawMessage);
         return {
-            temp: this.arrayParseNumber(metrics[0]),
-            ph: this.arrayParseNumber(metrics[1]),
-            chlorine: this.arrayParseNumber(metrics[2])
+            temp: metrics.temp.map((m: String) => Number(m)),
+            ph: metrics.ph.map((m: String) => Number(m)),
+            chlorine: metrics.orp.map((m: String) => Number(m)),
         }
-    }
-
-    private arrayParseNumber(data: string): number[] {
-        const arrData = data.split(",");
-        const metrics = arrData.map((i) => Number(i));
-        return metrics;
     }
 }

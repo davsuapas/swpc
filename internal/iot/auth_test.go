@@ -51,7 +51,7 @@ func TestAuth_Token(t *testing.T) {
 		{
 			name: "Token. Invalid",
 			args: args{
-				sID: "tinvalid",
+				sID: "invalid",
 			},
 			status: http.StatusUnauthorized,
 		},
@@ -71,7 +71,7 @@ func TestAuth_Token(t *testing.T) {
 			c.SetParamNames(iot.ClientIDName)
 			c.SetParamValues(tt.args.sID)
 
-			o := iot.NewAuth(zap.NewExample(), config.API{SessionExpiration: 10})
+			o := iot.NewAuth(zap.NewExample(), config.API{})
 
 			_ = o.Token(c)
 

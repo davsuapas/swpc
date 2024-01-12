@@ -134,8 +134,10 @@ func TestConfigWrite_Save(t *testing.T) {
 			res: res{
 				scnf: iot.DeviceConfig{
 					WakeUpTime:         30,
-					CollectMetricsTime: 800,
+					CollectMetricsTime: 1000,
 					Buffer:             3,
+					IniSendTime:        "11:00",
+					EndSendTime:        "12:00",
 				},
 			},
 			err: errors{

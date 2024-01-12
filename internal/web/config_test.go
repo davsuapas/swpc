@@ -119,8 +119,10 @@ func TestConfigWeb_Save(t *testing.T) {
 					h := mocks.NewHub(t)
 					h.On("Config", iot.DeviceConfig{
 						WakeUpTime:         10,
-						CollectMetricsTime: 800,
+						CollectMetricsTime: 1000,
 						Buffer:             10,
+						IniSendTime:        "12:00",
+						EndSendTime:        "12:00",
 					})
 
 					return h

@@ -18,8 +18,10 @@
 package iot
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"net"
 	"strconv"
 	"sync"
 	"time"
@@ -39,13 +41,14 @@ const (
 	errClosingClient      = "Closing client"
 	errParseStartTime     = "Parser transmission start time"
 	errParseEndTime       = "Parser transmission end time"
+	errHeartbeatTime      = "IOT Device heartbeat timeout"
 )
 
 const (
 	infSendStateDesac = "Hub.An attempt has been made to send " +
 		"a message but the hub is not in transmission mode"
 	infCheckerDes = "The check timer is deactivated " +
-		"because there are no clients"
+		"because there are no activity"
 	infDeviceReg      = "Hub.Device iot registered"
 	infDeviceExists   = "Hub.Unregistering device when trying to register"
 	infClientReg      = "Hub.Client registered"
@@ -59,7 +62,9 @@ const (
 	infNotify         = "Hub.Notifying state"
 	infConfigChanged  = "Hub.The configuration has been changed"
 	infStateChanged   = "Hub.The state has been changed"
+	infSendAction     = "Hub.Send action to iot device"
 	infDeviceID       = "DeviceID"
+	infIOTDevice      = "IOT device"
 	infClientID       = "ClientID"
 	infLength         = "Length"
 	infState          = "state"
@@ -72,7 +77,12 @@ const (
 	infDeviceEmpty    = "Device empty"
 	infClientEmpty    = "Clients empty"
 	infTimeWindow     = "Transmission time window"
+	infHBTimeoutCount = "Heartbeat timeout count"
+	infHBInterval     = "Heartbeat interval"
 )
+
+// Time allowed to write a message to the websocket peer.
+const writeWait = 2 * time.Second
 
 const layaoutTime = "15:04"
 
@@ -102,6 +112,11 @@ const (
 	Closed
 )
 
+// stateMessageType is the type that differentiates
+// the message that is sent to the client
+// In this case, send a message with hub state
+const stateMessageType = "0"
+
 // DeviceMessageType is the type that differentiates
 // the message that is sent to the iot device
 type deviceMessageType uint8
@@ -126,7 +141,7 @@ const (
 )
 
 // DeviceConfig is the configuration information
-// that is sent to the device.
+// which can affects on the conduct of the device
 type DeviceConfig struct {
 	// WakeUpTime is the time set to wake up
 	// the micro-controller in minutes.
@@ -137,9 +152,23 @@ type DeviceConfig struct {
 	// Buffer is the time in seconds to store metrics
 	// before sending to the hub
 	Buffer uint8 `json:"buffer"`
+	// IniSendTime is the range for initiating metric sends.
+	// Format HH:mm
+	IniSendTime string `json:"-"`
+	// EndSendTime is the range for ending metric sends
+	// Format HH:mm
+	EndSendTime string `json:"-"`
 }
 
-func (mc *DeviceConfig) message() (string, error) {
+// DeviceConfigDTO is the information
+// to send to the device
+type DeviceConfigDTO struct {
+	DeviceConfig
+	HBI  uint8 `json:"hbi"`
+	HBTC uint8 `json:"hbtc"`
+}
+
+func (mc *DeviceConfigDTO) message() (string, error) {
 	m, err := json.Marshal(mc)
 	if err != nil {
 		return "", errors.Wrap(err, "message")
@@ -148,8 +177,22 @@ func (mc *DeviceConfig) message() (string, error) {
 	return string(m), nil
 }
 
+type HeartbeatConfig struct {
+	// HeartbeatInterval is the interval that
+	// the iot device sends a ping for heartbeat
+	// Zero does not check heartbeat
+	HeartbeatInterval time.Duration `json:"heartbeatInterval"`
+	// HeartbeatPingTime is the additional time it may take
+	// for the ping to arrive.
+	HeartbeatPingTime time.Duration `json:"heartbeatPingTime"`
+	// HeartbeatTimeoutCount is the amount of timeout allowed
+	// before closing the connection to the device.
+	HeartbeatTimeoutCount uint8 `json:"heartbeatTimeoutCount"`
+}
+
 type Config struct {
-	DeviceConfig `json:"deviceConfig"`
+	HeartbeatConfig `json:"heartbeatConfig"`
+	DeviceConfig    `json:"deviceConfig"`
 	// Location is the time zone
 	Location *time.Location `json:"location"`
 	// CommLatency is the time in seconds
@@ -159,12 +202,6 @@ type Config struct {
 	TaskTime time.Duration `json:"taskTime"`
 	// NotificationTime defines how often a notification is sent
 	NotificationTime time.Duration `json:"notificationTime"`
-	// IniSendTime is the range for initiating metric sends.
-	// Format HH:mm
-	IniSendTime string `json:"iniSendTime"`
-	// EndSendTime is the range for ending metric sends
-	// Format HH:mm
-	EndSendTime string `json:"endSendTime"`
 }
 
 func (c *Config) string() string {
@@ -177,17 +214,17 @@ func (c *Config) string() string {
 }
 
 type deviceMessage struct {
-	Mtype deviceMessageType `json:"t"`
-	Msg   string            `json:"m"`
+	Mtype deviceMessageType
+	Msg   string
 }
 
-func (d *deviceMessage) message() ([]byte, error) {
-	r, err := json.Marshal(d)
-	if err != nil {
-		return []byte{}, errors.Wrap(err, "message")
-	}
+func (d *deviceMessage) message() []byte {
+	var buffer bytes.Buffer
 
-	return r, nil
+	buffer.WriteByte(byte(d.Mtype))
+	buffer.WriteString(d.Msg)
+
+	return buffer.Bytes()
 }
 
 type Device struct {
@@ -197,6 +234,8 @@ type Device struct {
 
 // deviceController manages a socket connection of a iot device.
 type deviceController struct {
+	HeartbeatConfig
+
 	Device
 
 	mtx    sync.RWMutex
@@ -205,39 +244,60 @@ type deviceController struct {
 	onRecieveMessage chan string
 	onError          chan error
 
-	closeChannel chan struct{}
+	chSetConn   chan *websocket.Conn
+	chConnSetup chan struct{}
+
+	chExit chan struct{}
 }
 
-func newDeviceController() deviceController {
-	return deviceController{
+func newDeviceController(h HeartbeatConfig) *deviceController {
+	//
+	d := &deviceController{
+		HeartbeatConfig:  h,
 		closed:           true,
 		onRecieveMessage: make(chan string),
 		onError:          make(chan error),
-		closeChannel:     make(chan struct{}),
+		chSetConn:        make(chan *websocket.Conn),
+		chConnSetup:      make(chan struct{}),
+		chExit:           make(chan struct{}),
 	}
+
+	d.recieveMessage()
+
+	return d
 }
 
-// link enganges the iot device connection to the controller
-func (d *deviceController) link(device Device) error {
-	//
-	err := d.close()
-
+// Link enganges the iot device connection to the controller
+// If another connection is open, it is closed before
+// assigning the new connection.
+// Never use if the Stop() method is called,
+// makes a new newDeviceController.
+// I don't know how to protect it because it is for internal use
+func (d *deviceController) Link(device Device) error {
 	d.ID = device.ID
-	d.Connection = device.Connection
 
-	d.setClosed(false)
+	err := d.Close()
 
-	go d.recieveMessage()
+	// Assigns the connection and waits for it to be completed
+	d.chSetConn <- device.Connection
+	<-d.chConnSetup
 
 	return err
 }
 
-func (d *deviceController) sendConfig(cnf DeviceConfig) error {
-	if d.isClosed() {
+// SendConfig sends configuration changes
+func (d *deviceController) SendConfig(cnf DeviceConfig) error {
+	if d.IsClosed() {
 		return nil
 	}
 
-	msgc, err := cnf.message()
+	cnfdto := DeviceConfigDTO{
+		HBI:          uint8(d.HeartbeatInterval.Seconds()),
+		HBTC:         d.HeartbeatTimeoutCount,
+		DeviceConfig: cnf,
+	}
+
+	msgc, err := cnfdto.message()
 	if err != nil {
 		return err
 	}
@@ -245,8 +305,9 @@ func (d *deviceController) sendConfig(cnf DeviceConfig) error {
 	return d.send(deviceConfig, msgc)
 }
 
-func (d *deviceController) sendAction(a deviceAction) error {
-	if d.isClosed() {
+// SendAction sends the next action to be taken by the device
+func (d *deviceController) SendAction(a deviceAction) error {
+	if d.IsClosed() {
 		return nil
 	}
 
@@ -259,41 +320,123 @@ func (d *deviceController) send(t deviceMessageType, msgc string) error {
 		Msg:   msgc,
 	}
 
-	msgd, err := dm.message()
-	if err != nil {
-		return errors.Wrap(err, "deviceMessage")
+	_ = d.Connection.SetWriteDeadline(time.Now().Add(writeWait))
+
+	if err := d.Connection.WriteMessage(
+		websocket.TextMessage,
+		dm.message()); err != nil {
+		//
+		if errors.Is(err, websocket.ErrCloseSent) {
+			return nil
+		}
+
+		d.Close()
+
+		return errors.Wrap(err, infIOTDevice)
 	}
 
-	return errors.Wrap(
-		d.Connection.WriteMessage(websocket.TextMessage, msgd),
-		"device")
+	return nil
+}
+
+func (d *deviceController) pingHandle(message string) error {
+	err := d.Connection.WriteControl(
+		websocket.PongMessage,
+		[]byte(message),
+		time.Now().Add(writeWait))
+
+	var ne net.Error
+
+	if errors.Is(err, websocket.ErrCloseSent) {
+		return nil
+	} else if errors.As(err, &ne) {
+		return nil
+	}
+
+	if err == nil {
+		_ = d.readDeadLine()
+	}
+
+	return errors.Wrap(err, "pingHandle")
 }
 
 // recieveMessage receives messages and
 // if there is an error it closes the connection,
-// notifies and exits.
+// notifies and it is put on hold for another connection.
 func (d *deviceController) recieveMessage() {
-	for {
-		select {
-		case <-d.closeChannel:
-			return
-		default:
-			t, m, err := d.Connection.ReadMessage()
-			if err != nil {
-				d.setClosed(true)
-				d.Connection.Close()
-				d.onError <- err
-
+	go func() {
+		for {
+			select {
+			case <-d.chExit:
 				return
-			}
+			case conn := <-d.chSetConn:
+				d.setClosed(false)
+				d.Connection = conn
+				d.Connection.SetPingHandler(d.pingHandle)
+				d.chConnSetup <- struct{}{}
 
-			if t != websocket.TextMessage {
-				continue
+				for {
+					if d.readMessage() {
+						break
+					}
+				}
 			}
-
-			d.onRecieveMessage <- string(m)
 		}
+	}()
+}
+
+// readMessage reads the message. If an error is caused,
+// the connection is closed, except if a timeout occurs
+// because a ping is not received, in which case retries
+// are made until the number of possible attempts is exceeded.
+// If there are no errors, the message is sent through
+// the onRecieveMessage channel.
+// If true is returned, it exits
+func (d *deviceController) readMessage() bool {
+	timeout := d.readDeadLine()
+
+	t, m, err := d.Connection.ReadMessage()
+	if err != nil {
+		errWrap := errors.Wrap(err, infIOTDevice)
+
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			// A heartbeatTimeout has occurred
+			errWrap = errors.Wrap(
+				err,
+				strings.Format(
+					errHeartbeatTime,
+					strings.FMTValue(infHBInterval, timeout.String()),
+					strings.FMTValue(infHBTimeoutCount, string(d.HeartbeatTimeoutCount))))
+		}
+
+		closedManual := d.IsClosed()
+		d.Close()
+
+		// If it was closed because the close() method
+		// was manually called, the close is not notified
+		// because it is already manually controlled.
+		// It is known because previously the close() method
+		// sets closed=true.
+		if !closedManual {
+			d.onError <- errWrap
+		}
+
+		return true
 	}
+
+	if t == websocket.TextMessage {
+		d.onRecieveMessage <- string(m)
+	}
+
+	return false
+}
+
+func (d *deviceController) readDeadLine() time.Duration {
+	timeout := (d.HeartbeatInterval + d.HeartbeatPingTime) *
+		time.Duration(d.HeartbeatTimeoutCount)
+	_ = d.Connection.SetReadDeadline(time.Now().Add(timeout))
+
+	return timeout
 }
 
 func (d *deviceController) setClosed(closed bool) {
@@ -302,7 +445,7 @@ func (d *deviceController) setClosed(closed bool) {
 	d.mtx.Unlock()
 }
 
-func (d *deviceController) isClosed() bool {
+func (d *deviceController) IsClosed() bool {
 	d.mtx.RLock()
 	c := d.closed
 	d.mtx.RUnlock()
@@ -310,16 +453,33 @@ func (d *deviceController) isClosed() bool {
 	return c
 }
 
-func (d *deviceController) close() error {
-	if d.Connection != nil && !d.isClosed() {
+// Close closes the socket and involves linking to another device
+func (d *deviceController) Close() error {
+	if d.Connection != nil && !d.IsClosed() {
 		d.setClosed(true)
-		// Causes the routine for receiving messages to terminate.
-		d.closeChannel <- struct{}{}
 
-		return errors.Wrap(d.Connection.Close(), "device")
+		_ = d.Connection.WriteControl(
+			websocket.CloseMessage,
+			[]byte{},
+			time.Now().Add(writeWait))
+
+		return errors.Wrap(d.Connection.Close(), infIOTDevice)
 	}
 
 	return nil
+}
+
+// Stop stops the controller and involves performing a NewController
+func (d *deviceController) Stop() {
+	d.Close()
+
+	d.chExit <- struct{}{}
+
+	close(d.chSetConn)
+	close(d.chConnSetup)
+	close(d.chExit)
+	close(d.onError)
+	close(d.onRecieveMessage)
 }
 
 // Client manages a socket connection to consume or sending
@@ -344,9 +504,16 @@ func NewClient(
 }
 
 func (c *Client) sendMessage(message string) error {
+	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+
 	if err := c.conn.WriteMessage(
 		websocket.TextMessage,
 		[]byte(message)); err != nil {
+		//
+		if errors.Is(err, websocket.ErrCloseSent) {
+			return nil
+		}
+
 		return errors.Wrap(err, "client")
 	}
 
@@ -379,15 +546,16 @@ func (c *Client) close() error {
 // even if it is not within this window. If there are no connected clients
 // and you are not within this window,
 // the device goes to sleep until the next check.
-// Messages sent to clients have the following simple format:
-// "0:state", where "state" can be 0 (inactive) and 1 (active),
-// or "1:message", where "message" is the message to client.
-// sent by iot device
+// Messages sent to the clients are in the format where
+// the type of message is differentiated by a number followed
+// by the message. The hub has a reserved type to send the status.
+// It starts with the number 0.
+// iot devices can receive messages from the hub defined in deviceMessage
 type Hub struct {
 	// clients manages broadcast clients
 	clients []Client
 	// device manages the iot device
-	device deviceController
+	device *deviceController
 
 	config Config
 
@@ -415,7 +583,7 @@ type Hub struct {
 // NewHub builds hub service. The config establishes
 // how the hub should behave. The infos channel receives
 // all infos into the hub. The errors channel receives
-// all errors into the hub
+// all errors into the hub.
 func NewHub(
 	cnf Config,
 	info chan string,
@@ -423,7 +591,7 @@ func NewHub(
 	//
 	return &Hub{
 		clients:     []Client{},
-		device:      newDeviceController(),
+		device:      newDeviceController(cnf.HeartbeatConfig),
 		config:      cnf,
 		regd:        make(chan Device),
 		reg:         make(chan Client),
@@ -527,7 +695,7 @@ func (h *Hub) registerDevice(device Device, check *time.Timer) {
 		return
 	}
 
-	if err := h.device.link(device); err != nil {
+	if err := h.device.Link(device); err != nil {
 		h.err <- errors.Wrap(
 			err,
 			strings.Format(
@@ -535,7 +703,7 @@ func (h *Hub) registerDevice(device Device, check *time.Timer) {
 				strings.FMTValue(infDeviceID, device.ID)))
 	}
 
-	if err := h.device.sendConfig(h.config.DeviceConfig); err != nil {
+	if err := h.device.SendConfig(h.config.DeviceConfig); err != nil {
 		h.err <- errors.Wrap(
 			err,
 			strings.Format(
@@ -543,7 +711,10 @@ func (h *Hub) registerDevice(device Device, check *time.Timer) {
 				strings.FMTValue(infDeviceID, device.ID)))
 	}
 
-	h.setState()
+	h.setState(true)
+
+	h.sendActionToDevice()
+
 	h.tryReactiveTimerCheck(check)
 
 	h.info <- strings.Format(
@@ -567,7 +738,7 @@ func (h *Hub) registerClient(client Client, check *time.Timer) {
 
 	h.clients = append(h.clients, client)
 
-	h.setState()
+	h.setState(false)
 	h.tryReactiveTimerCheck(check)
 
 	h.info <- strings.Format(
@@ -591,7 +762,7 @@ func (h *Hub) unregister(id string, check *time.Timer) {
 				strings.FMTValue(infLength, strconv.Itoa(len(h.clients)))))
 	}
 
-	h.setState()
+	h.setState(false)
 	h.tryReactiveTimerCheck(check)
 
 	h.info <- strings.Format(
@@ -614,7 +785,7 @@ func (h *Hub) sendMessageToClients(message string) {
 	h.notifySign = time.Now()
 	h.setBroadcastState()
 
-	h.sendMessage(strings.Concat("1:", message), errSendMsg)
+	h.sendMessage(message, errSendMsg)
 
 	h.info <- strings.Format(
 		infTransmit,
@@ -626,13 +797,15 @@ func (h *Hub) sendMessageToClients(message string) {
 func (h *Hub) sendConfigMessageToDevice(cnf DeviceConfig) {
 	h.config.DeviceConfig = cnf
 
-	if err := h.device.sendConfig(cnf); err != nil {
+	if err := h.device.SendConfig(cnf); err != nil {
 		h.err <- errors.Wrap(
 			err,
 			strings.Format(
 				errSendDevice,
 				strings.FMTValue(infDeviceID, h.device.ID)))
 	}
+
+	h.setState(false)
 
 	h.info <- strings.Format(
 		infConfigChanged,
@@ -641,7 +814,7 @@ func (h *Hub) sendConfigMessageToDevice(cnf DeviceConfig) {
 
 func (h *Hub) processDeviceError(err error) {
 	h.err <- err
-	h.setState()
+	h.setState(false)
 }
 
 // idleBroadcast checks whether there is still activity
@@ -655,7 +828,7 @@ func (h *Hub) idleBroadcast() {
 			h.config.CommLatency
 
 		if h.lastMessage.Add(idleTime).Before(time.Now()) {
-			h.setState()
+			h.setState(false)
 
 			h.info <- strings.Format(
 				infHubIdle,
@@ -689,7 +862,7 @@ func (h *Hub) notifyState() {
 	state := h.state
 
 	if h.sendMessage(
-		strings.Concat("0:", strconv.Itoa(int(h.state))), errNotify) {
+		strings.Concat(stateMessageType, strconv.Itoa(int(h.state))), errNotify) {
 		//
 		h.info <- strings.Format(
 			infNotify,
@@ -740,8 +913,8 @@ func (h *Hub) sendMessage(message string, errMessage string) bool {
 // if there are no clients and there is a device connected
 // can change the transmission window, therefore the state.
 func (h *Hub) CheckTransWindow() {
-	if h.clientsEmpty() && !h.device.isClosed() {
-		h.setState()
+	if h.clientsEmpty() && !h.device.IsClosed() {
+		h.setState(false)
 	}
 }
 
@@ -759,33 +932,47 @@ func (h *Hub) tryReactiveTimerCheck(check *time.Timer) {
 
 // onChangeState is launched when the hub state is changed
 func (h *Hub) onChangeState(_ State) {
-	var err error
+	h.sendActionToDevice()
+}
+
+func (h *Hub) sendActionToDevice() {
+	var sent = -1
 
 	if h.state == Asleep {
-		err = h.device.sendAction(sleep)
+		sent = int(sleep)
 	}
 
 	if h.state == Active {
-		err = h.device.sendAction(transmit)
+		sent = int(transmit)
 	}
 
 	if h.state == Inactive {
-		err = h.device.sendAction(standby)
+		sent = int(standby)
 	}
 
-	if err != nil {
-		h.err <- errors.Wrap(
-			err,
-			strings.Format(
-				errSendDevice,
-				strings.FMTValue(infDeviceID, h.device.ID)))
+	if sent >= 0 {
+		if err := h.device.SendAction(deviceAction(sent)); err != nil {
+			h.setState(false)
+
+			h.err <- errors.Wrap(
+				err,
+				strings.Format(
+					errSendDevice,
+					strings.FMTValue(infDeviceID, h.device.ID)))
+
+			return
+		}
+
+		h.info <- strings.Format(
+			infSendAction,
+			strings.FMTValue(infState, strconv.Itoa(sent)))
 	}
 }
 
 func (h *Hub) setBroadcastState() {
 	h.sstate(func(_ bool, _ bool) {
 		h.state = Broadcast
-	})
+	}, false)
 }
 
 // setState sets the hub state
@@ -794,6 +981,8 @@ func (h *Hub) setBroadcastState() {
 // There is one exception, which is broadast status.
 // This state is configured when the information is sent
 // to the client.
+// If the state changes, the onChangeState() event is fired.
+// If you do not want the event to fire set dd = false.
 //
 // State table
 // -----------
@@ -809,31 +998,31 @@ func (h *Hub) setBroadcastState() {
 //	0						1										1									Inactive
 //	1						0										1									Inactive
 //	1						1										1									Active
-func (h *Hub) setState() {
+func (h *Hub) setState(cancelOnChange bool) {
 	h.sstate(func(clientsEmpty bool, transmitWindow bool) {
-		if clientsEmpty && h.device.isClosed() {
+		if clientsEmpty && h.device.IsClosed() {
 			h.state = Dead
 
 			return
 		}
 
-		if !clientsEmpty && !h.device.isClosed() {
+		if !clientsEmpty && !h.device.IsClosed() {
 			h.state = Active
 
 			return
 		}
 
-		if clientsEmpty && !h.device.isClosed() && !transmitWindow {
+		if clientsEmpty && !h.device.IsClosed() && !transmitWindow {
 			h.state = Asleep
 
 			return
 		}
 
 		h.state = Inactive
-	})
+	}, cancelOnChange)
 }
 
-func (h *Hub) sstate(fchangeState func(bool, bool)) {
+func (h *Hub) sstate(fchangeState func(bool, bool), cancelOnChange bool) {
 	previousState := h.state
 
 	clientsEmpty := h.clientsEmpty()
@@ -847,10 +1036,12 @@ func (h *Hub) sstate(fchangeState func(bool, bool)) {
 			strings.FMTValue(infPrevState, StateString(previousState)),
 			strings.FMTValue(infState, StateString(h.state)),
 			strings.FMTValue(infClientEmpty, strconv.FormatBool(clientsEmpty)),
-			strings.FMTValue(infDeviceEmpty, strconv.FormatBool(h.device.isClosed())),
+			strings.FMTValue(infDeviceEmpty, strconv.FormatBool(h.device.IsClosed())),
 			strings.FMTValue(infTimeWindow, strconv.FormatBool(transmitWindow)))
 
-		h.onChangeState(previousState)
+		if !cancelOnChange {
+			h.onChangeState(previousState)
+		}
 	}
 }
 
@@ -898,7 +1089,8 @@ func (h *Hub) transmitWindow() bool {
 }
 
 func (h *Hub) close(check *time.Timer) {
-	h.closeh()
+	h.closeAllClient()
+	h.device.Stop()
 
 	if !check.Stop() {
 		<-check.C
@@ -981,7 +1173,7 @@ func (h *Hub) removeClientByPos(pos ...uint16) {
 	h.clients = arrays.Remove(h.clients, pos...)
 
 	if h.clientsEmpty() {
-		h.setState()
+		h.setState(false)
 	}
 }
 
@@ -994,9 +1186,9 @@ func (h *Hub) clientsEmpty() bool {
 	return len(h.clients) == 0
 }
 
-// closeh closes all the clients socket
-func (h *Hub) closeh() {
-	h.device.close()
+// closeAllClient closes all the clients socket
+func (h *Hub) closeAllClient() {
+	h.device.Close()
 
 	for _, c := range h.clients {
 		_ = c.close()

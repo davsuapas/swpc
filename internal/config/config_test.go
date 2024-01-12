@@ -70,12 +70,13 @@ func TestLoadConfig(t *testing.T) {
 					}
 				},
 				"api": {
-					"expirationSession": 15,
 					"commLatencyTime": 4,
 					"collectMetricsTime": 10,
-					"checkTransTime": 4,
 					"clientId": "123",
-					"tokenSecretKey": "123"
+					"tokenSecretKey": "123",
+					"heartbeatInterval": 10,
+					"heartbeatPingTime": 10,
+					"HeartbeatTimeoutCount": 2
 				},
 				"hub": {"taskTime": 6, "notificationTime": 7},
 				"cloud": {
@@ -132,12 +133,13 @@ func TestLoadConfig(t *testing.T) {
 					},
 				},
 				API: config.API{
-					SessionExpiration:  15,
-					CommLatencyTime:    4,
-					CollectMetricsTime: 10,
-					CheckTransTime:     4,
-					ClientID:           "123",
-					TokenSecretKey:     "123",
+					CommLatencyTime:       4,
+					CollectMetricsTime:    10,
+					ClientID:              "123",
+					TokenSecretKey:        "123",
+					HeartbeatInterval:     10,
+					HeartbeatPingTime:     10,
+					HeartbeatTimeoutCount: 2,
 				},
 				Hub: config.Hub{
 					TaskTime:         6,
@@ -204,6 +206,14 @@ func TestLoadConfig_Panic(t *testing.T) {
 		{
 			name: "Config. Data provider incorrect",
 			env:  `{"data": { "provider": "no_exist"}}`,
+		},
+		{
+			name: "Config. heartbeatInterval not configured",
+			env:  `{"api": { "heartbeatInterval": 0}}`,
+		},
+		{
+			name: "Config. HeartbeatTimeoutCount not configured",
+			env:  `{"api": { "HeartbeatTimeoutCount": 0}}`,
 		},
 	}
 

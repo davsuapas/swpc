@@ -30,6 +30,10 @@ const (
 	errGenSocket = "WS Device. Generating socket from device request"
 )
 
+const (
+	infRegisterDevice = "Registering iot device"
+)
+
 // WS register sockets
 type WS struct {
 	log      *zap.Logger
@@ -60,6 +64,8 @@ func (w *WS) Register(ctx echo.Context) error {
 	}
 
 	deviceID := ctx.Request().Header.Get("id")
+
+	w.log.Info(infRegisterDevice, zap.String("deviceID", deviceID))
 
 	w.hub.RegisterDevice(
 		iot.Device{
