@@ -15,6 +15,9 @@
 *.out
 build
 
+# Output of the pprof
+pprof
+
 # Auto generated for debugging
 /cmd/*/public
 /cmd/*/data
