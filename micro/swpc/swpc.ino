@@ -29,18 +29,18 @@
 const char *rootCACertificate = nullptr;
 
 #define ssl true
-#define host "swpc.eu-west-1.elasticbeanstalk.com"
+#define host ""
 #define port 443
 
 #define URIAPI "/api/device/ws"
 #define URIToken "/auth/token/"
 
 // clientID define the ID to connect to the server
-#define clientID "fr$5gDe46juHnbg54$@dr"
+#define clientID ""
 
 // WIFI definition
-const char *ssid = "WIWI";
-const char *password = "SFR4GLY96NVB265HRPOI!";
+const char *ssid = "";
+const char *password = "";
 
 // Device ID
 #define DeviceID "trescasas"
