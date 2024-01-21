@@ -3,12 +3,10 @@
 # Build AWS Beanstalk ZIP
 
 build=$1
-https_single=$2
+https=$2
 
-command_hs="-https-single"
-
-if [[ -z $https_single ]]; then
-	https_single=$command_hs
+if [[ -z $https ]]; then
+	https='-https'
 fi
 
 path_scripts=./scripts
@@ -30,7 +28,7 @@ mkdir -p "$path_target_bin"
 cp "$path_target_release/swpc-server" "$path_target_bin/application"
 cp -r "$path_target_release/public" "$path_target"
 
-if [[ $https_single == $command_hs ]]; then
+if [[ $https == '-https' ]]; then
 	cp -r "$path_deploy_awsbt_is/.ebextensions" "$path_target/.ebextensions"
 	cp -r "$path_deploy_awsbt_is/.platform" "$path_target/.platform"
 
@@ -46,7 +44,7 @@ fi
 current=$(pwd)
 cd "$path_target"
 
-if [[ $https_single == $command_hs ]]; then
+if [[ $https == '-https' ]]; then
 	zip -r source.zip bin/application public/* .platform/* .ebextensions/*
 else
 	zip -r source.zip bin/application public/*

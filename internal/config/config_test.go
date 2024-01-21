@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2022 CARISA
+ *   Copyright (c) 2022 ELIPCERO
  *   All rights reserved.
 
  *   Licensed under the Apache License, Version 2.0 (the "License");
@@ -63,10 +63,10 @@ func TestLoadConfig(t *testing.T) {
 						"provider": "oauth2",
 						"clientId": "clientId",
 						"loginUrl": "loginUrl",
+						"logoutUrl": "logoutUrl",
 						"jwkUrl": "jwkUrl",
 						"tokenUrl": "tokenUrl",
-						"redirectLoginUri": "redirectLoginUri",
-						"redirectLogoutUri": "redirectLogoutUri"
+						"redirectProxy": "redirectProxy"
 					}
 				},
 				"api": {
@@ -125,11 +125,13 @@ func TestLoadConfig(t *testing.T) {
 					SessionExpiration: 15,
 					SecretKey:         "123",
 					Auth: config.Auth{
-						Provider: "oauth2",
-						ClientID: "clientId",
-						LoginURL: "loginUrl",
-						JWKURL:   "jwkUrl",
-						TokenURL: "tokenUrl",
+						Provider:    "oauth2",
+						ClientID:    "clientId",
+						LoginURL:    "loginUrl",
+						LogoutURL:   "logoutUrl",
+						JWKURL:      "jwkUrl",
+						TokenURL:    "tokenUrl",
+						RedirectURL: "redirectProxy",
 					},
 				},
 				API: config.API{
@@ -374,6 +376,7 @@ func TestApplySecret(t *testing.T) {
 						SecretKey: "@@SecretKey",
 						Auth: config.Auth{
 							ClientID: "@@ClientID",
+							JWKURL:   "http://@@ID",
 						},
 					},
 					API: config.API{
@@ -388,6 +391,7 @@ func TestApplySecret(t *testing.T) {
 					SecretKey: "@@SecretKey",
 					Auth: config.Auth{
 						ClientID: "@@ClientID",
+						JWKURL:   "http://@@ID",
 					},
 				},
 				API: config.API{
@@ -405,6 +409,7 @@ func TestApplySecret(t *testing.T) {
 						SecretKey: "@@SecretKey",
 						Auth: config.Auth{
 							ClientID: "@@ClientID",
+							JWKURL:   "http://@@ID/part",
 						},
 					},
 					API: config.API{
@@ -415,13 +420,15 @@ func TestApplySecret(t *testing.T) {
 				secrets: map[string]string{
 					"SecretKey":      "123",
 					"TokenSecretKey": "1234",
+					"ID":             "12345",
 				},
 			},
 			expected: config.Config{
 				Web: config.Web{
 					SecretKey: "123",
 					Auth: config.Auth{
-						ClientID: "",
+						ClientID: "@@ClientID",
+						JWKURL:   "http://12345/part",
 					},
 				},
 				API: config.API{

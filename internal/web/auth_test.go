@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2022 CARISA
+ *   Copyright (c) 2022 ELIPCERO
  *   All rights reserved.
 
  *   Licensed under the Apache License, Version 2.0 (the "License");
@@ -265,14 +265,14 @@ func TestAuthFlow_Logout(t *testing.T) {
 			},
 		},
 		{
-			name: "Logout. it should return StatusOK",
+			name: "Logout. it should return StatusFound with RedirectLoginOk",
 			args: args{
 				clientName: web.WSClientIDName,
 				clientID:   "123",
 			},
 			mockHubUse: true,
 			want: want{
-				statusCode: http.StatusOK,
+				statusCode: http.StatusFound,
 				cookies:    2,
 			},
 		}}

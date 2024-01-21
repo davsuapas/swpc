@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2022 CARISA
+ *   Copyright (c) 2022 ELIPCERO
  *   All rights reserved.
 
  *   Licensed under the Apache License, Version 2.0 (the "License");
@@ -143,7 +143,7 @@ func (o *AuthFlow) Logout(ctx echo.Context) error {
 	cookie.Secure = o.Config.External.TLS
 	ctx.SetCookie(cookie)
 
-	return ctx.NoContent(http.StatusOK)
+	return ctx.Redirect(http.StatusFound, RedirectLoginOk)
 }
 
 // AuthFlowDev manages authentication only for develoment

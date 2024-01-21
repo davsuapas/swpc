@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2022 CARISA
+ *   Copyright (c) 2022 ELIPCERO
  *   All rights reserved.
 
  *   Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -141,6 +142,7 @@ type Auth struct {
 	// oauth2: Use oauth2
 	Provider AuthProvider `json:"provider,omitempty"`
 	// ClientID identify the client for oauth2
+	// Secrets can be applied
 	ClientID string `json:"clientId,omitempty"`
 	// LoginURL defines the page to login
 	// The "%redirect_uri" must be added to the signing URL fragment
@@ -152,7 +154,7 @@ type Auth struct {
 	// The "%state" must be added to the signing URL fragment
 	// and is filled with auto generated state to avoid CRSF
 	LoginURL string `json:"loginUrl,omitempty"`
-	// LogoffURL defines the page to login
+	// LogoutURL defines the page to login
 	// The "%redirect_uri" must be added to the signing URL fragment
 	// so that the authentication provider knows where to redirect
 	// to when the signing process is finished.
@@ -163,6 +165,7 @@ type Auth struct {
 	// and is filled with auto generated state to avoid CRSF
 	LogoutURL string `json:"logoutUrl,omitempty"`
 	// JWKURL is the URL to get JWK
+	// Secrets can be applied
 	JWKURL string `json:"jwkUrl,omitempty"`
 	// TokenURL is the URL to get token
 	TokenURL string `json:"tokenUrl,omitempty"`
@@ -180,10 +183,12 @@ type API struct {
 	CollectMetricsTime int `json:"collectMetricsTime,omitempty"`
 	// ClientID is a identifier that allows the device
 	// and the hub to communicate securely.
+	// Secrets can be applied
 	ClientID string `json:"clientId,omitempty"`
 	// TokenSecretKey defines the secret key to generate the token
 	// that allows the device
 	// and the hub to communicate securely.
+	// Secrets can be applied
 	TokenSecretKey string `json:"tokenSecretKey,omitempty"`
 	// HeartbeatInterval is the interval in seconds that
 	// the iot device sends a ping for heartbeat
@@ -204,6 +209,7 @@ type Web struct {
 	// SecretKey defines a secret key to AES.
 	// It's used in state dance to avoid CRSF.
 	// Must be of 32 bytes
+	// Secrets can be applied
 	SecretKey string `json:"secretKey,omitempty"`
 	// Auth defines the auth external system
 	Auth Auth `json:"auth,omitempty"`
@@ -408,8 +414,8 @@ func LoadConfig() Config { //nolint:cyclop
 	return cnf
 }
 
-// ApplySecret calls the secret provider and if the configuration value exists
-// contains a secret name preceded by "#",
+// ApplySecret calls the secret provider and if the configuration
+// value exists contains a secret name preceded by "@@",
 // applies the value of the secret to the configuration key
 func ApplySecret(log *zap.Logger, s Secret, config *Config) {
 	secrets, err := s.Get(config.Secret.Name)
@@ -421,26 +427,53 @@ func ApplySecret(log *zap.Logger, s Secret, config *Config) {
 		return
 	}
 
-	config.Auth.ClientID = getSecretValue(log, secrets, config.Auth.ClientID)
+	re := regexp.MustCompile(`@@[a-zA-Z0-9_]+`)
 
-	config.API.ClientID = getSecretValue(log, secrets, config.API.ClientID)
+	config.Auth.ClientID = getSecretValue(log, re, secrets, config.Auth.ClientID)
+	config.Auth.JWKURL = getSecretValue(log, re, secrets, config.Auth.JWKURL)
+
+	config.API.ClientID = getSecretValue(log, re, secrets, config.API.ClientID)
 	config.API.TokenSecretKey = getSecretValue(
 		log,
+		re,
 		secrets,
 		config.API.TokenSecretKey)
 
-	config.Web.SecretKey = getSecretValue(log, secrets, config.Web.SecretKey)
+	config.Web.SecretKey = getSecretValue(log, re, secrets, config.Web.SecretKey)
 }
 
 func getSecretValue(
 	log *zap.Logger,
+	re *regexp.Regexp,
 	secrets map[string]string,
 	value string) string {
-	if !strings.HasPrefix(value, "@@") {
+	//
+	matchs := re.FindAllString(value, -1)
+
+	if matchs == nil {
 		return value
+	}
+
+	r := make([]string, len(secrets)*2)
+
+	var i uint8
+
+	for _, m := range matchs {
+		k := m[2:]
+		s, ok := secrets[k]
+
+		if ok {
+			r[i] = m
+			i++
+
+			r[i] = s
+			i++
+		}
 	}
 
 	log.Info(infoApplySecret, zap.String("Secret", value))
 
-	return secrets[value[2:]]
+	replacer := strings.NewReplacer(r...)
+
+	return replacer.Replace(value)
 }

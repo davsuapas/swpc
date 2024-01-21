@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2022 CARISA
+ *   Copyright (c) 2022 ELIPCERO
  *   All rights reserved.
 
  *   Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,6 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
@@ -25,42 +24,23 @@
 #include <DallasTemperature.h>
 
 // BEGIN user configuration area
-const char *rootCACertificate = \
-  "-----BEGIN CERTIFICATE-----\n" \
-  "MIIDZzCCAk8CFCtAzzSUwZs5ps9NJdV/xWP1xCBSMA0GCSqGSIb3DQEBCwUAMHA\n" \
-  "CzAJBgNVBAYTAkVTMQ8wDQYDVQQIDAZNYWRyaWQxDzANBgNVBAcMBk1hZHJpZDE\n" \
-  "MA8GA1UECgwIZWxpcGNlcm8xLDAqBgNVBAMMI3N3cGMuZXUtd2VzdC0xLmVsYXN\n" \ 
-  "aWNiZWFuc3RhbGsuY29tMB4XDTIzMTAyMzE1MDIyOFoXDTI0MTAyMjE1MDIyOFo\n" \
-  "cDELMAkGA1UEBhMCRVMxDzANBgNVBAgMBk1hZHJpZDEPMA0GA1UEBwwGTWFkcml\n" \
-  "MREwDwYDVQQKDAhlbGlwY2VybzEsMCoGA1UEAwwjc3dwYy5ldS13ZXN0LTEuZWx\n" \
-  "c3RpY2JlYW5zdGFsay5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoI\n" \
-  "AQDJV8AvmkqnHOV9ZVG3ZxE/StTOKiPa6JtSCaz84BMIGs+cvezSz6NfAl/yJLU\n" \
-  "92hwQoTtzJEbF6OmlaW99IIx6qUvpHfMZ4gOpyvwWzWExV365fkr9hz6GVWI1HM\n" \
-  "RNeorLde/oklBe5bJN76QVdZ9OITyv0YJRi918GjOJxdfsG0ZZSWnLTG1A1z2oD\n" \
-  "NDZi3SSN5rudKT10dnDe4rZU2KdqQi2JvlG2+2fsnfwDuK2Zj2XOvkwx823RqeY\n" \
-  "U0BjPoOHGzrH5kawhE1BWJWzfrb/G7Ra6JNRI1rHls12PGcnBsn4FF65A094nGB\n" \
-  "i2KNkThB5GcGvCDtllDqTHClAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACcZViq\n" \
-  "xIvezg2UQ3LuEm+xpVS0781KvtOlQ8i4A2hvbOmvD1p+FhS4fXonSmDtd1pS/j7\n" \
-  "CtvoDYcJajOPlpfFOkNsQNuXmxGZ+yoGAgzhA2yOJfUjnc55PCphXUEaXfBR19c\n" \
-  "niuArYvcA/WtoQO8YDY8H4a25wTSMNXml2xoMxIms0dqT73GMsANBscOmm9k6su\n" \
-  "WEdCee0DOzbU9bZNtiioUldDfWZfUJiRzRUSSuk4eirtAQSc0qSp0Q1qVaeL5fS\n" \
-  "3OTWa7LyJ7VVC/KF0GJ4CUQ2LfUsYnnOYrwwQR52sxiLOc2yIItR2Ic8XSe+9Fr\n" \
-  "jZQs53bE1qYvC6k=\n" \
-  "-----END CERTIFICATE-----\n";
+// rootCACertificate = nullptr y ssl = true
+// it's used for self-certification
+const char *rootCACertificate = nullptr;
 
-#define ssl false
-#define host "192.168.1.147"
-#define port 5000  
+#define ssl true
+#define host "swpc.eu-west-1.elasticbeanstalk.com"
+#define port 443
 
 #define URIAPI "/api/device/ws"
 #define URIToken "/auth/token/"
 
 // clientID define the ID to connect to the server
-#define clientID "sw3kf$fekdy56dfh"
+#define clientID "fr$5gDe46juHnbg54$@dr"
 
 // WIFI definition
-const char *ssid = "";
-const char *password = "";
+const char *ssid = "WIWI";
+const char *password = "SFR4GLY96NVB265HRPOI!";
 
 // Device ID
 #define DeviceID "trescasas"
@@ -200,7 +180,7 @@ void setup() {
 
   Serial.begin(115200);
 
-  delay(2 * seconds); // Only for debug
+  delay(2 * seconds);
 
   // Init sensors 
   ourWire = new OneWire(GPIO_NUM_0);
@@ -260,7 +240,11 @@ void wsBegin() {
   ws.onEvent(hubEvent);
   
   if (ssl) {
-    ws.beginSslWithCA(host, port, URIAPI, rootCACertificate);
+    if (rootCACertificate == nullptr) {
+      ws.beginSSL(host, port, URIAPI, SSL_FINGERPRINT_NULL);
+    } else {
+      ws.beginSslWithCA(host, port, URIAPI, rootCACertificate);
+    }
   } else {
     ws.begin(host, port, URIAPI);
   }
@@ -637,6 +621,13 @@ bool getToken(String &result) {
       break;
     }
 
+    if (retry % 10 == 0) {
+      Serial.printf(
+        "\n(getToken-ERROR).Unable to open the connection to %s (Code: %d)\n",
+        host,
+        httpCode);
+    }
+
     Serial.print(".");
     delay(1 * seconds);
   }
@@ -706,15 +697,26 @@ bool activeWIFIConnection() {
 
 // httpBegin configures a http service via uri param
 bool httpBegin(HTTPClient *http, const char *uri) {
+  if (ssl) {
+    char url[sizeof(host) + 50];
+    snprintf(
+      url,
+      sizeof(url),
+      "https://%s:%u%s",
+      host,
+      port,
+      uri);
+
+    Serial.printf("(httpConnect).Connecting to %s\n", url);
+
+    return http->begin(url, rootCACertificate);
+  }
+
   Serial.printf(
-    "(httpConnect).Connecting to host: %s (port: %u, ssl: %s)",
+    "(httpConnect).Connecting to http://%:%u%s\n",
     host,
     port,
-    ssl ? "true" : "false");
-
-  if (ssl) {
-    return http->begin(host, port, rootCACertificate, uri);
-  }
+    uri);
 
   return http->begin(host, port, uri);
 }
