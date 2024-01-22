@@ -233,6 +233,17 @@ func newHub(
 	microc iotc.Config,
 	loc *time.Location) (*hub.Trace, *iot.Hub) {
 	//
+	hubTraceLevel := iot.NoneLevel
+
+	switch log.Level() { //nolint:exhaustive
+	case zap.DebugLevel:
+		hubTraceLevel = iot.DebugLevel
+	case zap.InfoLevel:
+		hubTraceLevel = iot.InfoLevel
+	case zap.WarnLevel:
+		hubTraceLevel = iot.WarnLevel
+	}
+
 	hubt := hub.NewTrace(log)
 	hub := iot.NewHub(
 		iot.Config{
@@ -255,7 +266,8 @@ func newHub(
 				HeartbeatTimeoutCount: config.HeartbeatTimeoutCount,
 			},
 		},
-		hubt.Info,
+		hubTraceLevel,
+		hubt.Trace,
 		hubt.Error)
 
 	return hubt, hub

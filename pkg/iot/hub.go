@@ -66,7 +66,7 @@ const (
 	infDeviceID       = "DeviceID"
 	infIOTDevice      = "IOT device"
 	infClientID       = "ClientID"
-	infLength         = "Length"
+	infClientCount    = "Client count"
 	infState          = "state"
 	infLastMsgDate    = "Last message date"
 	infExpirationDate = "Expiration date"
@@ -75,7 +75,6 @@ const (
 	infLastNotify     = "Last notification date"
 	infConfig         = "Config"
 	infDeviceEmpty    = "Device empty"
-	infClientEmpty    = "Clients empty"
 	infTimeWindow     = "Transmission time window"
 	infHBTimeoutCount = "Heartbeat timeout count"
 	infHBInterval     = "Heartbeat interval"
@@ -536,6 +535,26 @@ func (c *Client) close() error {
 	return nil
 }
 
+// TraceLevel is the trace level
+type TraceLevel uint8
+
+const (
+	// DebugLevel logs are typically voluminous, and are usually disabled in
+	// production
+	DebugLevel TraceLevel = iota
+	// InfoLevel is the default logging priority
+	InfoLevel
+	// WarnLevel logs are more important than Info
+	WarnLevel
+	// NoneLevel is not applicable
+	NoneLevel
+)
+
+type Trace struct {
+	Level   TraceLevel
+	Message string
+}
+
 // The hub handles bi-directional messaging from an iot device
 // to a set of socket clients.
 // The hub registers clients and one device across of the reg channel,
@@ -557,6 +576,8 @@ type Hub struct {
 	// device manages the iot device
 	device *deviceController
 
+	levelTrace TraceLevel
+
 	config Config
 
 	regd chan Device
@@ -565,7 +586,7 @@ type Hub struct {
 	unreg chan string
 
 	err     chan error
-	info    chan string
+	trace   chan Trace
 	send    chan string
 	sconfig chan DeviceConfig
 	statec  chan chan State
@@ -586,7 +607,8 @@ type Hub struct {
 // all errors into the hub.
 func NewHub(
 	cnf Config,
-	info chan string,
+	levelTrace TraceLevel,
+	trace chan Trace,
 	err chan error) *Hub {
 	//
 	return &Hub{
@@ -598,7 +620,8 @@ func NewHub(
 		unreg:       make(chan string),
 		send:        make(chan string),
 		sconfig:     make(chan DeviceConfig),
-		info:        info,
+		levelTrace:  levelTrace,
+		trace:       trace,
 		err:         err,
 		statec:      make(chan chan State),
 		closec:      make(chan struct{}),
@@ -717,9 +740,13 @@ func (h *Hub) registerDevice(device Device, check *time.Timer) {
 
 	h.tryReactiveTimerCheck(check)
 
-	h.info <- strings.Format(
-		infDeviceReg,
-		strings.FMTValue(infDeviceID, device.ID))
+	h.sendTrace(
+		Trace{
+			Level: InfoLevel,
+			Message: strings.Format(
+				infDeviceReg,
+				strings.FMTValue(infDeviceID, device.ID)),
+		})
 }
 
 func (h *Hub) registerClient(client Client, check *time.Timer) {
@@ -741,11 +768,15 @@ func (h *Hub) registerClient(client Client, check *time.Timer) {
 	h.setState(false)
 	h.tryReactiveTimerCheck(check)
 
-	h.info <- strings.Format(
-		infClientReg,
-		strings.FMTValue(infClientID, client.id),
-		strings.FMTValue(infLength, strconv.Itoa(len(h.clients))),
-		strings.FMTValue(infState, StateString(h.state)))
+	h.sendTrace(
+		Trace{
+			Level: InfoLevel,
+			Message: strings.Format(
+				infClientReg,
+				strings.FMTValue(infClientID, client.id),
+				strings.FMTValue(infClientCount, strconv.Itoa(len(h.clients))),
+				strings.FMTValue(infState, StateString(h.state))),
+		})
 }
 
 func (h *Hub) unregister(id string, check *time.Timer) {
@@ -759,17 +790,21 @@ func (h *Hub) unregister(id string, check *time.Timer) {
 			err,
 			strings.Format(
 				infClientUnReg,
-				strings.FMTValue(infLength, strconv.Itoa(len(h.clients)))))
+				strings.FMTValue(infClientCount, strconv.Itoa(len(h.clients)))))
 	}
 
 	h.setState(false)
 	h.tryReactiveTimerCheck(check)
 
-	h.info <- strings.Format(
-		infClientUnRegd,
-		strings.FMTValue(infClientID, id),
-		strings.FMTValue(infLength, strconv.Itoa(len(h.clients))),
-		strings.FMTValue(infState, StateString(h.state)))
+	h.sendTrace(
+		Trace{
+			Level: InfoLevel,
+			Message: strings.Format(
+				infClientUnRegd,
+				strings.FMTValue(infClientID, id),
+				strings.FMTValue(infClientCount, strconv.Itoa(len(h.clients))),
+				strings.FMTValue(infState, StateString(h.state))),
+		})
 }
 
 // sendMessageToClients send message to the all clients registered.
@@ -787,9 +822,13 @@ func (h *Hub) sendMessageToClients(message string) {
 
 	h.sendMessage(message, errSendMsg)
 
-	h.info <- strings.Format(
-		infTransmit,
-		strings.FMTValue(infState, StateString(h.state)))
+	h.sendTrace(
+		Trace{
+			Level: DebugLevel,
+			Message: strings.Format(
+				infTransmit,
+				strings.FMTValue(infState, StateString(h.state))),
+		})
 }
 
 // sendConfigMessageToDevice sends the configuration
@@ -807,9 +846,13 @@ func (h *Hub) sendConfigMessageToDevice(cnf DeviceConfig) {
 
 	h.setState(false)
 
-	h.info <- strings.Format(
-		infConfigChanged,
-		strings.FMTValue(infConfig, h.config.string()))
+	h.sendTrace(
+		Trace{
+			Level: InfoLevel,
+			Message: strings.Format(
+				infConfigChanged,
+				strings.FMTValue(infConfig, h.config.string())),
+		})
 }
 
 func (h *Hub) processDeviceError(err error) {
@@ -830,10 +873,14 @@ func (h *Hub) idleBroadcast() {
 		if h.lastMessage.Add(idleTime).Before(time.Now()) {
 			h.setState(false)
 
-			h.info <- strings.Format(
-				infHubIdle,
-				strings.FMTValue(infActualDate, time.Now().String()),
-				strings.FMTValue(infLastMsgDate, h.lastMessage.String()))
+			h.sendTrace(
+				Trace{
+					Level: InfoLevel,
+					Message: strings.Format(
+						infHubIdle,
+						strings.FMTValue(infActualDate, time.Now().String()),
+						strings.FMTValue(infLastMsgDate, h.lastMessage.String())),
+				})
 		}
 	}
 }
@@ -864,11 +911,15 @@ func (h *Hub) notifyState() {
 	if h.sendMessage(
 		strings.Concat(stateMessageType, strconv.Itoa(int(h.state))), errNotify) {
 		//
-		h.info <- strings.Format(
-			infNotify,
-			strings.FMTValue(infActualDate, time.Now().String()),
-			strings.FMTValue(infLastNotify, h.notifySign.String()),
-			strings.FMTValue(infState, StateString(state)))
+		h.sendTrace(
+			Trace{
+				Level: InfoLevel,
+				Message: strings.Format(
+					infNotify,
+					strings.FMTValue(infActualDate, time.Now().String()),
+					strings.FMTValue(infLastNotify, h.notifySign.String()),
+					strings.FMTValue(infState, StateString(state))),
+			})
 	}
 
 	h.notifySign = time.Now()
@@ -901,9 +952,13 @@ func (h *Hub) sendMessage(message string, errMessage string) bool {
 
 	if len(brokenclients) > 0 {
 		h.removeClientByPos(brokenclients...)
-		h.info <- strings.Format(
-			infArraySize,
-			strings.FMTValue(infLength, strconv.Itoa(len(h.clients))))
+		h.sendTrace(
+			Trace{
+				Level: InfoLevel,
+				Message: strings.Format(
+					infArraySize,
+					strings.FMTValue(infClientCount, strconv.Itoa(len(h.clients)))),
+			})
 	}
 
 	return sent
@@ -922,7 +977,11 @@ func (h *Hub) CheckTransWindow() {
 // if the state is not dead
 func (h *Hub) tryReactiveTimerCheck(check *time.Timer) {
 	if h.state == Dead {
-		h.info <- infCheckerDes
+		h.sendTrace(
+			Trace{
+				Level:   WarnLevel,
+				Message: infCheckerDes,
+			})
 
 		return
 	}
@@ -963,9 +1022,13 @@ func (h *Hub) sendActionToDevice() {
 			return
 		}
 
-		h.info <- strings.Format(
-			infSendAction,
-			strings.FMTValue(infState, strconv.Itoa(sent)))
+		h.sendTrace(
+			Trace{
+				Level: InfoLevel,
+				Message: strings.Format(
+					infSendAction,
+					strings.FMTValue(infState, strconv.Itoa(sent))),
+			})
 	}
 }
 
@@ -1031,13 +1094,17 @@ func (h *Hub) sstate(fchangeState func(bool, bool), cancelOnChange bool) {
 	fchangeState(clientsEmpty, transmitWindow)
 
 	if previousState != h.state {
-		h.info <- strings.Format(
-			infStateChanged,
-			strings.FMTValue(infPrevState, StateString(previousState)),
-			strings.FMTValue(infState, StateString(h.state)),
-			strings.FMTValue(infClientEmpty, strconv.FormatBool(clientsEmpty)),
-			strings.FMTValue(infDeviceEmpty, strconv.FormatBool(h.device.IsClosed())),
-			strings.FMTValue(infTimeWindow, strconv.FormatBool(transmitWindow)))
+		h.sendTrace(
+			Trace{
+				Level: WarnLevel,
+				Message: strings.Format(
+					infStateChanged,
+					strings.FMTValue(infPrevState, StateString(previousState)),
+					strings.FMTValue(infState, StateString(h.state)),
+					strings.FMTValue(infClientCount, strconv.Itoa(len(h.clients))),
+					strings.FMTValue(infDeviceEmpty, strconv.FormatBool(h.device.IsClosed())),
+					strings.FMTValue(infTimeWindow, strconv.FormatBool(transmitWindow))),
+			})
 
 		if !cancelOnChange {
 			h.onChangeState(previousState)
@@ -1099,7 +1166,7 @@ func (h *Hub) close(check *time.Timer) {
 	h.state = Closed
 
 	close(h.err)
-	close(h.info)
+	close(h.trace)
 	close(h.reg)
 	close(h.unreg)
 	close(h.send)
@@ -1126,19 +1193,27 @@ func (h *Hub) removeDeadClient() {
 						strings.FMTValue(infClientID, clientID)))
 			}
 
-			h.info <- strings.Format(
-				infClientDied,
-				strings.FMTValue(infClientID, clientID),
-				strings.FMTValue(infExpirationDate, c.expiration.String()),
-				strings.FMTValue(infActualDate, time.Now().String()))
+			h.sendTrace(
+				Trace{
+					Level: InfoLevel,
+					Message: strings.Format(
+						infClientDied,
+						strings.FMTValue(infClientID, clientID),
+						strings.FMTValue(infExpirationDate, c.expiration.String()),
+						strings.FMTValue(infActualDate, time.Now().String())),
+				})
 		}
 	}
 
 	if len(deadClients) > 0 {
 		h.removeClientByPos(deadClients...)
-		h.info <- strings.Format(
-			infArraySize,
-			strings.FMTValue(infLength, strconv.Itoa(len(h.clients))))
+		h.sendTrace(
+			Trace{
+				Level: InfoLevel,
+				Message: strings.Format(
+					infArraySize,
+					strings.FMTValue(infClientCount, strconv.Itoa(len(h.clients)))),
+			})
 	}
 }
 
@@ -1195,6 +1270,12 @@ func (h *Hub) closeAllClient() {
 	}
 
 	h.clients = []Client{}
+}
+
+func (h *Hub) sendTrace(t Trace) {
+	if t.Level >= h.levelTrace {
+		h.trace <- t
+	}
 }
 
 func StateString(s State) string {

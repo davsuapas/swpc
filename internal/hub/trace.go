@@ -17,7 +17,10 @@
 
 package hub
 
-import "go.uber.org/zap"
+import (
+	"github.com/swpoolcontroller/pkg/iot"
+	"go.uber.org/zap"
+)
 
 const (
 	infRegTraces = "Starting the process to register hub traces"
@@ -27,7 +30,7 @@ const (
 // This info and errors are write into log
 type Trace struct {
 	log   *zap.Logger
-	Info  chan string
+	Trace chan iot.Trace
 	Error chan error
 }
 
@@ -35,7 +38,7 @@ type Trace struct {
 func NewTrace(log *zap.Logger) *Trace {
 	return &Trace{
 		log:   log,
-		Info:  make(chan string),
+		Trace: make(chan iot.Trace),
 		Error: make(chan error),
 	}
 }
@@ -54,12 +57,20 @@ func (h *Trace) Register() {
 				}
 
 				h.log.Error("Hub errors", zap.Error(e))
-			case i, ok := <-h.Info:
+			case t, ok := <-h.Trace:
 				if !ok {
 					return
 				}
 
-				h.log.Info(i)
+				switch t.Level {
+				case iot.DebugLevel:
+					h.log.Debug(t.Message)
+				case iot.InfoLevel:
+					h.log.Info(t.Message)
+				case iot.WarnLevel:
+					h.log.Warn(t.Message)
+				case iot.NoneLevel:
+				}
 			}
 		}
 	}()

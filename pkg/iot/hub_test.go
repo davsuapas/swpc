@@ -33,15 +33,15 @@ import (
 )
 
 type trace struct {
-	Infos   []string
+	Traces  []string
 	Errors  []string
-	CHInfo  chan string
+	CHTrace chan iot.Trace
 	CHError chan error
 }
 
 func newTrace() *trace {
 	t := &trace{
-		CHInfo:  make(chan string),
+		CHTrace: make(chan iot.Trace),
 		CHError: make(chan error),
 	}
 
@@ -58,9 +58,9 @@ func (t *trace) register() {
 				if ok {
 					t.Errors = append(t.Errors, e.Error())
 				}
-			case i, ok := <-t.CHInfo:
+			case i, ok := <-t.CHTrace:
 				if ok {
-					t.Infos = append(t.Infos, i)
+					t.Traces = append(t.Traces, i.Message)
 				}
 			}
 		}
@@ -111,7 +111,7 @@ func TestHub_LifecycleNoTransmissionTimeWindows(t *testing.T) {
 		Connection: wsds,
 	}
 
-	hub := iot.NewHub(cnf, trace.CHInfo, trace.CHError)
+	hub := iot.NewHub(cnf, iot.DebugLevel, trace.CHTrace, trace.CHError)
 	defer hub.Stop()
 
 	hub.Run()
@@ -146,9 +146,9 @@ func TestHub_LifecycleNoTransmissionTimeWindows(t *testing.T) {
 
 	assert.Subset(
 		t,
-		trace.Infos,
+		trace.Traces,
 		[]string{
-			"Hub.Client registered (ClientID: c1, Length: 1, state: Inactive, )",
+			"Hub.Client registered (ClientID: c1, Client count: 1, state: Inactive, )",
 			"Hub.Device iot registered (DeviceID: d1, )",
 			"Hub.Sending information to the client (state: Broadcast, )",
 			"Hub.Device iot registered (DeviceID: d2, )",
@@ -281,7 +281,7 @@ func TestHub_InactiveStateTransmissionTimeWindowsStandbyAction(t *testing.T) {
 		Connection: wsds,
 	}
 
-	hub := iot.NewHub(cnf, trace.CHInfo, trace.CHError)
+	hub := iot.NewHub(cnf, iot.DebugLevel, trace.CHTrace, trace.CHError)
 	defer hub.Stop()
 
 	hub.Run()
@@ -311,10 +311,10 @@ func TestHub_InactiveStateTransmissionTimeWindowsStandbyAction(t *testing.T) {
 
 	assert.Subset(
 		t,
-		trace.Infos,
+		trace.Traces,
 		[]string{
 			"Hub.The state has been changed (Previous state: Dead, state: " +
-				"Inactive, Clients empty: true, Device empty: false, Transmission " +
+				"Inactive, Client count: 0, Device empty: false, Transmission " +
 				"time window: true, )",
 		},
 		"Info")
@@ -366,7 +366,7 @@ func TestHub_IdleBroadcast(t *testing.T) {
 		Connection: wsds,
 	}
 
-	hub := iot.NewHub(cnf, trace.CHInfo, trace.CHError)
+	hub := iot.NewHub(cnf, iot.DebugLevel, trace.CHTrace, trace.CHError)
 	defer hub.Stop()
 
 	hub.Run()
@@ -426,7 +426,7 @@ func TestHub_NotifyState(t *testing.T) {
 
 	client := iot.NewClient("c1", wscs, 10*time.Minute)
 
-	hub := iot.NewHub(cnf, trace.CHInfo, trace.CHError)
+	hub := iot.NewHub(cnf, iot.DebugLevel, trace.CHTrace, trace.CHError)
 	defer hub.Stop()
 
 	hub.Run()
@@ -480,7 +480,7 @@ func TestHub_SendConfigToDevice(t *testing.T) {
 		Connection: wsds,
 	}
 
-	hub := iot.NewHub(cnf, trace.CHInfo, trace.CHError)
+	hub := iot.NewHub(cnf, iot.DebugLevel, trace.CHTrace, trace.CHError)
 	defer hub.Stop()
 
 	hub.Run()
@@ -546,7 +546,7 @@ func TestHub_ClientDead(t *testing.T) {
 
 	client := iot.NewClient("c1", wscs, 10*time.Millisecond)
 
-	hub := iot.NewHub(cnf, trace.CHInfo, trace.CHError)
+	hub := iot.NewHub(cnf, iot.DebugLevel, trace.CHTrace, trace.CHError)
 	defer hub.Stop()
 
 	hub.Run()
@@ -557,10 +557,10 @@ func TestHub_ClientDead(t *testing.T) {
 
 	assert.Subset(
 		t,
-		trace.Infos,
+		trace.Traces,
 		[]string{
 			"Hub.The state has been changed (Previous state: Inactive, " +
-				"state: Dead, Clients empty: true, Device empty: true, " +
+				"state: Dead, Client count: 0, Device empty: true, " +
 				"Transmission time window: false, )",
 			"The check timer is deactivated because there are no activity",
 		},
@@ -604,7 +604,7 @@ func TestHub_Multi_Link_Device(t *testing.T) {
 		Connection: wsds,
 	}
 
-	hub := iot.NewHub(cnf, trace.CHInfo, trace.CHError)
+	hub := iot.NewHub(cnf, iot.DebugLevel, trace.CHTrace, trace.CHError)
 	defer hub.Stop()
 
 	hub.Run()
@@ -683,7 +683,8 @@ func TestHub_HeartbeatTimeout(t *testing.T) {
 
 	hub := iot.NewHub(
 		cnf,
-		trace.CHInfo,
+		iot.DebugLevel,
+		trace.CHTrace,
 		trace.CHError)
 
 	defer hub.Stop()

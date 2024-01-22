@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/swpoolcontroller/internal/hub"
+	"github.com/swpoolcontroller/pkg/iot"
 	"go.uber.org/zap"
 )
 
@@ -36,6 +37,17 @@ func TestTrace_Register(t *testing.T) {
 
 	h.Register()
 
-	h.Info <- "info"
+	h.Trace <- iot.Trace{
+		Level:   iot.DebugLevel,
+		Message: "msg",
+	}
+	h.Trace <- iot.Trace{
+		Level:   iot.InfoLevel,
+		Message: "msg",
+	}
+	h.Trace <- iot.Trace{
+		Level:   iot.WarnLevel,
+		Message: "msg",
+	}
 	h.Error <- errTrace
 }
