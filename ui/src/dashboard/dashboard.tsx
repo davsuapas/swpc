@@ -27,28 +27,21 @@ import Chart from './chart';
 import Meassure from './meassure';
 import AppBar from '@mui/material/AppBar';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp'
-import { Assignment } from '@mui/icons-material';
+import { AppRegistration, Assignment } from '@mui/icons-material';
 import Config from '../config/config';
 import Tooltip from '@mui/material/Tooltip';
 import { CircularProgress } from '@mui/material';
 import React from 'react';
 import Alert from '../info/alert';
 import { colorPurple } from '../support/color';
-import SocketFactory, { Metrics } from '../net/socket';
+import SocketFactory, { CommStatus, Metrics } from '../net/socket';
 import { Websocket } from 'websocket-ts/lib';
 import { MediaQuery, MediaQueryAPI } from '../support/mediaquery';
 import { logoff } from '../auth/user';
+import * as literals from '../support/literals';
+import Sample from '../ai/sample';
 
 const drawerWidth: number = 255;
-
-const temperatureName = "TEMPERATURA";
-const temperatureUnit = "grados";
-
-const phName = "pH";
-const phUnit = "";
-
-const chlorineName = "CLORO";
-const chlorineUnit = "mg/L";
 
 const mdTheme = createTheme();
 
@@ -64,20 +57,22 @@ export interface Actions {
 
 export default class Dashboard extends React.Component<any, DashboardState> implements Actions {
 
+  private sfactory: SocketFactory;
   private socket: Websocket;
 
   private media: React.RefObject<MediaQueryAPI>
 
   private config: React.RefObject<Config>;
+  private sample: React.RefObject<Sample>;
   private alert: React.RefObject<Alert>;
 
   private chartTemp: React.RefObject<Chart>;
   private chartPh: React.RefObject<Chart>;
-  private chartCl: React.RefObject<Chart>;
+  private chartOrp: React.RefObject<Chart>;
 
   private meassureTemp: React.RefObject<Meassure>;
   private meassurePh: React.RefObject<Meassure>;
-  private meassureCl: React.RefObject<Meassure>;
+  private meassureOrp: React.RefObject<Meassure>;
 
   constructor(props: any) {
     super(props);
@@ -90,20 +85,21 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.media = React.createRef();
 
     this.config = React.createRef<Config>();
+    this.sample = React.createRef<Sample>();
     this.alert = React.createRef<Alert>();
 
     this.chartTemp = React.createRef<Chart>();
     this.chartPh = React.createRef<Chart>();
-    this.chartCl = React.createRef<Chart>();
+    this.chartOrp = React.createRef<Chart>();
 
     this.meassureTemp = React.createRef<Meassure>();
     this.meassurePh = React.createRef<Meassure>();
-    this.meassureCl = React.createRef<Meassure>();
+    this.meassureOrp = React.createRef<Meassure>();
 
-    const sfactory = new SocketFactory(this.alert, this);
-    sfactory.event.streamMetrics = this.streamMetrics.bind(this);
+    this.sfactory = new SocketFactory(this.alert, this);
+    this.sfactory.event.streamMetrics = this.streamMetrics.bind(this);
 
-    this.socket = sfactory.open();
+    this.socket = this.sfactory.open();
   }
 
   activeStandby(active: boolean): void {
@@ -118,7 +114,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
   private streamMetrics(metrics: Metrics) {
     this.chartTemp.current?.setData(metrics.temp);
     this.chartPh.current?.setData(metrics.ph);
-    this.chartCl.current?.setData(metrics.chlorine);
+    this.chartOrp.current?.setData(metrics.orp);
   }
 
   private exit() {
@@ -127,15 +123,16 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
   }
 
   componentDidMount(): void {
-    // Pipeline between the chart and meassure. it sends the last meassure received by chart to the meassure control
+    // Pipeline between the chart and meassure. 
+    // it sends the last meassure received by chart to the meassure control
     if (this.chartTemp.current) {
       this.chartTemp.current.event.lastDataReceived = (m) => {this.meassureTemp.current?.setMeassure(m);}
     }
     if (this.chartPh.current) {
       this.chartPh.current.event.lastDataReceived = (m) => {this.meassurePh.current?.setMeassure(m);}
     }
-    if (this.chartCl.current) {
-      this.chartCl.current.event.lastDataReceived = (m) => {this.meassureCl.current?.setMeassure(m.toFixed(2));}
+    if (this.chartOrp.current) {
+      this.chartOrp.current.event.lastDataReceived = (m) => {this.meassureOrp.current?.setMeassure(m.toFixed(2));}
     }
   }
 
@@ -154,8 +151,35 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                 >
                   Métricas piscina
                 </Typography>
+                <Tooltip title="Muestra">
+                  <IconButton
+                    color="inherit"
+                    onClick={
+                      () => {
+                         if (this.sfactory.state == CommStatus.broadcasting) {
+                          this.sample.current?.open(
+                            this.meassureTemp.current == undefined ? 0 :
+                             this.meassureTemp.current.state.value,
+                            this.meassurePh.current == undefined ? 0 :
+                              this.meassurePh.current.state.value,
+                            this.meassureOrp.current == undefined ? 0 :
+                              this.meassureOrp.current.state.value);
+                         } else {
+                            this.alert.current?.content(
+                              "No se detectan métricas",
+                              "No se puede realizar una muestra sino se " +
+                              "envían métricas desde el micro-controlador");
+                            this.alert.current?.open();
+                         }
+                      }
+                    }>
+                    <AppRegistration />
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title="Configuración">
-                  <IconButton color="inherit" onClick={() => this.config.current?.open(this)}>
+                  <IconButton
+                    color="inherit"
+                    onClick={() => this.config.current?.open(this)}>
                     <Assignment />
                     {this.state.loadingConfig && (
                       <CircularProgress
@@ -187,8 +211,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart ref={this.chartTemp} name={temperatureName} 
-                        unitName={temperatureUnit} theme={mdTheme} media={this.media.current} />
+                      <Chart ref={this.chartPh} name={literals.phName}
+                        unitName={literals.phUnit} theme={mdTheme} media={this.media.current} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>
@@ -200,7 +224,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Meassure ref={this.meassureTemp} name={temperatureName} unitName={temperatureUnit} src="temp.png" />
+                      <Meassure ref={this.meassurePh} name={literals.phName} unitName={literals.phUnit} src="ph.png" />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={9} lg={10}>
@@ -212,8 +236,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart ref={this.chartPh} name={phName}
-                        unitName={phUnit} theme={mdTheme} media={this.media.current} />
+                      <Chart ref={this.chartOrp} name={literals.orpName}
+                        unitName={literals.orpUnit} theme={mdTheme} media={this.media.current} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>
@@ -225,7 +249,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Meassure ref={this.meassurePh} name={phName} unitName={phUnit} src="ph.png" />
+                      <Meassure ref={this.meassureOrp} name={literals.orpName} unitName={literals.orpUnit} src="orp.png" />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={9} lg={10}>
@@ -237,8 +261,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Chart ref={this.chartCl} name={chlorineName}
-                        unitName={chlorineUnit} theme={mdTheme} media={this.media.current} />
+                      <Chart ref={this.chartTemp} name={literals.temperatureName} 
+                        unitName={literals.temperatureUnit} theme={mdTheme} media={this.media.current} />
                     </Paper>
                   </Grid>
                   <Grid item xs={12} md={3} lg={2}>
@@ -250,7 +274,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         height: drawerWidth,
                       }}
                     >
-                      <Meassure ref={this.meassureCl} name={chlorineName} unitName={chlorineUnit} src="chlorine.png" />
+                      <Meassure ref={this.meassureTemp} name={literals.temperatureName} unitName={literals.temperatureUnit} src="temp.png" />
                     </Paper>
                   </Grid>
                 </Grid>
@@ -270,6 +294,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
               </Container>
             <Alert ref={this.alert}></Alert>
             <Config ref={this.config} alert={this.alert}/>
+            <Sample ref={this.sample} alert={this.alert}/>
             <MediaQuery ref={this.media} theme={mdTheme}></MediaQuery>
       </ThemeProvider>
     );    

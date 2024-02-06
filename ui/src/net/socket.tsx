@@ -22,15 +22,16 @@ import { logoff } from "../auth/user";
 import Alert from "../info/alert";
 
 // CommStatus is the communications status
-enum CommStatus {
+export enum CommStatus {
     inactive,
-    active
+    active,
+    broadcasting
 }
 
 export interface Metrics {
     temp: number[];
     ph: number[];
-    chlorine: number[];
+    orp: number[];
 }
 
 export interface SocketEvent {
@@ -44,19 +45,28 @@ export default class SocketFactory {
 
     private ws: WebsocketBuilder;
 
-    constructor(private alert: RefObject<Alert>, private actions: Actions) {
-        const protocol = location.protocol == "https:" ? "wss" : "ws";
-        this.ws = new WebsocketBuilder(protocol + "://" + document.location.host + "/api/web/ws");
+    state: CommStatus;
 
-        this.event = {
-            streamMetrics: () => {}
-        }
+    constructor(
+      private alert: RefObject<Alert>,
+      private actions: Actions) {
+
+      this.state = CommStatus.inactive;
+
+      const protocol = location.protocol == "https:" ? "wss" : "ws";
+      this.ws = new WebsocketBuilder(protocol + "://" + document.location.host + "/api/web/ws");
+
+      this.event = {
+          streamMetrics: () => {}
+      }
     }
 
     // start opens socket connection, registers in server and controls events
     open(): Websocket {
         return this.ws.onClose((_, ev) => {
             console.log("El socket se ha cerrado con el código: " + ev.code);
+
+            this.state = CommStatus.inactive;
 
             if (this.alert.current) {
                 this.alert.current.content(
@@ -72,6 +82,8 @@ export default class SocketFactory {
             }
         })
         .onError((_ , ev) => {
+            this.state = CommStatus.inactive;
+
             if (this.alert.current) {
                 this.alert.current.content(
                     "Error de conexión",
@@ -88,14 +100,14 @@ export default class SocketFactory {
 
             try {
                 if (message.messageType == MessageType.control ) {
-                    const status = message.controlMessage();
+                    this.state = message.controlMessage();
 
                     if (this.alert.current) {
                         this.alert.current.content(
-                            "Comunicación con el micro controlador sin respuesta",
-                            "No se detecta ningún envío de métricas desde el micro controlador, seguiremos " +
+                            "Comunicación con el micro-controlador sin respuesta",
+                            "No se detecta ningún envío de métricas desde el micro-controlador, seguiremos " +
                             "intentado reestablecer la comunicación. Si persiste el problema, " +
-                            "asegúrese que el micro controlador se encuentra encedido y que la comunicación " +
+                            "asegúrese que el micro-controlador se encuentra encedido y que la comunicación " +
                             "se encuentra habilitada. También puede ser debido, a que no se encuentra " +
                             "dentro del horario establecido para la recepción de las métricas, " +
                             "o simplemente hay un retraso en las comunicaciones")
@@ -104,12 +116,15 @@ export default class SocketFactory {
                         this.actions.activeStandby(true)
                     }
                 } else {
+                    this.state = CommStatus.broadcasting;
                     this.actions.activeStandby(false);
                     this.event.streamMetrics(message.metricsMessage());
                 }
             }
             catch (ex) {
                 console.log("Sockets.onMessage: " + ex);
+
+                this.state = CommStatus.inactive;
 
                 this.alert.current?.content(
                     "Se ha producido un error al recibir información del servidor.",
@@ -150,7 +165,7 @@ class MessageFactory {
         return {
             temp: metrics.temp.map((m: String) => Number(m)),
             ph: metrics.ph.map((m: String) => Number(m)),
-            chlorine: metrics.orp.map((m: String) => Number(m)),
+            orp: metrics.orp.map((m: String) => Number(m)),
         }
     }
 }

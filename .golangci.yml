@@ -51,3 +51,6 @@ issues:
     - path: pkg/auth/oauth2_test.go
       linters:
         - lll
+    - path: pkg/auth/jwt_test.go
+      linters:
+        - goconst

@@ -250,8 +250,10 @@ type AWS struct {
 
 // AWSData defines AWS data configuration
 type AWSData struct {
-	// TableName is the name table dynamodb
-	TableName string `json:"tableName,omitempty"`
+	// ConfigTableName is the name config table dynamodb
+	ConfigTableName string `json:"configTableName,omitempty"`
+	// SamplesTableName is the name samples table dynamodb
+	SamplesTableName string `json:"samplesTableName,omitempty"`
 }
 
 // FileData defines file data configuration
@@ -264,8 +266,8 @@ type FileData struct {
 type Data struct {
 	// Provider is the data provider
 	Provider DataProvider `json:"provider,omitempty"`
-	// File is the file data provider
-	File FileData `json:"file,omitempty"`
+	// ConfigFile is the file data provider
+	ConfigFile FileData `json:"configFile,omitempty"`
 	// AWS is the aws data provider
 	AWS AWSData `json:"aws,omitempty"`
 }
@@ -353,7 +355,7 @@ func Default() Config {
 		},
 		Data: Data{
 			Provider: FileDataProvider,
-			File: FileData{
+			ConfigFile: FileData{
 				FilePath: "./data/micro-config.dat",
 			},
 		},

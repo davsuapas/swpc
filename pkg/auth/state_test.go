@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/swpoolcontroller/pkg/auth"
 )
 
@@ -80,7 +81,7 @@ func TestEncodeState(t *testing.T) {
 			state, err := auth.EncodeState(tt.args.key, tt.args.state)
 
 			if err != nil && tt.err.want {
-				assert.ErrorContains(t, err, tt.err.msg, "Error")
+				require.ErrorContains(t, err, tt.err.msg, "Error")
 
 				return
 			}
@@ -94,12 +95,12 @@ func TestDecodeState(t *testing.T) {
 	t.Parallel()
 
 	statec, err := auth.EncodeState(key, []byte("123"))
-	if assert.NoError(t, err) {
-		stated, err := auth.DecodeState(key, statec)
-		if assert.NoError(t, err) {
-			assert.Equal(t, []byte{0x31, 0x32, 0x33}, stated)
-		}
-	}
+	require.NoError(t, err)
+
+	stated, err := auth.DecodeState(key, statec)
+	require.NoError(t, err)
+
+	assert.Equal(t, []byte{0x31, 0x32, 0x33}, stated)
 }
 
 func TestDecodeState_Error(t *testing.T) {
@@ -141,7 +142,7 @@ func TestDecodeState_Error(t *testing.T) {
 
 			_, err := auth.DecodeState(tt.args.key, tt.args.statec)
 
-			assert.ErrorContains(t, err, tt.errMsg, "Error")
+			require.ErrorContains(t, err, tt.errMsg, "Error")
 		})
 	}
 }

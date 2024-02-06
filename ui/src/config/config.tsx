@@ -25,7 +25,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Slide from '@mui/material/Slide';
 import TextField from '@mui/material/TextField';
 import { TransitionProps } from '@mui/material/transitions';
-import React, { forwardRef } from 'react';
+import React from 'react';
 import { Actions } from '../dashboard/dashboard';
 import Fetch from '../net/fetch';
 import { colorPurple } from '../support/color';
@@ -102,7 +102,7 @@ export default class Config extends React.Component<any, ConfigState> {
         () => {
             actions.activeLoadingConfig(false);
         });
-    };
+    }
       
     // init initializes the form when is invoked
     private init() {
@@ -206,7 +206,7 @@ export default class Config extends React.Component<any, ConfigState> {
                 <DialogTitle>Configuración</DialogTitle>
                 <DialogContent>
                     <DialogContentText id="alert-dialog-slide-description">
-                        El micro controlador encargado de medir los valores de la piscina, puede consumir bastante batería.
+                        El micro-controlador encargado de medir los valores de la piscina, puede consumir bastante batería.
                         Para salvaguardar la bateria, es conveniente configurar las horas de emisión de las métricas
                         por parte del micro. En esta sección se le pedirá dos grupos de configuración.
                         El primero consiste en configurar, cada cuantos minutos el micro chequea entre que horas emitirá
@@ -222,7 +222,7 @@ export default class Config extends React.Component<any, ConfigState> {
                         value={this.state.wakeupValue}
                         onChange={event => this.setState({wakeupValue: parseInt(event.target.value)})}
                         InputProps={{ inputProps: { min: 15, max: 120 } }}
-                        size="small"
+                        size="medium"
                         error={!this.state.wakeupValid}
                         helperText={this.state.wakeupValid ?
                             "Cada cuantos minutos chequa entre que horas emite" :
@@ -236,7 +236,7 @@ export default class Config extends React.Component<any, ConfigState> {
                             type="time"
                             value={this.state.iniSendTimeValue}
                             onChange={event => this.setState({iniSendTimeValue: event.target.value})}
-                            size="small"
+                            size="medium"
                             error={!this.state.sendTimeValid}
                             helperText={this.state.sendTimeValid ?
                                 "Hora de inicio para el envío de métricas" :
@@ -249,7 +249,7 @@ export default class Config extends React.Component<any, ConfigState> {
                             type="time"
                             value={this.state.endSendTimeValue}
                             onChange={event => this.setState({endSendTimeValue: event.target.value})}
-                            size="small"
+                            size="medium"
                             error={!this.state.sendTimeValid}
                             helperText={this.state.sendTimeValid ?
                                 "Hora que finaliza la emisión de las métricas" :
@@ -264,7 +264,7 @@ export default class Config extends React.Component<any, ConfigState> {
                             value={this.state.bufferValue}
                             onChange={event => this.setState({bufferValue: parseInt(event.target.value)})}
                             InputProps={{ inputProps: { min: 3, max: 20 } }}
-                            size="small"
+                            size="medium"
                             error={!this.state.bufferValid}
                             helperText={this.state.bufferValid ?
                                 "Tiempo que almacena el micro las métricas antes de enviar (buffer)" :
@@ -297,7 +297,7 @@ export default class Config extends React.Component<any, ConfigState> {
     }
 }
 
-function parseTime(t: string): Date | null {
+  function parseTime(t: string): Date | null {
     const d = new Date();
     const time = t.match(/(\d+)(?::(\d\d))?\s*(p?)/);
     if (!time) {

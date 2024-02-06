@@ -25,6 +25,7 @@ import (
 	awsc "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/labstack/echo/v4"
+	"github.com/swpoolcontroller/internal/ai"
 	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/hub"
 	iotc "github.com/swpoolcontroller/internal/iot"
@@ -59,6 +60,7 @@ type WebHandler struct {
 	AppConfig web.AppConfigurator
 	Auth      web.Auth
 	Config    *web.ConfigWeb
+	Sample    *web.SampleWeb
 	WS        *web.WS
 }
 
@@ -117,7 +119,7 @@ func NewFactory() *Factory {
 		JWT:        jwt,
 		Hubt:       hubt,
 		Hub:        hub,
-		WebHandler: newWeb(log, cnf, hub, jwt, mconfigRead, mconfigWrite),
+		WebHandler: newWeb(log, cnf, awscnf, hub, jwt, mconfigRead, mconfigWrite),
 		APIHandler: &APIHandler{
 			Auth: iotc.NewAuth(log, cnf.API),
 			WS:   iotc.NewWS(log, hub),
@@ -132,12 +134,12 @@ func microConfigRead(
 	//
 	if cnf.Data.Provider == config.CloudDataProvider &&
 		cnf.Cloud.Provider != config.CloudNoProvider {
-		return iotc.NewAWSConfigRead(log, cnfaws.get(), cnf.Data.AWS.TableName)
+		return iotc.NewAWSConfigRead(log, cnfaws.get(), cnf.Data.AWS.ConfigTableName)
 	}
 
 	return &iotc.FileConfigRead{
 		Log:      log,
-		DataFile: cnf.Data.File.FilePath,
+		DataFile: cnf.Data.ConfigFile.FilePath,
 	}
 }
 
@@ -153,14 +155,14 @@ func microConfigWrite(
 			log,
 			hub,
 			cnf,
-			cnfaws.get(), cnf.Data.AWS.TableName)
+			cnfaws.get(), cnf.Data.AWS.ConfigTableName)
 	}
 
 	return &iotc.FileConfigWrite{
 		Log:      log,
 		Hub:      hub,
 		Config:   cnf,
-		DataFile: cnf.Data.File.FilePath,
+		DataFile: cnf.Data.ConfigFile.FilePath,
 	}
 }
 
@@ -172,9 +174,11 @@ func secretProvider(cnf config.Config, cnfaws *awsConfig) config.Secret {
 	return &config.DummySecret{}
 }
 
+//nolint:funlen
 func newWeb(
 	log *zap.Logger,
 	cnf config.Config,
+	cnfaws *awsConfig,
 	hub *iot.Hub,
 	jwt *auth.JWT,
 	mconfigRead iotc.ConfigRead,
@@ -183,6 +187,17 @@ func newWeb(
 	var oauth2 web.Auth
 
 	var appConfig web.AppConfigurator
+
+	var repoSample ai.SampleRepo
+
+	if cnf.Data.Provider == config.CloudDataProvider {
+		repoSample = ai.NewSampleAWSDynamoRepo(
+			cnfaws.get(),
+			log,
+			cnf.Data.AWS.SamplesTableName)
+	} else {
+		repoSample = &web.SampleDummyRepo{Log: log}
+	}
 
 	if cnf.Auth.Provider == config.AuthProviderOauth2 {
 		oauth2 = &web.AuthFlow{
@@ -222,6 +237,10 @@ func newWeb(
 			Log:    log,
 			MicroR: mconfigRead,
 			MicroW: mconfigWrite,
+		},
+		Sample: &web.SampleWeb{
+			Log:  log,
+			Repo: repoSample,
 		},
 		WS: web.NewWS(log, cnf.Web, hub),
 	}

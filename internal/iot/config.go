@@ -72,8 +72,8 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		IniSendTime: "11:00",
-		EndSendTime: "12:00",
+		IniSendTime: "09:00",
+		EndSendTime: "23:00",
 		Wakeup:      30,
 		Buffer:      3,
 	}
@@ -235,8 +235,9 @@ func (c *AWSConfigRead) Read() (Config, error) {
 	return mc, nil
 }
 
-// ConfigWrite writes the micro controller configuration from AWS dynamodb
-type AWSConfigWrite struct {
+// AWSDynamoConfigWrite writes the micro controller configuration
+// from AWS dynamodb
+type AWSDynamoConfigWrite struct {
 	log       *zap.Logger
 	hub       Hub
 	config    config.Config
@@ -251,9 +252,9 @@ func NewAWSConfigWrite(
 	hub Hub,
 	config config.Config,
 	cfg aws.Config,
-	tableName string) *AWSConfigWrite {
+	tableName string) *AWSDynamoConfigWrite {
 	//
-	return &AWSConfigWrite{
+	return &AWSDynamoConfigWrite{
 		log:       log,
 		hub:       hub,
 		config:    config,
@@ -262,7 +263,7 @@ func NewAWSConfigWrite(
 	}
 }
 
-func (c AWSConfigWrite) Save(data Config) error {
+func (c AWSDynamoConfigWrite) Save(data Config) error {
 	c.log.Info(
 		infSavingConfig,
 		zap.String(infConfig, data.String()),

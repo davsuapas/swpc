@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/swpoolcontroller/internal"
 	"github.com/swpoolcontroller/internal/config"
 )
@@ -35,7 +36,7 @@ func TestServer_Start(t *testing.T) {
 		s.Kill()
 	}()
 
-	assert.NoError(t, s.Start())
+	require.NoError(t, s.Start())
 }
 
 func TestServer_Middleware(t *testing.T) {
@@ -58,7 +59,7 @@ func TestServer_Route_Auth_Provider_Oauth2(t *testing.T) {
 
 	s.Route()
 
-	assert.Equal(t, 12, len(f.Webs.Router().Routes()))
+	assert.Len(t, f.Webs.Router().Routes(), 13)
 }
 
 func TestServer_Route_Auth_Provider_Dev(t *testing.T) {
@@ -69,5 +70,5 @@ func TestServer_Route_Auth_Provider_Dev(t *testing.T) {
 
 	s.Route()
 
-	assert.Equal(t, 10, len(f.Webs.Router().Routes()))
+	assert.Len(t, f.Webs.Router().Routes(), 11)
 }

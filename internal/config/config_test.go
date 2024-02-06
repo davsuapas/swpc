@@ -92,11 +92,12 @@ func TestLoadConfig(t *testing.T) {
 				},
 				"data": {
 					"provider": "cloud",
-					"file": {
+					"configFile": {
 						"filePath": "./file.dat"
 					},
 					"aws": {
-						"tableName": "tabla"
+						"configTableName": "tabla",
+						"samplesTableName": "samples"
 					}
 				}
 			}`,
@@ -160,11 +161,12 @@ func TestLoadConfig(t *testing.T) {
 				},
 				Data: config.Data{
 					Provider: config.CloudDataProvider,
-					File: config.FileData{
+					ConfigFile: config.FileData{
 						FilePath: "./file.dat",
 					},
 					AWS: config.AWSData{
-						TableName: "tabla",
+						ConfigTableName:  "tabla",
+						SamplesTableName: "samples",
 					},
 				},
 			},
@@ -444,9 +446,10 @@ func TestApplySecret(t *testing.T) {
 			s := mocks.NewSecret(t)
 			s.On("Get", tt.args.config.Secret.Name).Return(tt.args.secrets, nil)
 
-			config.ApplySecret(zap.NewExample(), s, &tt.args.config)
+			c := tt.args.config
+			config.ApplySecret(zap.NewExample(), s, &c)
 
-			assert.Equal(t, tt.expected, tt.args.config)
+			assert.Equal(t, tt.expected, c)
 
 			s.AssertExpectations(t)
 		})

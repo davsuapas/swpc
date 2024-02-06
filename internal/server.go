@@ -150,6 +150,8 @@ func (s *Server) Route() {
 	wapi.GET("/config", s.factory.WebHandler.Config.Load)
 	wapi.POST("/config", s.factory.WebHandler.Config.Save)
 
+	wapi.POST("/sample", s.factory.WebHandler.Sample.Save)
+
 	wapi.GET("/ws", s.factory.WebHandler.WS.Register)
 
 	// Device API

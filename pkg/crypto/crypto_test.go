@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/swpoolcontroller/pkg/crypto"
 )
 
@@ -31,7 +32,7 @@ func TestEncrypt_Ok(t *testing.T) {
 
 	e, _ := crypto.Encrypt(key, []byte("1234567891234567"))
 
-	assert.Equal(t, len(e), 44)
+	assert.Len(t, e, 44)
 }
 
 func TestEncrypt_Error_Minimal_Key(t *testing.T) {
@@ -39,7 +40,7 @@ func TestEncrypt_Error_Minimal_Key(t *testing.T) {
 
 	_, err := crypto.Encrypt([]byte("123"), []byte("123"))
 
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestDecrypt_Ok(t *testing.T) {
@@ -48,12 +49,12 @@ func TestDecrypt_Ok(t *testing.T) {
 	e, _ := crypto.Encrypt(key, []byte("1234567891234567"))
 	d, _ := crypto.Decrypt(key, e)
 
-	assert.Equal(t, string(d), "1234567891234567")
+	assert.Equal(t, "1234567891234567", string(d))
 }
 
 func TestDecrypt_Error_Minimal_Key(t *testing.T) {
 	t.Parallel()
 
 	_, err := crypto.Decrypt([]byte("123"), []byte("123"))
-	assert.Error(t, err)
+	require.Error(t, err)
 }

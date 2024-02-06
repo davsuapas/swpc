@@ -57,7 +57,7 @@ func TestAuthFlowDev_Login_Should_Return_StatusFound(t *testing.T) {
 
 	r := rec.Result()
 	defer r.Body.Close()
-	assert.Equal(t, 2, len(r.Cookies()), "Cookies")
+	assert.Len(t, r.Cookies(), 2, "Cookies")
 }
 
 func TestAuthFlowDev_Logout_Should_Return_StatusFound(t *testing.T) {
@@ -92,7 +92,7 @@ func TestAuthFlowDev_Logout_Should_Return_StatusFound(t *testing.T) {
 
 	r := rec.Result()
 	defer r.Body.Close()
-	assert.Equal(t, 1, len(r.Cookies()), "Cookies")
+	assert.Len(t, r.Cookies(), 1, "Cookies")
 
 	hub.AssertExpectations(t)
 }
@@ -225,7 +225,7 @@ func TestAuthFlow_Login(t *testing.T) {
 			r := rec.Result()
 			defer r.Body.Close()
 
-			assert.Equal(t, tt.want.cookies, len(r.Cookies()), "Cookies")
+			assert.Len(t, r.Cookies(), tt.want.cookies, "Cookies")
 			assert.Equal(t, tt.want.redirect, rec.Header().Get("Location"))
 
 			oa.AssertExpectations(t)
@@ -311,7 +311,7 @@ func TestAuthFlow_Logout(t *testing.T) {
 
 			r := rec.Result()
 			defer r.Body.Close()
-			assert.Equal(t, tt.want.cookies, len(r.Cookies()), "Cookies")
+			assert.Len(t, r.Cookies(), tt.want.cookies, "Cookies")
 
 			h.AssertExpectations(t)
 		})

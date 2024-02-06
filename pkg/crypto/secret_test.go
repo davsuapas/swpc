@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/swpoolcontroller/pkg/crypto"
 )
 
@@ -21,5 +22,5 @@ func TestAWSSecret_Get(t *testing.T) {
 
 	_, err = s.Get("secretName")
 
-	assert.Error(t, err)
+	require.Error(t, err)
 }

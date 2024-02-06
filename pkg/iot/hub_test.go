@@ -29,6 +29,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/swpoolcontroller/pkg/iot"
 )
 
@@ -91,18 +92,16 @@ func TestHub_LifecycleNoTransmissionTimeWindows(t *testing.T) {
 	trace := newTrace()
 
 	wscs, wscc, err := newWS()
-	if !assert.NoError(t, err, "New web client socket") {
-		return
-	}
+	require.NoError(t, err, "New web client socket")
+
 	defer wscs.Close()
 	defer wscc.Close()
 
 	client := iot.NewClient("c1", wscs, 10*time.Minute)
 
 	wsds, wsdc, err := newWS()
-	if !assert.NoError(t, err, "New web device socket") {
-		return
-	}
+	require.NoError(t, err, "New web device socket")
+
 	defer wsds.Close()
 	defer wsdc.Close()
 
@@ -128,9 +127,8 @@ func TestHub_LifecycleNoTransmissionTimeWindows(t *testing.T) {
 	}
 
 	wsds1, wsdc1, err := newWS()
-	if !assert.NoError(t, err, "New web device socket 1") {
-		return
-	}
+	require.NoError(t, err, "New web device socket 1")
+
 	defer wsds1.Close()
 	defer wsdc1.Close()
 
@@ -167,9 +165,7 @@ func testHubBroadcastMessageToClientsFromNoTimeWindow(
 	t.Helper()
 
 	err := wsdc.WriteMessage(websocket.TextMessage, []byte("message"))
-	if !assert.NoError(t, err, "Write device message") {
-		return true
-	}
+	require.NoError(t, err, "Write device message")
 
 	msgd := readMessages(wsdc, 2)
 	msgc := readMessages(wscc, 1)
@@ -270,9 +266,8 @@ func TestHub_InactiveStateTransmissionTimeWindowsStandbyAction(t *testing.T) {
 	trace := newTrace()
 
 	wsds, wsdc, err := newWS()
-	if !assert.NoError(t, err, "New web device socket") {
-		return
-	}
+	require.NoError(t, err, "New web device socket")
+
 	defer wsds.Close()
 	defer wsdc.Close()
 
@@ -319,7 +314,7 @@ func TestHub_InactiveStateTransmissionTimeWindowsStandbyAction(t *testing.T) {
 		},
 		"Info")
 
-	assert.Len(t, trace.Errors, 0, "Errors")
+	assert.Empty(t, trace.Errors, "Errors")
 }
 
 func TestHub_IdleBroadcast(t *testing.T) {
@@ -346,18 +341,16 @@ func TestHub_IdleBroadcast(t *testing.T) {
 	trace := newTrace()
 
 	wscs, wscc, err := newWS()
-	if !assert.NoError(t, err, "New web client socket") {
-		return
-	}
+	require.NoError(t, err, "New web client socket")
+
 	defer wscs.Close()
 	defer wscc.Close()
 
 	client := iot.NewClient("c1", wscs, 10*time.Minute)
 
 	wsds, wsdc, err := newWS()
-	if !assert.NoError(t, err, "New web device socket") {
-		return
-	}
+	require.NoError(t, err, "New web device socket")
+
 	defer wsds.Close()
 	defer wsdc.Close()
 
@@ -375,9 +368,7 @@ func TestHub_IdleBroadcast(t *testing.T) {
 	hub.RegisterDevice(device)
 
 	err = wsdc.WriteMessage(websocket.TextMessage, []byte("message"))
-	if !assert.NoError(t, err, "Write device message") {
-		return
-	}
+	require.NoError(t, err, "Write device message")
 
 	time.Sleep(20 * time.Millisecond)
 
@@ -391,7 +382,7 @@ func TestHub_IdleBroadcast(t *testing.T) {
 		return
 	}
 
-	assert.Len(t, trace.Errors, 0, "Errors")
+	assert.Empty(t, trace.Errors, "Errors")
 }
 
 func TestHub_NotifyState(t *testing.T) {
@@ -418,9 +409,8 @@ func TestHub_NotifyState(t *testing.T) {
 	trace := newTrace()
 
 	wscs, wscc, err := newWS()
-	if !assert.NoError(t, err, "New web client socket") {
-		return
-	}
+	require.NoError(t, err, "New web client socket")
+
 	defer wscs.Close()
 	defer wscc.Close()
 
@@ -442,7 +432,7 @@ func TestHub_NotifyState(t *testing.T) {
 		msgd,
 		"Notify messages received")
 
-	assert.Len(t, trace.Errors, 0, "Errors")
+	assert.Empty(t, trace.Errors, "Errors")
 }
 
 func TestHub_SendConfigToDevice(t *testing.T) {
@@ -469,9 +459,8 @@ func TestHub_SendConfigToDevice(t *testing.T) {
 	trace := newTrace()
 
 	wsds, wsdc, err := newWS()
-	if !assert.NoError(t, err, "New web device socket") {
-		return
-	}
+	require.NoError(t, err, "New web device socket")
+
 	defer wsds.Close()
 	defer wsdc.Close()
 
@@ -511,7 +500,7 @@ func TestHub_SendConfigToDevice(t *testing.T) {
 		unmarshalHeartbeat(msgd[2]),
 		"Device config message")
 
-	assert.Len(t, trace.Errors, 0, "Errors")
+	assert.Empty(t, trace.Errors, "Errors")
 }
 
 func TestHub_ClientDead(t *testing.T) {
@@ -538,9 +527,8 @@ func TestHub_ClientDead(t *testing.T) {
 	trace := newTrace()
 
 	wscs, wscc, err := newWS()
-	if !assert.NoError(t, err, "New web client socket") {
-		return
-	}
+	require.NoError(t, err, "New web client socket")
+
 	defer wscs.Close()
 	defer wscc.Close()
 
@@ -566,7 +554,7 @@ func TestHub_ClientDead(t *testing.T) {
 		},
 		"Info")
 
-	assert.Len(t, trace.Errors, 0, "Errors")
+	assert.Empty(t, trace.Errors, "Errors")
 }
 
 func TestHub_Multi_Link_Device(t *testing.T) {
@@ -593,9 +581,8 @@ func TestHub_Multi_Link_Device(t *testing.T) {
 	trace := newTrace()
 
 	wsds, wsdc, err := newWS()
-	if !assert.NoError(t, err, "New web device socket") {
-		return
-	}
+	require.NoError(t, err, "New web device socket")
+
 	defer wsds.Close()
 	defer wsdc.Close()
 
@@ -613,9 +600,8 @@ func TestHub_Multi_Link_Device(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	wsds1, wsdc1, err1 := newWS()
-	if !assert.NoError(t, err1, "New web device1 socket") {
-		return
-	}
+	require.NoError(t, err1, "New web device1 socket")
+
 	defer wsds1.Close()
 	defer wsdc1.Close()
 
@@ -643,7 +629,7 @@ func TestHub_Multi_Link_Device(t *testing.T) {
 		unmarshalHeartbeat(msgd[0]),
 		"Device config message")
 
-	assert.Len(t, trace.Errors, 0, "Errors")
+	assert.Empty(t, trace.Errors, "Errors")
 }
 
 func TestHub_HeartbeatTimeout(t *testing.T) {
@@ -670,9 +656,8 @@ func TestHub_HeartbeatTimeout(t *testing.T) {
 	trace := newTrace()
 
 	wsds, wsdc, err := newWS()
-	if !assert.NoError(t, err, "New web device socket") {
-		return
-	}
+	require.NoError(t, err, "New web device socket")
+
 	defer wsds.Close()
 	defer wsdc.Close()
 
@@ -761,9 +746,7 @@ func assertState(t *testing.T, hub *iot.Hub, expected iot.State) bool {
 	defer cancel()
 
 	state, err := hub.State(ctx)
-	if !assert.NoError(t, err, "Getting state") {
-		return true
-	}
+	require.NoError(t, err, "Getting state")
 
 	assert.Equal(t, expected, state, "Hub state")
 

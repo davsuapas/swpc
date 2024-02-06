@@ -28,7 +28,7 @@ func TestStrings_Concat(t *testing.T) {
 	t.Parallel()
 
 	c := strings.Concat("a", "b", "c")
-	assert.Equal(t, c, "abc")
+	assert.Equal(t, "abc", c)
 }
 
 func TestStrings_fmt(t *testing.T) {

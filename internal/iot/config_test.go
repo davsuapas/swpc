@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/swpoolcontroller/internal/config"
 	iotc "github.com/swpoolcontroller/internal/iot"
 	"github.com/swpoolcontroller/internal/iot/mocks"
@@ -88,7 +89,7 @@ func TestConfigRead_Read(t *testing.T) {
 
 			res, err := c.Read()
 			if err != nil && tt.err.want {
-				assert.ErrorContains(t, err, tt.err.msg, "Error")
+				require.ErrorContains(t, err, tt.err.msg, "Error")
 			}
 
 			assert.Equal(t, tt.expected, res)
@@ -136,8 +137,8 @@ func TestConfigWrite_Save(t *testing.T) {
 					WakeUpTime:         30,
 					CollectMetricsTime: 1000,
 					Buffer:             3,
-					IniSendTime:        "11:00",
-					EndSendTime:        "12:00",
+					IniSendTime:        "09:00",
+					EndSendTime:        "23:00",
 				},
 			},
 			err: errors{
@@ -180,13 +181,13 @@ func TestConfigWrite_Save(t *testing.T) {
 			}
 
 			if err := c.Save(tt.args.data); err != nil && tt.err.want {
-				assert.ErrorContains(t, err, tt.err.msg, "Error")
+				require.ErrorContains(t, err, tt.err.msg, "Error")
 
 				return
 			}
 
 			if err := os.Remove(tt.fields.DataFile); err != nil {
-				assert.Error(t, err, "Removing micro config file created")
+				require.Error(t, err, "Removing micro config file created")
 			}
 
 			h.AssertExpectations(t)

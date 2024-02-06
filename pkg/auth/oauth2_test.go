@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/swpoolcontroller/pkg/auth"
 )
 
@@ -132,9 +133,9 @@ func TestOAuth2_Token(t *testing.T) {
 
 			if _, err := o.Token(auth.OA2TokenInput{URL: s.URL}); err != nil {
 				if len(tt.wantErr) == 0 {
-					assert.NoError(t, err, "Error")
+					require.NoError(t, err, "Error")
 				}
-				assert.ErrorContains(t, err, tt.wantErr, "Error")
+				require.ErrorContains(t, err, tt.wantErr, "Error")
 			}
 		})
 	}
@@ -181,9 +182,9 @@ func TestOAuth2_RevokeToken(t *testing.T) {
 				auth.OA2RevokeTokenInput{URL: s.URL}); err != nil {
 				//
 				if len(tt.wantErr) == 0 {
-					assert.NoError(t, err, "Error")
+					require.NoError(t, err, "Error")
 				}
-				assert.ErrorContains(t, err, tt.wantErr, "Error")
+				require.ErrorContains(t, err, tt.wantErr, "Error")
 			}
 		})
 	}

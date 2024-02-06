@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/swpoolcontroller/pkg/auth"
 )
 
@@ -92,9 +93,9 @@ func TestJWKFetch_Fetch(t *testing.T) {
 
 			if err := k.Fetch(); err != nil {
 				if len(tt.wantErr) == 0 {
-					assert.NoError(t, err, "Error")
+					require.NoError(t, err, "Error")
 				}
-				assert.ErrorContains(t, err, tt.wantErr, "Error")
+				require.ErrorContains(t, err, tt.wantErr, "Error")
 			}
 
 			assert.Equal(t, tt.want, k.JWK())
@@ -224,9 +225,9 @@ func TestJWKFetch_JWKKey(t *testing.T) {
 			jwk, err := k.JWKKey(tt.field.kid)
 			if err != nil {
 				if len(tt.wantErr) == 0 {
-					assert.NoError(t, err, "Error")
+					require.NoError(t, err, "Error")
 				}
-				assert.ErrorContains(t, err, tt.wantErr, "Error")
+				require.ErrorContains(t, err, tt.wantErr, "Error")
 			}
 
 			assert.Equal(t, tt.want, jwk)
@@ -360,9 +361,9 @@ func TestJWT_ParseJWT(t *testing.T) {
 
 			if _, err := k.ParseJWT(tt.token); err != nil {
 				if len(tt.wantErr) == 0 {
-					assert.NoError(t, err, "Error")
+					require.NoError(t, err, "Error")
 				}
-				assert.ErrorContains(t, err, tt.wantErr, "Error")
+				require.ErrorContains(t, err, tt.wantErr, "Error")
 			}
 		})
 	}

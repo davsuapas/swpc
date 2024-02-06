@@ -56,7 +56,9 @@ export default class Meassure extends React.Component<MeassureProps, MeassureSta
         <Typography component="p" variant="h4" sx={{marginTop: '25px', marginBottom: "20px"}}>
           {this.state.value} {this.props.unitName}
         </Typography>
-        <img src={this.props.src} width="80" height="80"></img>
+        {this.props.src != "" && (
+          <img src={this.props.src} width="80" height="80"></img>
+        )}
       </React.Fragment>
     );
   }

@@ -26,6 +26,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/swpoolcontroller/internal/config"
 	iotc "github.com/swpoolcontroller/internal/iot"
 	"github.com/swpoolcontroller/internal/iot/mocks"
@@ -182,7 +183,7 @@ func TestConfigWeb_Save(t *testing.T) {
 
 			if rec.Code == http.StatusOK {
 				if err := os.Remove(tt.field.dataFile); err != nil {
-					assert.Error(t, err, "Removing micro config file created")
+					require.Error(t, err, "Removing micro config file created")
 				}
 			}
 
