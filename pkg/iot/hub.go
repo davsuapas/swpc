@@ -446,10 +446,9 @@ func (d *deviceController) setClosed(closed bool) {
 
 func (d *deviceController) IsClosed() bool {
 	d.mtx.RLock()
-	c := d.closed
-	d.mtx.RUnlock()
+	defer d.mtx.RUnlock()
 
-	return c
+	return d.closed
 }
 
 // Close closes the socket and involves linking to another device

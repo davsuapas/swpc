@@ -45,8 +45,8 @@ const Item = styled(Paper)(({ theme }) => ({
 
 interface SampleState {
   open: boolean;
-  orp: string;
-  orpValid: boolean;
+  cl: number;
+  clValid: boolean;
   waterQuality: number;
   saving: boolean;
 }
@@ -57,7 +57,7 @@ export default class Sample extends React.Component<any, SampleState> {
 
   private meassureTemp: React.RefObject<Meassure>;
   private meassurePh: React.RefObject<Meassure>;
-  private meassureCl: React.RefObject<Meassure>;
+  private meassureOrp: React.RefObject<Meassure>;
 
   constructor(props: any) {
       super(props);
@@ -66,29 +66,29 @@ export default class Sample extends React.Component<any, SampleState> {
 
       this.state = {
         open: false,
-        orp: "",
-        orpValid: true,
+        cl: 0,
+        clValid: true,
         waterQuality: 0,
         saving: false
       };
 
       this.meassureTemp = React.createRef<Meassure>();
       this.meassurePh = React.createRef<Meassure>();
-      this.meassureCl = React.createRef<Meassure>();
+      this.meassureOrp = React.createRef<Meassure>();
   }
 
   // open opens the samples editor with the values sent by micro
   open(temp: number, ph: number, orp: number) {
     this.setState({
-      orp: "",
-      orpValid: true,
+      cl: 0,
+      clValid: true,
       waterQuality: 0,
       saving: false
     });
 
     this.meassureTemp.current?.setMeassure(temp);
     this.meassurePh.current?.setMeassure(ph);
-    this.meassureCl.current?.setMeassure(orp);
+    this.meassureOrp.current?.setMeassure(orp);
 
     this.setState({open: true});
   }
@@ -111,8 +111,8 @@ export default class Sample extends React.Component<any, SampleState> {
         body: JSON.stringify({
           "temp": this.meassureTemp.current?.state.value,
           "ph": this.meassurePh.current?.state.value,
-          "orp": this.meassureCl.current?.state.value,
-          "chlorine": Number(this.state.orp),
+          "orp": Number(this.meassureOrp.current?.state.value),
+          "chlorine": this.state.cl,
           "quality": this.state.waterQuality,
         })
       },
@@ -130,11 +130,10 @@ export default class Sample extends React.Component<any, SampleState> {
   }
 
   private valid(): boolean {
-    this.setState({orpValid: false});
-    let cl = Number(this.state.orp)
+    this.setState({clValid: false});
 
-    if (cl >= 0 && cl <= 5) {
-      this.setState({orpValid: true});
+    if (this.state.cl >= 0 && this.state.cl <= 5) {
+      this.setState({clValid: true});
 
       return true;
     }
@@ -164,12 +163,12 @@ export default class Sample extends React.Component<any, SampleState> {
                 sx={{marginTop:"10px"}}
                 label="Cloro (mg/L)"
                 type="number"
-                value={this.state.orp}
+                value={this.state.cl}
                 onChange={event =>
-                    this.setState({orp: event.target.value})}
+                    this.setState({cl: Number(event.target.value)})}
                 InputProps={{ inputProps: { min: 0, max: 5 } }}                  
                 size="medium"
-                error={!this.state.orpValid}
+                error={!this.state.clValid}
                 helperText="Introduzca un valor entre 0 y 5 mg/L"/> 
               <InputLabel variant="standard" htmlFor="waterQuality">
                 Calidad del agua
@@ -205,7 +204,7 @@ export default class Sample extends React.Component<any, SampleState> {
                 <Grid item xs={12} md={5} lg={5}>
                   <Item>
                     <Meassure 
-                      ref={this.meassureCl} name={literals.orpName} 
+                      ref={this.meassureOrp} name={literals.orpName} 
                       unitName={literals.orpUnit} src=""/>
                   </Item>
                 </Grid>

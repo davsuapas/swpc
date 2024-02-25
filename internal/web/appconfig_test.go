@@ -58,7 +58,8 @@ func TestAppConfig_Load(t *testing.T) {
 			res: res{
 				status: http.StatusOK,
 				body: "{\"authLoginUrl\":\"\",\"authLogoutUrl\":\"\"," +
-					"\"checkAuthName\":\"IsAuth\"}\n",
+					"\"checkAuthName\":\"IsAuth\"," +
+					"\"iotConfig\":false,\"aiSample\":false}\n",
 			},
 		},
 	}
@@ -106,7 +107,8 @@ func TestAppConfigDev_Load(t *testing.T) {
 			res: res{
 				status: http.StatusOK,
 				body: "{\"authLoginUrl\":\"/auth/login\"," +
-					"\"authLogoutUrl\":\"/auth/logout\",\"checkAuthName\":\"IsAuth\"}\n",
+					"\"authLogoutUrl\":\"/auth/logout\",\"checkAuthName\":\"IsAuth\"," +
+					"\"iotConfig\":false,\"aiSample\":false}\n",
 			},
 		},
 	}

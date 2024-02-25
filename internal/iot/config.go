@@ -43,11 +43,13 @@ const (
 )
 
 const (
-	infLoadingConfig = "Loading configuration file"
-	infConfigLoaded  = "Configuration file loaded"
-	infSavingConfig  = "Saving configuration file"
-	infConfig        = "Config"
-	infFile          = "file"
+	infLoadingConfig     = "Loading configuration file"
+	infConfigLoaded      = "Configuration file loaded"
+	infSavingConfig      = "Saving configuration file"
+	infdefaultReadConfig = "Reading the default configuration"
+	infdefaultSaveConfig = "Save is not implemented"
+	infConfig            = "Config"
+	infFile              = "file"
 )
 
 const (
@@ -73,7 +75,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		IniSendTime: "09:00",
-		EndSendTime: "23:00",
+		EndSendTime: "22:00",
 		Wakeup:      30,
 		Buffer:      3,
 	}
@@ -99,6 +101,31 @@ type ConfigRead interface {
 type ConfigWrite interface {
 	// Save saves the configuration
 	Save(data Config) error
+}
+
+// DefaultConfigRead reads the default micro controller configuration
+type DefaultConfigRead struct {
+	Log *zap.Logger
+}
+
+// Read reads the default configuration
+func (f *DefaultConfigRead) Read() (Config, error) {
+	c := DefaultConfig()
+	f.Log.Info(infdefaultReadConfig, zap.String(infConfig, c.String()))
+
+	return DefaultConfig(), nil
+}
+
+// DefaultConfigSave not implement any action
+type DefaultConfigSave struct {
+	Log *zap.Logger
+}
+
+// Save not implement any action
+func (f *DefaultConfigSave) Save(data Config) error {
+	f.Log.Info(infdefaultSaveConfig, zap.String(infConfig, data.String()))
+
+	return nil
 }
 
 // FileConfigRead reads the micro controller configuration from file

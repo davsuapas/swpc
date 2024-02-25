@@ -133,13 +133,24 @@ func microConfigRead(
 	log *zap.Logger) iotc.ConfigRead {
 	//
 	if cnf.Data.Provider == config.CloudDataProvider &&
-		cnf.Cloud.Provider != config.CloudNoProvider {
-		return iotc.NewAWSConfigRead(log, cnfaws.get(), cnf.Data.AWS.ConfigTableName)
+		cnf.Cloud.Provider != config.NoneCloudProvider &&
+		cnf.Data.AWS.ConfigTableName != "" {
+		return iotc.NewAWSConfigRead(
+			log,
+			cnfaws.get(),
+			cnf.Data.AWS.ConfigTableName)
 	}
 
-	return &iotc.FileConfigRead{
-		Log:      log,
-		DataFile: cnf.Data.ConfigFile.FilePath,
+	if cnf.Data.Provider == config.FileDataProvider &&
+		cnf.Data.ConfigFile.FilePath != "" {
+		return &iotc.FileConfigRead{
+			Log:      log,
+			DataFile: cnf.Data.ConfigFile.FilePath,
+		}
+	}
+
+	return &iotc.DefaultConfigRead{
+		Log: log,
 	}
 }
 
@@ -150,7 +161,8 @@ func microConfigWrite(
 	hub *iot.Hub) iotc.ConfigWrite {
 	//
 	if cnf.Data.Provider == config.CloudDataProvider &&
-		cnf.Cloud.Provider != config.CloudNoProvider {
+		cnf.Cloud.Provider != config.NoneCloudProvider &&
+		cnf.Data.AWS.ConfigTableName != "" {
 		return iotc.NewAWSConfigWrite(
 			log,
 			hub,
@@ -158,11 +170,18 @@ func microConfigWrite(
 			cnfaws.get(), cnf.Data.AWS.ConfigTableName)
 	}
 
-	return &iotc.FileConfigWrite{
-		Log:      log,
-		Hub:      hub,
-		Config:   cnf,
-		DataFile: cnf.Data.ConfigFile.FilePath,
+	if cnf.Data.Provider == config.FileDataProvider &&
+		cnf.Data.ConfigFile.FilePath != "" {
+		return &iotc.FileConfigWrite{
+			Log:      log,
+			Hub:      hub,
+			Config:   cnf,
+			DataFile: cnf.Data.ConfigFile.FilePath,
+		}
+	}
+
+	return &iotc.DefaultConfigSave{
+		Log: log,
 	}
 }
 
@@ -190,7 +209,8 @@ func newWeb(
 
 	var repoSample ai.SampleRepo
 
-	if cnf.Data.Provider == config.CloudDataProvider {
+	if cnf.Data.Provider == config.CloudDataProvider &&
+		cnf.Data.AWS.SamplesTableName != "" {
 		repoSample = ai.NewSampleAWSDynamoRepo(
 			cnfaws.get(),
 			log,

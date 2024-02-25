@@ -37,7 +37,7 @@ export default class Fetch {
                     case 400:
                         this.alert.current?.content(
                             "Error interno",
-                            "Se ha producido un error se solicitud errónea. Vuelva a intentarlo más tarde.");
+                            "Se ha producido un error en la solicitud. Vuelva a intentarlo más tarde.");
                         this.alert.current?.open();
                         break;
                     case 401:

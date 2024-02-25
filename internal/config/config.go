@@ -60,13 +60,14 @@ const (
 type CloudProvider string
 
 const (
-	CloudNoProvider  CloudProvider = "none"
-	CloudAWSProvider CloudProvider = "aws"
+	NoneCloudProvider CloudProvider = "none"
+	CloudAWSProvider  CloudProvider = "aws"
 )
 
 type DataProvider string
 
 const (
+	NoneDataProvider  DataProvider = "none"
 	FileDataProvider  DataProvider = "file"
 	CloudDataProvider DataProvider = "cloud"
 )
@@ -284,6 +285,14 @@ type Location struct {
 	Zone string `json:"zone,omitempty"`
 }
 
+// IOT defines iot configuration
+type IOT struct {
+	// ConfigUI defines whether the configuration can be changed from the ui
+	ConfigUI bool `json:"configUi,omitempty"`
+	// SampleUI defines whether it is can add samples the ai model from the ui
+	SampleUI bool `json:"sampleUi,omitempty"`
+}
+
 // Config defines the global information
 type Config struct {
 	Location Location `json:"location,omitempty"`
@@ -295,6 +304,7 @@ type Config struct {
 	Cloud    Cloud   `json:"cloud,omitempty"`
 	Secret   Secrets `json:"secret,omitempty"`
 	Data     Data    `json:"data,omitempty"`
+	IOT      IOT     `json:"iot,omitempty"`
 }
 
 // AuthRedirectURI forms a uri to redirect requests from oauth2 providers
@@ -351,13 +361,14 @@ func Default() Config {
 			NotificationTime: 8,
 		},
 		Cloud: Cloud{
-			Provider: CloudNoProvider,
+			Provider: NoneCloudProvider,
 		},
 		Data: Data{
-			Provider: FileDataProvider,
-			ConfigFile: FileData{
-				FilePath: "./data/micro-config.dat",
-			},
+			Provider: NoneDataProvider,
+		},
+		IOT: IOT{
+			ConfigUI: false,
+			SampleUI: false,
 		},
 	}
 }
@@ -398,13 +409,14 @@ func LoadConfig() Config { //nolint:cyclop
 		panic(errAuthProvider)
 	}
 
-	if cnf.Cloud.Provider != CloudNoProvider &&
+	if cnf.Cloud.Provider != NoneCloudProvider &&
 		cnf.Cloud.Provider != CloudAWSProvider {
 		panic(errCloudProvider)
 	}
 
 	if cnf.Data.Provider != FileDataProvider &&
-		cnf.Data.Provider != CloudDataProvider {
+		cnf.Data.Provider != CloudDataProvider &&
+		cnf.Data.Provider != NoneDataProvider {
 		panic(errCloudProvider)
 	}
 

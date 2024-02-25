@@ -19,6 +19,8 @@ export interface AppConfig {
     authLoginUrl: string
     authLogoutUrl: string
     checkAuthName: string
+    iotConfig: boolean
+    aiSample: boolean
 }
 
 const keyAppConfig = "app-config";
@@ -50,5 +52,11 @@ export function appConfig(): AppConfig {
 
     console.log("appConfig. The app configuration is empty");
 
-    return {authLoginUrl: "", authLogoutUrl: "", checkAuthName: ""};
+    return {
+      authLoginUrl: "",
+      authLogoutUrl: "",
+      checkAuthName: "",
+      iotConfig: true,
+      aiSample: true
+    };
 }

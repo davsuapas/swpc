@@ -40,6 +40,7 @@ import { MediaQuery, MediaQueryAPI } from '../support/mediaquery';
 import { logoff } from '../auth/user';
 import * as literals from '../support/literals';
 import Sample from '../ai/sample';
+import { appConfig } from '../app/config';
 
 const drawerWidth: number = 255;
 
@@ -56,6 +57,9 @@ export interface Actions {
 }
 
 export default class Dashboard extends React.Component<any, DashboardState> implements Actions {
+
+  private configUI: boolean;
+  private sampleUI: boolean;
 
   private sfactory: SocketFactory;
   private socket: Websocket;
@@ -81,6 +85,10 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
       loadingConfig: false,
       standby: true,
     };
+
+    const config = appConfig()
+    this.configUI = config.iotConfig;
+    this.sampleUI = config.aiSample
 
     this.media = React.createRef();
 
@@ -151,48 +159,52 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                 >
                   Métricas piscina
                 </Typography>
-                <Tooltip title="Muestra">
-                  <IconButton
-                    color="inherit"
-                    onClick={
-                      () => {
-                         if (this.sfactory.state == CommStatus.broadcasting) {
-                          this.sample.current?.open(
-                            this.meassureTemp.current == undefined ? 0 :
-                             this.meassureTemp.current.state.value,
-                            this.meassurePh.current == undefined ? 0 :
-                              this.meassurePh.current.state.value,
-                            this.meassureOrp.current == undefined ? 0 :
-                              this.meassureOrp.current.state.value);
-                         } else {
-                            this.alert.current?.content(
-                              "No se detectan métricas",
-                              "No se puede realizar una muestra sino se " +
-                              "envían métricas desde el micro-controlador");
-                            this.alert.current?.open();
-                         }
-                      }
-                    }>
-                    <AppRegistration />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Configuración">
-                  <IconButton
-                    color="inherit"
-                    onClick={() => this.config.current?.open(this)}>
-                    <Assignment />
-                    {this.state.loadingConfig && (
-                      <CircularProgress
-                        size={40}
-                        sx={{
-                          color: colorPurple,
-                          position: 'absolute',
-                          zIndex: 1,
-                        }}
-                      />
-                  )}                  
-                  </IconButton>
-                </Tooltip>
+                {this.sampleUI && (
+                  <Tooltip title="Muestra">
+                    <IconButton
+                      color="inherit"
+                      onClick={
+                        () => {
+                          if (this.sfactory.state == CommStatus.broadcasting) {
+                            this.sample.current?.open(
+                              this.meassureTemp.current == undefined ? 0 :
+                              this.meassureTemp.current.state.value,
+                              this.meassurePh.current == undefined ? 0 :
+                                this.meassurePh.current.state.value,
+                              this.meassureOrp.current == undefined ? 0 :
+                                this.meassureOrp.current.state.value);
+                          } else {
+                              this.alert.current?.content(
+                                "No se detectan métricas",
+                                "No se puede realizar una muestra sino se " +
+                                "envían métricas desde el micro-controlador");
+                              this.alert.current?.open();
+                          }
+                        }
+                      }>
+                      <AppRegistration />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {this.configUI && (
+                  <Tooltip title="Configuración">
+                    <IconButton
+                      color="inherit"
+                      onClick={() => this.config.current?.open(this)}>
+                      <Assignment />
+                      {this.state.loadingConfig && (
+                        <CircularProgress
+                          size={40}
+                          sx={{
+                            color: colorPurple,
+                            position: 'absolute',
+                            zIndex: 1,
+                          }}
+                        />
+                      )}                  
+                    </IconButton>
+                  </Tooltip>
+                )}
                 <Tooltip title="Salir">
                   <IconButton color="inherit" onClick={() => this.exit()}>
                       <ExitToAppIcon />

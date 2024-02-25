@@ -41,6 +41,8 @@ type configDTO struct {
 	AuthLoginURL  string `json:"authLoginUrl"`
 	AuthLogoutURL string `json:"authLogoutUrl"`
 	CheckAuthName string `json:"checkAuthName"`
+	IOTConfig     bool   `json:"iotConfig"`
+	AISample      bool   `json:"aiSample"`
 }
 
 type AppConfigurator interface {
@@ -77,6 +79,8 @@ func (c *AppConfig) Load(ctx echo.Context) error {
 			c.Config.AuthRedirectURI(RedirectLogout),
 			""),
 		CheckAuthName: AuthCheckName,
+		IOTConfig:     c.Config.IOT.ConfigUI,
+		AISample:      c.Config.IOT.SampleUI,
 	}
 
 	sconfig, err := json.Marshal(config)
@@ -104,6 +108,8 @@ func (c *AppConfigDev) Load(ctx echo.Context) error {
 		AuthLoginURL:  RedirectLogin,
 		AuthLogoutURL: RedirectLogout,
 		CheckAuthName: AuthCheckName,
+		IOTConfig:     c.Config.IOT.ConfigUI,
+		AISample:      c.Config.IOT.SampleUI,
 	}
 
 	sconfig, err := json.Marshal(config)

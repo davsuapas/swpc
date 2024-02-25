@@ -29,18 +29,18 @@
 const char *rootCACertificate = nullptr;
 
 #define ssl true
-#define host ""
+#define host "swpc.eu-west-1.elasticbeanstalk.com"
 #define port 443
 
 #define URIAPI "/api/device/ws"
 #define URIToken "/auth/token/"
 
 // clientID define the ID to connect to the server
-#define clientID ""
+#define clientID "fr$5gDe46juHnbg54$@dr"
 
 // WIFI definition
-const char *ssid = "";
-const char *password = "";
+const char *ssid = "WIWI";
+const char *password = "SFR4GLY96NVB265HRPOI!";
 
 // Device ID
 #define DeviceID "trescasas"
@@ -176,7 +176,9 @@ float orpSensor() {
 
 void setup() {
   // Temp sensor
-  pinMode(GPIO_NUM_0, INPUT);         
+  pinMode(GPIO_NUM_0, INPUT);     
+  // Led
+  pinMode(GPIO_NUM_4, OUTPUT);     
 
   Serial.begin(115200);
 
@@ -336,6 +338,8 @@ void hubEvent(WStype_t type, uint8_t * payload, size_t length) {
     Serial.println(
       "(hubEvent).The socket to communicate with the hub has "
       "been disconnected.");
+
+    digitalWrite(GPIO_NUM_4, LOW);
     wsSetup();
 
     break;
@@ -343,7 +347,6 @@ void hubEvent(WStype_t type, uint8_t * payload, size_t length) {
     Serial.println(
       "(hubEvent).The socket to communicate with the hub has "
       "been connected.");
-
       lastConnectionTime = 0;
 
     break;
@@ -372,12 +375,15 @@ void hubEvent(WStype_t type, uint8_t * payload, size_t length) {
 
       switch (actionh) {
       case mtypeActionSleep:
+        digitalWrite(GPIO_NUM_4, LOW);
         sleep();
         break;
       case mtypeActionTransmit:
+        digitalWrite(GPIO_NUM_4, HIGH);
         transmitMetricsAlready();
         break;
       case mtypeActionStandby:
+        digitalWrite(GPIO_NUM_4, LOW);
         standby();
         break;
       default:

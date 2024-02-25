@@ -53,9 +53,9 @@ const (
 
 // SampleData is a sample of the state of the water
 type SampleData struct {
-	Temp int `json:"temp"`
-	PH   int `json:"ph"`
-	ORP  int `json:"orp"`
+	Temp float32 `json:"temp"`
+	PH   float32 `json:"ph"`
+	ORP  float32 `json:"orp"`
 	// Quality is judged by the expert
 	Quality int `json:"quality"`
 	// Chlorine is judged by the expert
@@ -109,11 +109,11 @@ func (s *SampleAWSDynamoRepo) Save(data SampleData) error {
 				dynamoDBTableKeyName: &types.AttributeValueMemberS{
 					Value: xid.New().String()},
 				dynamoDBTableTemp: &types.AttributeValueMemberN{
-					Value: strconv.Itoa(data.Temp)},
+					Value: fmt.Sprintf("%f", data.Temp)},
 				dynamoDBTablePH: &types.AttributeValueMemberN{
-					Value: strconv.Itoa(data.PH)},
+					Value: fmt.Sprintf("%f", data.PH)},
 				dynamoDBTableORP: &types.AttributeValueMemberN{
-					Value: strconv.Itoa(data.ORP)},
+					Value: fmt.Sprintf("%f", data.ORP)},
 				dynamoDBTableQuality: &types.AttributeValueMemberN{
 					Value: strconv.Itoa(data.Quality)},
 				dynamoDBTableChlorine: &types.AttributeValueMemberN{

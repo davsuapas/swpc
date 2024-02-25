@@ -99,6 +99,10 @@ func TestLoadConfig(t *testing.T) {
 						"configTableName": "tabla",
 						"samplesTableName": "samples"
 					}
+				},
+				"iot": {
+					"configUi": false,
+					"sampleUi": false
 				}
 			}`,
 			res: config.Config{
@@ -168,6 +172,10 @@ func TestLoadConfig(t *testing.T) {
 						ConfigTableName:  "tabla",
 						SamplesTableName: "samples",
 					},
+				},
+				IOT: config.IOT{
+					ConfigUI: false,
+					SampleUI: false,
 				},
 			},
 		},

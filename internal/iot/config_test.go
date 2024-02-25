@@ -30,6 +30,24 @@ import (
 	"go.uber.org/zap"
 )
 
+func TestConfigRead_Default(t *testing.T) {
+	t.Parallel()
+
+	r := iotc.DefaultConfigRead{zap.NewExample()}
+	c, _ := r.Read()
+
+	assert.Equal(t, iotc.DefaultConfig(), c)
+}
+
+func TestConfigSave_Default(t *testing.T) {
+	t.Parallel()
+
+	r := iotc.DefaultConfigSave{zap.NewExample()}
+	err := r.Save(iotc.DefaultConfig())
+
+	require.NoError(t, err)
+}
+
 func TestConfigRead_Read(t *testing.T) {
 	t.Parallel()
 
@@ -138,7 +156,7 @@ func TestConfigWrite_Save(t *testing.T) {
 					CollectMetricsTime: 1000,
 					Buffer:             3,
 					IniSendTime:        "09:00",
-					EndSendTime:        "23:00",
+					EndSendTime:        "22:00",
 				},
 			},
 			err: errors{
