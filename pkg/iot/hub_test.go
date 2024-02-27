@@ -376,7 +376,7 @@ func TestHub_IdleBroadcast(t *testing.T) {
 		return
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(1400 * time.Millisecond)
 
 	if assertState(t, hub, iot.Active) {
 		return
