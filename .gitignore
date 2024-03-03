@@ -25,3 +25,6 @@ __debug_bin
 
 # Certificates
 deploy/self-certificate
+
+# python
+__pycache__
