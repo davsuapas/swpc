@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
     if args.command == "fit":
         sample = create_dataframe(Path(args.sample))
-        # fit_chlorine(sample)
+        fit_chlorine(sample)
         fit_water_quality(sample, Path(args.decision_tree))
     elif args.command == "sample":
         random_sample(Path(args.result), args.size_dataset)

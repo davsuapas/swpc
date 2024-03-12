@@ -1,6 +1,6 @@
 from pathlib import Path
-from statistics import LinearRegression
 import pandas as pd
+from sklearn.linear_model import LinearRegression
 from sklearn.discriminant_analysis import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
@@ -21,7 +21,17 @@ def create_dataframe(swpc_sample: Path) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Sample dataframe
     """
-    return pd.read_csv(swpc_sample)
+    df = pd.read_csv(swpc_sample)
+
+    quality_map = {
+        0: 'bad',
+        1: 'regular',
+        2: "good",
+    }
+
+    df[field_quality] = df[field_quality].map(quality_map)
+
+    return df
 
 
 def fit_water_quality(swpc_sample: pd.DataFrame, decision_tree: Path):
@@ -49,7 +59,7 @@ def fit_water_quality(swpc_sample: pd.DataFrame, decision_tree: Path):
     y_pred = clf.predict(x_test)
 
     print('\nWATER QUALITY MODEL')
-    print('---------------------\n')
+    print('-------------------\n')
 
     print(f'Accuracy Score: {accuracy_score(y_test, y_pred)}\n')
     print(f'Classification report:\n{classification_report(y_test, y_pred)}')
@@ -98,8 +108,8 @@ def fit_chlorine(swpc_sample: pd.DataFrame):
     coefficients = model.coef_
     feature_names = X.columns
 
-    print('\nChlorine model\n')
-    print('--------------\n\n')
+    print('\nChlorine model')
+    print('--------------\n')
 
     print("Coefficients: ")
     for name, coefficient in zip(feature_names, coefficients):
@@ -113,7 +123,7 @@ def fit_chlorine(swpc_sample: pd.DataFrame):
     mse = mean_squared_error(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
 
-    print('Metrics:\n')
-    print(f'R2: {r2}\n')
-    print(f'Mean Squared Error (MSE): {mse}\n')
-    print(f'Mean Absolute Error (MAE): {mae}\n')
+    print('Metrics:')
+    print(f'R2: {r2}')
+    print(f'Mean Squared Error (MSE): {mse}')
+    print(f'Mean Absolute Error (MAE): {mae}')

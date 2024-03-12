@@ -31,11 +31,11 @@ def random_sample(swpc_sample: Path, size_dataset: int = 1000):
         prob = np.random.rand()
 
         if prob < 0.33:  # 33% probability
-            return 'bad'
+            return 0
         elif 0.33 <= prob < 0.66:  # # 33% probability
-            return 'regular'
+            return 1
         else:  # # 34% probability
-            return 'good'
+            return 2
 
     # dataframe is created
     data = pd.DataFrame(data)
