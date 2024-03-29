@@ -28,3 +28,4 @@ deploy/self-certificate
 
 # python
 __pycache__
+.venv
