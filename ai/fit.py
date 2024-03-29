@@ -8,6 +8,7 @@ from sklearn.metrics import classification_report, accuracy_score, r2_score
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn import tree
 import graphviz
+import joblib
 
 from sample import field_cl, field_quality, field_temp
 
@@ -34,12 +35,16 @@ def create_dataframe(swpc_sample: Path) -> pd.DataFrame:
     return df
 
 
-def fit_water_quality(swpc_sample: pd.DataFrame, decision_tree: Path):
+def fit_water_quality(
+        swpc_sample: pd.DataFrame,
+        decision_tree: Path,
+        model_file: Path):
     """Create water quality model
 
     Args:
         swpc_sample (pd.DataFrame): swpc sample 
         decision_tree (Path): Decision tree graph png file path
+        model_file (Path): Model file path
     """
     data = swpc_sample.drop(field_cl, axis=1, inplace=False)
 
@@ -53,10 +58,10 @@ def fit_water_quality(swpc_sample: pd.DataFrame, decision_tree: Path):
     x_train, x_test, y_train, y_test = \
         train_test_split(x, y, test_size=0.2, random_state=42)
 
-    clf = DecisionTreeClassifier(max_depth=3)
-    clf.fit(x_train, y_train)
+    model = DecisionTreeClassifier(max_depth=3)
+    model.fit(x_train, y_train)
 
-    y_pred = clf.predict(x_test)
+    y_pred = model.predict(x_test)
 
     print('\nWATER QUALITY MODEL')
     print('-------------------\n')
@@ -65,7 +70,7 @@ def fit_water_quality(swpc_sample: pd.DataFrame, decision_tree: Path):
     print(f'Classification report:\n{classification_report(y_test, y_pred)}')
 
     dot_data = tree.export_graphviz(
-        clf, out_file=None,
+        model, out_file=None,
         feature_names=feature_names,
         class_names=class_names,
         filled=True, rounded=True,
@@ -77,24 +82,29 @@ def fit_water_quality(swpc_sample: pd.DataFrame, decision_tree: Path):
 
     print(f'Decision tree graph file: {str(decision_tree)}\n')
 
+    # Save the trained model to a file
+    joblib.dump(model, model_file)
+    print(f'Saved model in the file: {str(model_file)}\n')
 
-def fit_chlorine(swpc_sample: pd.DataFrame):
+
+def fit_chlorine(swpc_sample: pd.DataFrame, model_file: Path):
     """Create chlorine model
 
     Args:
         swpc_sample (pd.DataFrame): Sample dataframe
+        model_file (Path): Model file path
     """
     data = swpc_sample
 
     # The target is separated from the rest of the variables
     y = data[field_cl]
-    X = data.drop([field_quality, field_temp], axis=1, inplace=False)
-    feature_names = X.columns
+    x = data.drop([field_quality, field_temp, field_cl], axis=1, inplace=False)
+    feature_names = x.columns
 
     scaler = StandardScaler()
 
     # Scaling the data
-    x_scaled = X.copy()
+    x_scaled = x.copy()
     x_scaled = scaler.fit_transform(x_scaled)
 
     # Splitting data into training and test sets
@@ -102,13 +112,12 @@ def fit_chlorine(swpc_sample: pd.DataFrame):
         train_test_split(x_scaled, y, test_size=0.2, random_state=42)
 
     model = LinearRegression()
-
     model.fit(x_train, y_train)
 
     coefficients = model.coef_
-    feature_names = X.columns
+    feature_names = x.columns
 
-    print('\nChlorine model')
+    print('\nCHLORINE MODEL')
     print('--------------\n')
 
     print("Coefficients: ")
@@ -126,4 +135,8 @@ def fit_chlorine(swpc_sample: pd.DataFrame):
     print('Metrics:')
     print(f'R2: {r2}')
     print(f'Mean Squared Error (MSE): {mse}')
-    print(f'Mean Absolute Error (MAE): {mae}')
+    print(f'Mean Absolute Error (MAE): {mae}\n')
+
+    # Save the trained model to a file
+    joblib.dump(model, model_file)
+    print(f'Saved model in the file: {str(model_file)}\n')
