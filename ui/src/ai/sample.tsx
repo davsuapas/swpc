@@ -109,11 +109,11 @@ export default class Sample extends React.Component<any, SampleState> {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "temp": this.meassureTemp.current?.state.value,
-          "ph": this.meassurePh.current?.state.value,
-          "orp": Number(this.meassureOrp.current?.state.value),
-          "chlorine": this.state.cl,
-          "quality": this.state.waterQuality,
+          "temp": this.meassureTemp.current?.state.value.toString(),
+          "ph": this.meassurePh.current?.state.value.toString(),
+          "orp": this.meassureOrp.current?.state.value.toString(),
+          "chlorine": this.state.cl.toString(),
+          "quality": this.state.waterQuality.toString(),
         })
       },
       async (result: Response) => {

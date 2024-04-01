@@ -20,8 +20,6 @@ package ai
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -52,13 +50,13 @@ const (
 
 // SampleData is a sample of the state of the water
 type SampleData struct {
-	Temp float32 `json:"temp"`
-	PH   float32 `json:"ph"`
-	ORP  float32 `json:"orp"`
+	Temp string `json:"temp"`
+	PH   string `json:"ph"`
+	ORP  string `json:"orp"`
 	// Quality is judged by the expert
-	Quality int `json:"quality"`
+	Quality string `json:"quality"`
 	// Chlorine is judged by the expert
-	Chlorine float32 `json:"chlorine"`
+	Chlorine string `json:"chlorine"`
 }
 
 func (s *SampleData) String() string {
@@ -107,16 +105,16 @@ func (s *SampleAWSDynamoRepo) Save(data SampleData) error {
 			Item: map[string]types.AttributeValue{
 				dynamoDBTableKeyName: &types.AttributeValueMemberS{
 					Value: xid.New().String()},
-				dynamoDBTableTemp: &types.AttributeValueMemberN{
-					Value: fmt.Sprintf("%f", data.Temp)},
-				dynamoDBTablePH: &types.AttributeValueMemberN{
-					Value: fmt.Sprintf("%f", data.PH)},
-				dynamoDBTableORP: &types.AttributeValueMemberN{
-					Value: fmt.Sprintf("%f", data.ORP)},
-				dynamoDBTableQuality: &types.AttributeValueMemberN{
-					Value: strconv.Itoa(data.Quality)},
-				dynamoDBTableChlorine: &types.AttributeValueMemberN{
-					Value: fmt.Sprintf("%f", data.Chlorine)},
+				dynamoDBTableTemp: &types.AttributeValueMemberS{
+					Value: data.Temp},
+				dynamoDBTablePH: &types.AttributeValueMemberS{
+					Value: data.PH},
+				dynamoDBTableORP: &types.AttributeValueMemberS{
+					Value: data.ORP},
+				dynamoDBTableQuality: &types.AttributeValueMemberS{
+					Value: data.Quality},
+				dynamoDBTableChlorine: &types.AttributeValueMemberS{
+					Value: data.Chlorine},
 			},
 		})
 

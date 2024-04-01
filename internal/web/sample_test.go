@@ -50,16 +50,16 @@ func TestSample_Save(t *testing.T) {
 	}{
 		{
 			name: "Save sample data. StatusOk",
-			argBody: `{"temp": 12.1, "ph": 2.1, "orp": -12.1,
-			 "quality": 0, "chlorine": -23.1}`,
+			argBody: `{"temp": "12.1", "ph": "2.1", "orp": "-12.1",
+			 "quality": "0", "chlorine": "-23.1"}`,
 			mSampleRepo: mSampleRepo{
 				apply: true,
 				s: ai.SampleData{
-					Temp:     12.1,
-					PH:       2.1,
-					ORP:      -12.1,
-					Quality:  0,
-					Chlorine: -23.1,
+					Temp:     "12.1",
+					PH:       "2.1",
+					ORP:      "-12.1",
+					Quality:  "0",
+					Chlorine: "-23.1",
 				},
 				err: nil,
 			},
@@ -77,16 +77,16 @@ func TestSample_Save(t *testing.T) {
 		},
 		{
 			name: "Save sample data with failed repo. StatusInternalServerError",
-			argBody: `{"temp": 12, "ph": 7, "orp": -45,
-			 "quality": 1, "chlorine": 23}`,
+			argBody: `{"temp": "12", "ph": "7", "orp": "-45",
+			 "quality": "1", "chlorine": "23"}`,
 			mSampleRepo: mSampleRepo{
 				apply: true,
 				s: ai.SampleData{
-					Temp:     12,
-					PH:       7,
-					ORP:      -45,
-					Quality:  1,
-					Chlorine: 23,
+					Temp:     "12",
+					PH:       "7",
+					ORP:      "-45",
+					Quality:  "1",
+					Chlorine: "23",
 				},
 				err: errors.New("failed repo"),
 			},
