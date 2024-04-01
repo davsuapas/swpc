@@ -57,11 +57,12 @@ type APIHandler struct {
 
 // WebHandler Web handler
 type WebHandler struct {
-	AppConfig web.AppConfigurator
-	Auth      web.Auth
-	Config    *web.ConfigWeb
-	Sample    *web.SampleWeb
-	WS        *web.WS
+	AppConfig  web.AppConfigurator
+	Auth       web.Auth
+	Config     *web.ConfigWeb
+	Sample     *web.SampleWeb
+	Prediction *web.PredictionWeb
+	WS         *web.WS
 }
 
 // Factory is the objects factory of the app
@@ -261,6 +262,10 @@ func newWeb(
 		Sample: &web.SampleWeb{
 			Log:  log,
 			Repo: repoSample,
+		},
+		Prediction: &web.PredictionWeb{
+			Preder: &ai.PredictFunc{},
+			Log:    log,
 		},
 		WS: web.NewWS(log, cnf.Web, hub),
 	}

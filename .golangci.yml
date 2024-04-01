@@ -41,6 +41,7 @@ issues:
       linters:
         - funlen
         - gochecknoglobals
+        - goerr113
     - path: internal/config/config_test.go
       linters:
         - paralleltest

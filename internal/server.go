@@ -151,6 +151,7 @@ func (s *Server) Route() {
 	wapi.POST("/config", s.factory.WebHandler.Config.Save)
 
 	wapi.POST("/sample", s.factory.WebHandler.Sample.Save)
+	wapi.GET("/predict", s.factory.WebHandler.Prediction.Predict)
 
 	wapi.GET("/ws", s.factory.WebHandler.WS.Register)
 

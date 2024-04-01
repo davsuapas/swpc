@@ -32,7 +32,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Repo error
 const (
 	errAWSSaveSample = "Saving sample data in AWS dynamo repository"
 )
