@@ -3,9 +3,9 @@
 # Wrapper to predict the water quality and chlorine
 # This wrapper will be called from go
 
-source ./.venv/swpc_predict/bin/activate
+source ai/.venv/swpc_predict/bin/activate
 
-echo $(python ./ai/main_predict.py $@)
+echo $(python ai/main_predict.py $@)
 
 if [ $? -ne 0 ]; then
     exit 1

@@ -20,6 +20,7 @@ pprof
 
 # Auto generated for debugging
 /cmd/*/public
+/cmd/*/ai
 /cmd/*/data
 __debug_bin
 

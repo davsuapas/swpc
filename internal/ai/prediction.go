@@ -23,12 +23,24 @@ import (
 	"os/exec"
 
 	"github.com/pkg/errors"
+	"github.com/swpoolcontroller/pkg/strings"
+	"go.uber.org/zap"
 )
 
 const (
 	errCreateTempFile  = "Error creating temporal file"
 	errPredict         = "Error calling predict.sh"
 	errReadErrorResult = "Error reading error file"
+	errModelExist      = "The prediction model does not exist. File: "
+)
+
+const (
+	infCommand = "Executing predict.sh"
+)
+
+const (
+	wqModelFile = "ai/model_wq"
+	clModelFile = "ai/model_cl"
 )
 
 // Predicter generates predictions
@@ -37,14 +49,15 @@ type Predicter interface {
 	Predict(temp string, ph string, orp string) (string, error)
 }
 
-// PredictFunc is used as interface
-type PredictFunc struct {
+// Prediction is used as interface
+type Prediction struct {
+	Log *zap.Logger
 }
 
 // WQ predcits the water quality
 // The function calls a python script
 // The models
-func (p *PredictFunc) Predict(
+func (p *Prediction) Predict(
 	temp string,
 	ph string,
 	orp string) (string, error) {
@@ -58,12 +71,29 @@ func (p *PredictFunc) Predict(
 
 	defer os.Remove(errorFile.Name())
 
+	if _, err := os.Stat(wqModelFile); errors.Is(err, os.ErrNotExist) {
+		return "", errors.Wrap(err, strings.Concat(errModelExist, wqModelFile))
+	}
+
+	if _, err := os.Stat(clModelFile); errors.Is(err, os.ErrNotExist) {
+		return "", errors.Wrap(err, strings.Concat(errModelExist, clModelFile))
+	}
+
 	var stdoutBuf bytes.Buffer
+
+	p.Log.Info(
+		infCommand,
+		zap.String("mwq", wqModelFile),
+		zap.String("mcl", clModelFile),
+		zap.String("e", errorFile.Name()),
+		zap.String("temp", temp),
+		zap.String("ph", ph),
+		zap.String("ph", orp))
 
 	cmd := exec.Command(
 		"ai/predict.sh",
-		"-mwq", "ai/model_wq",
-		"-mcl", "ai/model_cl",
+		"-mwq", wqModelFile,
+		"-mcl", clModelFile,
 		"-e", errorFile.Name(),
 		"-temp", temp,
 		"-ph", ph,

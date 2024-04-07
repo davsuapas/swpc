@@ -27,6 +27,7 @@ import Chart from './chart';
 import Meassure from './meassure';
 import AppBar from '@mui/material/AppBar';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp'
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { AppRegistration, Assignment } from '@mui/icons-material';
 import Config from '../config/config';
 import Tooltip from '@mui/material/Tooltip';
@@ -41,6 +42,7 @@ import { logoff } from '../auth/user';
 import * as literals from '../support/literals';
 import Sample from '../ai/sample';
 import { appConfig } from '../app/config';
+import Fetch from '../net/fetch';
 
 const drawerWidth: number = 255;
 
@@ -49,6 +51,7 @@ const mdTheme = createTheme();
 interface DashboardState{
   loadingConfig: boolean;
   standby: boolean;
+  refresh: boolean
 }
 
 export interface Actions {
@@ -64,6 +67,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
   private sfactory: SocketFactory;
   private socket: Websocket;
 
+  private fetch: Fetch;
+
   private media: React.RefObject<MediaQueryAPI>
 
   private config: React.RefObject<Config>;
@@ -74,6 +79,9 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
   private chartPh: React.RefObject<Chart>;
   private chartOrp: React.RefObject<Chart>;
 
+  private meassureWq: React.RefObject<Meassure>;
+  private meassureCl: React.RefObject<Meassure>;
+  
   private meassureTemp: React.RefObject<Meassure>;
   private meassurePh: React.RefObject<Meassure>;
   private meassureOrp: React.RefObject<Meassure>;
@@ -84,6 +92,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.state = {
       loadingConfig: false,
       standby: true,
+      refresh: false
     };
 
     const config = appConfig()
@@ -100,6 +109,9 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.chartPh = React.createRef<Chart>();
     this.chartOrp = React.createRef<Chart>();
 
+    this.meassureWq = React.createRef<Meassure>();
+    this.meassureCl = React.createRef<Meassure>();
+ 
     this.meassureTemp = React.createRef<Meassure>();
     this.meassurePh = React.createRef<Meassure>();
     this.meassureOrp = React.createRef<Meassure>();
@@ -108,6 +120,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.sfactory.event.streamMetrics = this.streamMetrics.bind(this);
 
     this.socket = this.sfactory.open();
+
+    this.fetch = new Fetch(this.alert);
   }
 
   activeStandby(active: boolean): void {
@@ -118,6 +132,85 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.setState({loadingConfig: active});
   }
 
+  private loadOndemandData(): void {
+    // TODO(Poner broadcasting)
+    if (this.sfactory.state != CommStatus.active) {
+        this.alert.current?.content(
+          "No se detectan métricas",
+          "Sin métricas es imposible predecir ni la calidad del agua " +
+          "ni el cloro. Espere a que el micro-controlador envíe las métricas");
+        this.alert.current?.open();
+
+        return
+    }
+
+    this.setState({refresh: true});
+    // TODO(Poner comentario)
+    // const meassure = {
+    //     temp: this.meassureTemp.current?.state.value.toString(),
+    //     ph: this.meassurePh.current?.state.value.toString(),
+    //     orp: this.meassureOrp.current?.state.value.toString(),
+    // };
+
+    const meassure = {
+         temp: "12.4",
+         ph: "7.0",
+         orp: "123.34",
+     };
+
+    this.fetch?.send("/api/web/predict", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(meassure)
+    },
+    async (result: Response) => {
+        let manejado = true;
+
+        if (result.ok) {
+          const res = await result.json();
+          
+          let wq = ""
+          switch (res.wq) {
+            case "bad":
+              wq = "MALA"
+              break;
+            case "regular":
+              wq = "REGULAR"
+              break;
+            default:
+              wq = "BUENA"
+          }
+
+          this.meassureWq.current?.setMeassure(wq)
+          this.meassureCl.current?.setMeassure(Number(res.cl).toFixed(2).toString())
+        } else {
+          if (result.status == 404) {
+            const message = "No hay suficientes datos para predecir"
+            this.meassureWq.current?.setWarn(message)
+            this.meassureCl.current?.setWarn(message)
+
+            this.alert.current?.content(
+              "Modelo predictivo inexistente",
+              "Todavía no existen sufificientes muestras para predecir " +
+              "ni la calidad del agua ni el cloro. Continue realizando " +
+              "muestras");
+            this.alert.current?.open();
+          } else {
+            manejado = false;
+          }
+        }
+
+        this.setState({refresh: false})
+
+        return manejado;
+    },
+    () => {
+      this.setState({refresh: false})
+    });
+  }
+  
   // streamMetrics sends all the metrics received by socket to all the chart controls
   private streamMetrics(metrics: Metrics) {
     this.chartTemp.current?.setData(metrics.temp);
@@ -159,20 +252,38 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                 >
                   Métricas piscina
                 </Typography>
+                <Tooltip title="Refescar las prediciones de la calidad del agua y el cloro">
+                    <IconButton
+                      color="inherit"
+                      onClick={() => this.loadOndemandData()}>
+                      <RefreshIcon />
+                      {this.state.refresh && (
+                        <CircularProgress
+                          size={40}
+                          sx={{
+                            color: colorPurple,
+                            position: 'absolute',
+                            zIndex: 1,
+                          }}
+                        />
+                      )}                  
+                    </IconButton>
+                </Tooltip>
                 {this.sampleUI && (
                   <Tooltip title="Muestra">
                     <IconButton
                       color="inherit"
                       onClick={
                         () => {
-                          if (this.sfactory.state == CommStatus.broadcasting) {
+                          if (this.sfactory.state == CommStatus.broadcasting &&
+                            this.meassureTemp.current != undefined &&
+                            this.meassurePh.current != undefined &&
+                            this.meassureOrp.current != undefined
+                          ) {
                             this.sample.current?.open(
-                              this.meassureTemp.current == undefined ? 0 :
                               this.meassureTemp.current.state.value,
-                              this.meassurePh.current == undefined ? 0 :
-                                this.meassurePh.current.state.value,
-                              this.meassureOrp.current == undefined ? 0 :
-                                this.meassureOrp.current.state.value);
+                              this.meassurePh.current.state.value,
+                              this.meassureOrp.current.state.value);
                           } else {
                               this.alert.current?.content(
                                 "No se detectan métricas",
@@ -214,7 +325,67 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
             </AppBar>
               <Container maxWidth="xl" sx={{ mt:5, mb: 5, position: "relative"}}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} md={9} lg={10}>
+                  <Grid item xs={12} md={6} lg={2}>
+                    <Paper
+                      sx={{
+                        p: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: drawerWidth,
+                      }}
+                    >
+                      <Meassure ref={this.meassureWq} name={literals.wqName} unitName={literals.wqUnit} src="w.png" />
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={6} lg={2}>
+                    <Paper
+                      sx={{
+                        p: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: drawerWidth,
+                      }}
+                    >
+                      <Meassure ref={this.meassureCl} name={literals.clName} unitName={literals.clUnit} src="cl.png" />
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={6} lg={2}>
+                    <Paper
+                      sx={{
+                        p: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: drawerWidth,
+                      }}
+                    >
+                      <Meassure ref={this.meassurePh} name={literals.phName} unitName={literals.phUnit} src="ph.png" />
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={6} lg={3}>
+                    <Paper
+                      sx={{
+                        p: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: drawerWidth,
+                      }}
+                    >
+                      <Meassure ref={this.meassureOrp} name={literals.orpName} unitName={literals.orpUnit} src="orp.png" />
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={6} lg={3}>
+                    <Paper
+                      sx={{
+                        p: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: drawerWidth,
+                      }}
+                    >
+                      <Meassure ref={this.meassureTemp} name={literals.temperatureName} unitName={literals.temperatureUnit} src="temp.png" />
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={6} lg={12}>
                     <Paper
                       sx={{
                         p: 2,
@@ -227,19 +398,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         unitName={literals.phUnit} theme={mdTheme} media={this.media.current} />
                     </Paper>
                   </Grid>
-                  <Grid item xs={12} md={3} lg={2}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: drawerWidth,
-                      }}
-                    >
-                      <Meassure ref={this.meassurePh} name={literals.phName} unitName={literals.phUnit} src="ph.png" />
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} md={9} lg={10}>
+                  <Grid item xs={12} md={6} lg={6}>
                     <Paper
                       sx={{
                         p: 2,
@@ -252,19 +411,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         unitName={literals.orpUnit} theme={mdTheme} media={this.media.current} />
                     </Paper>
                   </Grid>
-                  <Grid item xs={12} md={3} lg={2}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: drawerWidth,
-                      }}
-                    >
-                      <Meassure ref={this.meassureOrp} name={literals.orpName} unitName={literals.orpUnit} src="orp.png" />
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} md={9} lg={10}>
+                  <Grid item xs={12} md={6} lg={6}>
                     <Paper
                       sx={{
                         p: 2,
@@ -275,18 +422,6 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                     >
                       <Chart ref={this.chartTemp} name={literals.temperatureName} 
                         unitName={literals.temperatureUnit} theme={mdTheme} media={this.media.current} />
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} md={3} lg={2}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: drawerWidth,
-                      }}
-                    >
-                      <Meassure ref={this.meassureTemp} name={literals.temperatureName} unitName={literals.temperatureUnit} src="temp.png" />
                     </Paper>
                   </Grid>
                 </Grid>

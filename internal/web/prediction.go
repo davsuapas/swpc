@@ -18,7 +18,9 @@
 package web
 
 import (
+	"errors"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -30,6 +32,7 @@ const (
 	errGettingMetrics = "Getting the metrics of the request body to predict"
 	errPredict        = "Getting the water quality and chlorine prediction"
 	errMarshalPreds   = "Marshal json predictions"
+	errToken          = "The token is bad"
 )
 
 const (
@@ -75,10 +78,20 @@ func (p *PredictionWeb) Predict(ctx echo.Context) error {
 	if err != nil {
 		p.Log.Error(errPredict, zap.Error(err))
 
+		if errors.Is(err, os.ErrNotExist) {
+			return ctx.NoContent(http.StatusNotFound)
+		}
+
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
 	tokenPred := strings.Split(preds, ";")
+
+	if len(tokenPred) != 2 {
+		p.Log.Info(errToken, zap.String("token", preds))
+
+		return ctx.NoContent(http.StatusInternalServerError)
+	}
 
 	res := predictions{
 		WQ: tokenPred[0],

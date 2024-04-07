@@ -19,9 +19,9 @@ import * as React from 'react';
 import Typography from '@mui/material/Typography';
 import Title from './title';
 
-function preventDefault(event: React.MouseEvent) {
-  event.preventDefault();
-}
+const styleWarn = {
+  color: '#ff8c00'
+};
 
 interface MeassureProps {
   name: string;
@@ -30,7 +30,8 @@ interface MeassureProps {
 }
 
 interface MeassureState {
-  value: number;
+  value: string;
+  warn: boolean;
 }
 
 export default class Meassure extends React.Component<MeassureProps, MeassureState> {
@@ -39,13 +40,22 @@ export default class Meassure extends React.Component<MeassureProps, MeassureSta
     super(props)
 
     this.state = {
-      value: 0
+      value: "",
+      warn: false
     }
   }
 
-  setMeassure(value: number) {
+  setMeassure(value: string) {
     this.setState({
-      value: value
+      value: value,
+      warn: false
+    });
+  }
+
+  setWarn(value: string) {
+    this.setState({
+      value: value,
+      warn: true
     });
   }
 
@@ -53,9 +63,16 @@ export default class Meassure extends React.Component<MeassureProps, MeassureSta
     return (
       <React.Fragment>
         <Title>{this.props.name}</Title>
-        <Typography component="p" variant="h4" sx={{marginTop: '25px', marginBottom: "20px"}}>
-          {this.state.value} {this.props.unitName}
-        </Typography>
+        {this.state.warn && (
+          <Typography component="p" variant="h6" style={styleWarn} sx={{marginTop: '25px', marginBottom: "20px"}}>
+            {this.state.value}
+          </Typography>
+        )}
+        {!this.state.warn && (
+          <Typography component="p" variant="h4" sx={{marginTop: '25px', marginBottom: "20px"}}>
+            {this.state.value} {this.props.unitName}
+          </Typography>
+        )}
         {this.props.src != "" && (
           <img src={this.props.src} width="80" height="80"></img>
         )}

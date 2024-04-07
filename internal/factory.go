@@ -264,8 +264,10 @@ func newWeb(
 			Repo: repoSample,
 		},
 		Prediction: &web.PredictionWeb{
-			Preder: &ai.PredictFunc{},
-			Log:    log,
+			Preder: &ai.Prediction{
+				Log: log,
+			},
+			Log: log,
 		},
 		WS: web.NewWS(log, cnf.Web, hub),
 	}

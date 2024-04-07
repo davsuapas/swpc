@@ -78,7 +78,7 @@ export default class Sample extends React.Component<any, SampleState> {
   }
 
   // open opens the samples editor with the values sent by micro
-  open(temp: number, ph: number, orp: number) {
+  open(temp: string, ph: string, orp: string) {
     this.setState({
       cl: 0,
       clValid: true,
@@ -109,9 +109,9 @@ export default class Sample extends React.Component<any, SampleState> {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "temp": this.meassureTemp.current?.state.value.toString(),
-          "ph": this.meassurePh.current?.state.value.toString(),
-          "orp": this.meassureOrp.current?.state.value.toString(),
+          "temp": this.meassureTemp.current?.state.value,
+          "ph": this.meassurePh.current?.state.value,
+          "orp": this.meassureOrp.current?.state.value,
           "chlorine": this.state.cl.toString(),
           "quality": this.state.waterQuality.toString(),
         })
