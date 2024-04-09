@@ -24,7 +24,7 @@ import Container from '@mui/material/Container';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Chart from './chart';
-import Meassure from './meassure';
+import Meassure, { defaulBoxColor } from './meassure';
 import AppBar from '@mui/material/AppBar';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp'
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -51,7 +51,8 @@ const mdTheme = createTheme();
 interface DashboardState{
   loadingConfig: boolean;
   standby: boolean;
-  refresh: boolean
+  refresh: boolean;
+  wqBoxColor: string;
 }
 
 export interface Actions {
@@ -92,7 +93,8 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.state = {
       loadingConfig: false,
       standby: true,
-      refresh: false
+      refresh: false,
+      wqBoxColor: defaulBoxColor
     };
 
     const config = appConfig()
@@ -133,30 +135,22 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
   }
 
   private loadOndemandData(): void {
-    // TODO(Poner broadcasting)
-    if (this.sfactory.state != CommStatus.active) {
-        this.alert.current?.content(
-          "No se detectan métricas",
-          "Sin métricas es imposible predecir ni la calidad del agua " +
-          "ni el cloro. Espere a que el micro-controlador envíe las métricas");
-        this.alert.current?.open();
+    if (this.sfactory.state != CommStatus.broadcasting) {
+      this.alert.current?.content(
+        "No se detectan métricas",
+        "Sin métricas es imposible predecir ni la calidad del agua " +
+        "ni el cloro. Espere a que el micro-controlador envíe las métricas");
+      this.alert.current?.open();
 
-        return
+      return
     }
 
     this.setState({refresh: true});
-    // TODO(Poner comentario)
-    // const meassure = {
-    //     temp: this.meassureTemp.current?.state.value.toString(),
-    //     ph: this.meassurePh.current?.state.value.toString(),
-    //     orp: this.meassureOrp.current?.state.value.toString(),
-    // };
-
     const meassure = {
-         temp: "12.4",
-         ph: "7.0",
-         orp: "123.34",
-     };
+      temp: this.meassureTemp.current?.state.value.toString(),
+      ph: this.meassurePh.current?.state.value.toString(),
+      orp: this.meassureOrp.current?.state.value.toString(),
+    };
 
     this.fetch?.send("/api/web/predict", {
       method: "POST",
@@ -170,26 +164,33 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
 
         if (result.ok) {
           const res = await result.json();
-          
-          let wq = ""
+
+          let boxColor = defaulBoxColor;
+          let wq = "";
           switch (res.wq) {
             case "bad":
-              wq = "MALA"
+              wq = "MALA";
+              boxColor = "#EC7063";
               break;
             case "regular":
-              wq = "REGULAR"
+              wq = "REGULAR";
+              boxColor = "#F4D03F";
               break;
             default:
-              wq = "BUENA"
+              wq = "BUENA";
+              boxColor = "#5DADE2";
+              break;
           }
 
-          this.meassureWq.current?.setMeassure(wq)
-          this.meassureCl.current?.setMeassure(Number(res.cl).toFixed(2).toString())
+          this.setState({wqBoxColor: boxColor});
+          this.meassureWq.current?.setMeassure(wq, boxColor);
+
+          this.meassureCl.current?.setMeassure(Number(res.cl).toFixed(2).toString());
         } else {
           if (result.status == 404) {
-            const message = "No hay suficientes datos para predecir"
-            this.meassureWq.current?.setWarn(message)
-            this.meassureCl.current?.setWarn(message)
+            const message = "No hay suficientes datos para predecir";
+            this.meassureWq.current?.setWarn(message);
+            this.meassureCl.current?.setWarn(message);
 
             this.alert.current?.content(
               "Modelo predictivo inexistente",
@@ -202,12 +203,12 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
           }
         }
 
-        this.setState({refresh: false})
+        this.setState({refresh: false});
 
         return manejado;
     },
     () => {
-      this.setState({refresh: false})
+      this.setState({refresh: false});
     });
   }
   
@@ -332,6 +333,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                         display: 'flex',
                         flexDirection: 'column',
                         height: drawerWidth,
+                        backgroundColor: this.state.wqBoxColor
                       }}
                     >
                       <Meassure ref={this.meassureWq} name={literals.wqName} unitName={literals.wqUnit} src="w.png" />

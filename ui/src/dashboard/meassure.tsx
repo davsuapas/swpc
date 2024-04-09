@@ -19,8 +19,10 @@ import * as React from 'react';
 import Typography from '@mui/material/Typography';
 import Title from './title';
 
+export const defaulBoxColor = "#ffffff"
+
 const styleWarn = {
-  color: '#ff8c00'
+  color: "#ff8c00"
 };
 
 interface MeassureProps {
@@ -32,6 +34,7 @@ interface MeassureProps {
 interface MeassureState {
   value: string;
   warn: boolean;
+  boxColor: string;
 }
 
 export default class Meassure extends React.Component<MeassureProps, MeassureState> {
@@ -41,42 +44,47 @@ export default class Meassure extends React.Component<MeassureProps, MeassureSta
 
     this.state = {
       value: "",
-      warn: false
+      warn: false,
+      boxColor: defaulBoxColor
     }
   }
 
-  setMeassure(value: string) {
+  setMeassure(value: string, boxColor = defaulBoxColor) {
     this.setState({
       value: value,
-      warn: false
+      warn: false,
+      boxColor: boxColor
     });
   }
 
   setWarn(value: string) {
     this.setState({
       value: value,
-      warn: true
+      warn: true,
+      boxColor: defaulBoxColor
     });
   }
 
   render(): React.ReactNode {
     return (
-      <React.Fragment>
-        <Title>{this.props.name}</Title>
-        {this.state.warn && (
-          <Typography component="p" variant="h6" style={styleWarn} sx={{marginTop: '25px', marginBottom: "20px"}}>
-            {this.state.value}
-          </Typography>
-        )}
-        {!this.state.warn && (
-          <Typography component="p" variant="h4" sx={{marginTop: '25px', marginBottom: "20px"}}>
-            {this.state.value} {this.props.unitName}
-          </Typography>
-        )}
-        {this.props.src != "" && (
-          <img src={this.props.src} width="80" height="80"></img>
-        )}
-      </React.Fragment>
+      <div style={{ backgroundColor: this.state.boxColor}}>
+        <React.Fragment>
+          <Title>{this.props.name}</Title>
+          {this.state.warn && (
+            <Typography component="p" variant="h6" style={styleWarn} sx={{marginTop: '25px', marginBottom: "20px"}}>
+              {this.state.value}
+            </Typography>
+          )}
+          {!this.state.warn && (
+            <Typography component="p" variant="h4" sx={{marginTop: '25px', marginBottom: "20px"}}>
+              {this.state.value} {this.props.unitName}
+            </Typography>
+          )}
+          {this.props.src != "" && (
+            <img src={this.props.src} width="80" height="80"></img>
+          )}
+        </React.Fragment>
+      </div>
     );
   }
 }
