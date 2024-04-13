@@ -36,6 +36,7 @@ export interface Metrics {
 
 export interface SocketEvent {
     streamMetrics: (metrics: Metrics) => void;
+    status: (status: CommStatus) => void;
   }
  
 // SocketFactory Manages socket iteration with the server
@@ -57,8 +58,17 @@ export default class SocketFactory {
       this.ws = new WebsocketBuilder(protocol + "://" + document.location.host + "/api/web/ws");
 
       this.event = {
-          streamMetrics: () => {}
+          streamMetrics: () => {},
+          status: () => {}
       }
+    }
+
+    private setStatus(state: CommStatus) {
+      if (this.state != state) {
+        this.event.status(state)
+      }
+
+      this.state = state
     }
 
     // start opens socket connection, registers in server and controls events
@@ -66,7 +76,7 @@ export default class SocketFactory {
         return this.ws.onClose((_, ev) => {
             console.log("El socket se ha cerrado con el código: " + ev.code);
 
-            this.state = CommStatus.inactive;
+            this.setStatus(CommStatus.inactive);
 
             if (this.alert.current) {
                 this.alert.current.content(
@@ -82,7 +92,7 @@ export default class SocketFactory {
             }
         })
         .onError((_ , ev) => {
-            this.state = CommStatus.inactive;
+            this.setStatus(CommStatus.inactive);
 
             if (this.alert.current) {
                 this.alert.current.content(
@@ -100,7 +110,7 @@ export default class SocketFactory {
 
             try {
                 if (message.messageType == MessageType.control ) {
-                    this.state = message.controlMessage();
+                    this.setStatus(message.controlMessage());
 
                     if (this.alert.current) {
                         this.alert.current.content(
@@ -116,7 +126,7 @@ export default class SocketFactory {
                         this.actions.activeStandby(true)
                     }
                 } else {
-                    this.state = CommStatus.broadcasting;
+                    this.setStatus(CommStatus.broadcasting);
                     this.actions.activeStandby(false);
                     this.event.streamMetrics(message.metricsMessage());
                 }
@@ -124,7 +134,7 @@ export default class SocketFactory {
             catch (ex) {
                 console.log("Sockets.onMessage: " + ex);
 
-                this.state = CommStatus.inactive;
+                this.setStatus(CommStatus.inactive);
 
                 this.alert.current?.content(
                     "Se ha producido un error al recibir información del servidor.",

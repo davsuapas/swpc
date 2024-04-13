@@ -87,6 +87,11 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
   private meassurePh: React.RefObject<Meassure>;
   private meassureOrp: React.RefObject<Meassure>;
 
+  // Controls that the first time metrics are sent it
+  // requests the data on demand. 
+  // After that it will be the user who requests them
+  private ondemandData: boolean;
+
   constructor(props: any) {
     super(props);
 
@@ -120,10 +125,13 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
 
     this.sfactory = new SocketFactory(this.alert, this);
     this.sfactory.event.streamMetrics = this.streamMetrics.bind(this);
+    this.sfactory.event.status = this.socketStatus.bind(this);
 
     this.socket = this.sfactory.open();
 
     this.fetch = new Fetch(this.alert);
+
+    this.ondemandData = false;
   }
 
   activeStandby(active: boolean): void {
@@ -134,7 +142,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     this.setState({loadingConfig: active});
   }
 
-  private loadOndemandData(): void {
+  private loadOndemandData(metrics: Metrics | null): void {
     if (this.sfactory.state != CommStatus.broadcasting) {
       this.alert.current?.content(
         "No se detectan métricas",
@@ -146,11 +154,22 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     }
 
     this.setState({refresh: true});
-    const meassure = {
-      temp: this.meassureTemp.current?.state.value.toString(),
-      ph: this.meassurePh.current?.state.value.toString(),
-      orp: this.meassureOrp.current?.state.value.toString(),
-    };
+
+    let meassure = {}
+
+    if (metrics == null) {
+      meassure = {
+        temp: this.meassureTemp.current?.state.value.toString(),
+        ph: this.meassurePh.current?.state.value.toString(),
+        orp: this.meassureOrp.current?.state.value.toString(),
+      };
+    } else {
+      meassure = {
+        temp: metrics.temp[0].toString(),
+        ph: metrics.ph[0].toString(),
+        orp: metrics.orp[0].toString(),
+      };
+    }
 
     this.fetch?.send("/api/web/predict", {
       method: "POST",
@@ -211,12 +230,28 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
       this.setState({refresh: false});
     });
   }
+
+  private socketStatus(status: CommStatus) {
+    if (status == CommStatus.broadcasting) {
+      this.ondemandData = true;
+    }
+  }
+
+  private requestOndemandData(metrics: Metrics) {
+    if (this.ondemandData) {
+      this.loadOndemandData(metrics);
+    }
+
+    this.ondemandData = false;
+  }
   
   // streamMetrics sends all the metrics received by socket to all the chart controls
   private streamMetrics(metrics: Metrics) {
     this.chartTemp.current?.setData(metrics.temp);
     this.chartPh.current?.setData(metrics.ph);
     this.chartOrp.current?.setData(metrics.orp);
+
+    this.requestOndemandData(metrics);
   }
 
   private exit() {
@@ -256,7 +291,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
                 <Tooltip title="Refescar las prediciones de la calidad del agua y el cloro">
                     <IconButton
                       color="inherit"
-                      onClick={() => this.loadOndemandData()}>
+                      onClick={() => this.loadOndemandData(null)}>
                       <RefreshIcon />
                       {this.state.refresh && (
                         <CircularProgress
