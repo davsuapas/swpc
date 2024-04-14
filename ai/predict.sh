@@ -5,7 +5,7 @@
 
 source ai/.venv/swpc_predict/bin/activate
 
-echo $(python ai/main_predict.py $@)
+echo $(ai/.venv/swpc_predict/bin/python ai/main_predict.py $@)
 
 if [ $? -ne 0 ]; then
     exit 1

@@ -27,6 +27,7 @@ mkdir -p "$path_target_bin"
 
 cp "$path_target_release/swpc-server" "$path_target_bin/application"
 cp -r "$path_target_release/public" "$path_target"
+cp -r "$path_target_release/ai" "$path_target"
 
 if [[ $https == '-https' ]]; then
 	cp -r "$path_deploy_awsbt_is/.ebextensions" "$path_target/.ebextensions"
@@ -45,15 +46,16 @@ current=$(pwd)
 cd "$path_target"
 
 if [[ $https == '-https' ]]; then
-	zip -r source.zip bin/application public/* .platform/* .ebextensions/*
+	zip -r source.zip bin/application public/* ai/* ai/.venv/* .platform/* .ebextensions/*
 else
-	zip -r source.zip bin/application public/*
+	zip -r source.zip bin/application public/* ai/* ai/.venv/*
 fi
 
 cd "$current"
 
 rm -r "$path_target_bin"
 rm -r "$path_target/public"
+rm -r "$path_target/ai"
 rm -r "$path_target/.ebextensions"
 rm -r "$path_target/.platform"
 

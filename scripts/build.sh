@@ -17,6 +17,8 @@ if [[ $option != 'server' ]]; then
   mkdir -p "$deploy_path/data"
 
   $path_scripts/build-ui.sh "$deploy_path" -no-map
+
+  $path_scripts/build-ai.sh "$deploy_path"
 fi
 
 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o "$deploy_path/swpc-server" cmd/swpc-server/main.go

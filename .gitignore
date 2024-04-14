@@ -27,6 +27,9 @@ __debug_bin
 # Certificates
 deploy/self-certificate
 
+# ai model
+/ai/model
+
 # python
 __pycache__
 .venv
