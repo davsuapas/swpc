@@ -7,13 +7,13 @@ The pyserial python module needs to be installed.
 Install pip if it does not exist: 
 
 ~~~bash
-python3 -m pip install pyserial
+sudo apt install python3-pip
 ~~~
 
 Install pyserial
 
 ~~~bash
-sudo apt install python3-pip
+python3 -m pip install pyserial
 ~~~
 
 ## Arduino IDE installation
@@ -63,9 +63,18 @@ Configure the following settings in the file user preferences
   ]
 ~~~
 
+Install "Arduino ESP32 Boards" using (shift+ctrl+P) "Arduino: Board manager" 
+
 ## Board selection 
 
 Select "ESP32 Dev Module" and port
+
+## Libraries 
+
+- WebSockets by Markus Sattler
+- ArduinoJson by Benoit Blanchon
+- DallasTemperature by Miles Burton <miles@mnetcs.com>, Tim Newsome
+- https://www.arduino.cc/reference/en/libraries/onewire/
 
 ## Permissions
 
