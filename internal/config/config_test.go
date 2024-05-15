@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/swpoolcontroller/internal/config"
 	"github.com/swpoolcontroller/internal/config/mocks"
-	"go.uber.org/zap"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -455,7 +454,7 @@ func TestApplySecret(t *testing.T) {
 			s.On("Get", tt.args.config.Secret.Name).Return(tt.args.secrets, nil)
 
 			c := tt.args.config
-			config.ApplySecret(zap.NewExample(), s, &c)
+			config.ApplySecret(s, &c)
 
 			assert.Equal(t, tt.expected, c)
 

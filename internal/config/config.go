@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	strs "github.com/swpoolcontroller/pkg/strings"
-	"go.uber.org/zap"
 )
 
 const ENVConfig = "SW_POOL_CONTROLLER_CONFIG"
@@ -431,7 +430,7 @@ func LoadConfig() Config { //nolint:cyclop
 // ApplySecret calls the secret provider and if the configuration
 // value exists contains a secret name preceded by "@@",
 // applies the value of the secret to the configuration key
-func ApplySecret(log *zap.Logger, s Secret, config *Config) {
+func ApplySecret(s Secret, config *Config) {
 	secrets, err := s.Get(config.Secret.Name)
 	if err != nil {
 		panic(strs.Format(errGets, strs.FMTValue("Name", err.Error())))
@@ -443,21 +442,19 @@ func ApplySecret(log *zap.Logger, s Secret, config *Config) {
 
 	re := regexp.MustCompile(`@@[a-zA-Z0-9_]+`)
 
-	config.Auth.ClientID = getSecretValue(log, re, secrets, config.Auth.ClientID)
-	config.Auth.JWKURL = getSecretValue(log, re, secrets, config.Auth.JWKURL)
+	config.Auth.ClientID = getSecretValue(re, secrets, config.Auth.ClientID)
+	config.Auth.JWKURL = getSecretValue(re, secrets, config.Auth.JWKURL)
 
-	config.API.ClientID = getSecretValue(log, re, secrets, config.API.ClientID)
+	config.API.ClientID = getSecretValue(re, secrets, config.API.ClientID)
 	config.API.TokenSecretKey = getSecretValue(
-		log,
 		re,
 		secrets,
 		config.API.TokenSecretKey)
 
-	config.Web.SecretKey = getSecretValue(log, re, secrets, config.Web.SecretKey)
+	config.Web.SecretKey = getSecretValue(re, secrets, config.Web.SecretKey)
 }
 
 func getSecretValue(
-	log *zap.Logger,
 	re *regexp.Regexp,
 	secrets map[string]string,
 	value string) string {
@@ -484,8 +481,6 @@ func getSecretValue(
 			i++
 		}
 	}
-
-	log.Info(infoApplySecret, zap.String("Secret", value))
 
 	replacer := strings.NewReplacer(r...)
 

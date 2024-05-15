@@ -91,7 +91,7 @@ func NewFactory() *Factory {
 	log.Info(infConfigLoaded, zap.String("Config", cnf.String()))
 
 	s := secretProvider(cnf, awscnf)
-	config.ApplySecret(log, s, &cnf)
+	config.ApplySecret(s, &cnf)
 
 	mconfigRead := microConfigRead(cnf, awscnf, log)
 
