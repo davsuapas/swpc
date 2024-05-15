@@ -45,10 +45,6 @@ const (
 	errGets     = "Cannot obtain supplier's secret"
 )
 
-const (
-	infoApplySecret = "Secret applies"
-)
-
 type AuthProvider string
 
 const (
