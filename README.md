@@ -14,4 +14,5 @@ The project consists of monitoring the metrics of a swimming pool in real time. 
 
 
 1. [Board and sensors](doc/board.md)
+2. [Architecture](doc/architecture.md)
 
