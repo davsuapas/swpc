@@ -18,7 +18,12 @@ The system is composed of the following main components:
   - [Authentication](../internal/web/auth.go): Controls user authentication using oauth2 through authentication providers. The default provider used by default is [AWS Cognito](https://aws.amazon.com/es/cognito/)
   - API: We have different APIs for managing [user configuration](../internal/web/config.go), [samples for prediction](../internal/web/sample.go) and [IA preditions](../internal/web/prediction.go).
 
-- [Configuration module](../internal/config/config.go): Allows the system to be configured via a *SW_POOL_CONTROLLER_CONFIG* json environment variable. Secrets located in the configuration can be secured through provider services via the [`type Secret interface`](../internal/config/config/config.go) interface. If a secret is needed in the configuration, use an expression that satisfies: `@@@[a-zA-Z0-9_]+`. The default provider is [AWS Secrets Manager](https://aws.amazon.com/es/secrets-manager/). It is also possible to configure the [transmission parameters](../ui/src/config/config.tsx) by the user, as we saw earlier.
+- [Configuration module](../internal/config/config.go): Allows the system to be configured via a *SW_POOL_CONTROLLER_CONFIG* json environment variable. Secrets located in the configuration can be secured through provider services via the [`type Secret interface`](../internal/config/config.go) interface.
+
+  > [!TIP]
+  > If a secret is needed in the configuration, use an expression that satisfies: `@@[a-zA-Z0-9_]+`.
+
+The default provider is [AWS Secrets Manager](https://aws.amazon.com/es/secrets-manager/). It is also possible to configure the [transmission parameters](../ui/src/config/config.tsx) by the user, as we saw earlier.
 
 - [AI Preditions](../ai/): We have different metrics that are obtained through the sensors. These metrics are: Temperature, ORP (Oxidation Reduction Potential) and PH. Other metrics such as chlorine and water quality are calculated by two predictive models (artificial intelligence), namely a regression model and a decision tree model. The data scientist is in charge of downloading the samples that the user has been adding based on the information from the sensors, and using a series of python scripts, generates the model and uploads it to the system. This model is in responsible for making the on-demand predictions requested by the user.
 
