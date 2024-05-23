@@ -20,8 +20,8 @@ The system is composed of the following main components:
 
 - [Configuration module](../internal/config/config.go): Allows the system to be configured via a *SW_POOL_CONTROLLER_CONFIG* json environment variable. Secrets located in the configuration can be secured through provider services via the [`type Secret interface`](../internal/config/config.go) interface.
 
-  > [!TIP]
-  > If a secret is needed in the configuration, use an expression that satisfies: `@@[a-zA-Z0-9_]+`.
+> [!TIP]
+> If a secret is needed in the configuration, use an expression that satisfies: `@@[a-zA-Z0-9_]+`.
 
 The default provider is [AWS Secrets Manager](https://aws.amazon.com/es/secrets-manager/). It is also possible to configure the [transmission parameters](../ui/src/config/config.tsx) by the user, as we saw earlier.
 
