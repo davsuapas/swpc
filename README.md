@@ -24,4 +24,5 @@ Special care has been taken regarding memory and cpu consumption. Specifically, 
 1. [Board and sensors](doc/board.md)
 2. [Architecture](doc/architecture.md)
 3. [Develop](doc/develop.md)
-
+4. [AI](doc/ai.md)
+5. [Test](doc/test.md)

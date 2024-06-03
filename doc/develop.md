@@ -12,14 +12,39 @@ https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
 
 ### Install Go v1.22
 
+Install go into $HOME
+
 https://go.dev/dl/
+
+> [!NOTE]
+> Remember to set `export GOPATH="$HOME/go/bin"` into .profile or .bashrc
+
+### Install go linter
+
+```shell
+# binary will be $(go env GOPATH)/bin/golangci-lint
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
+
+golangci-lint --version
+```
+
+### Install python3
+
+```shell
+sudo apt update
+sudo apt install python3
+sudo apt install python3.10-venv
+```
+### Install graphviz to show decision tree
+
+```shell
+sudo apt install graphviz
+```
 
 ### Install UI npm package
 
 ```shell
 cd swpc/ui
-```
-```shell
 npm install
 ```
 
@@ -43,9 +68,9 @@ python3 -m pip install pyserial
 
 ### Arduino IDE installation
 
-https://www.arduino.cc/en/software
+- Install app imagen from https://www.arduino.cc/en/software
 
-Install into $HOME/Arduino folder
+- Copy imagen into $HOME/Arduino folder
 
 ### Visual Studio Code plugin Arduino installation
 
@@ -88,26 +113,18 @@ Configure the following settings in the file user preferences
   ]
 ~~~
 
-Install "Arduino ESP32 Boards" using (shift+ctrl+P) "Arduino: Board manager" 
+Install "esp32 by Expressif" using (shift+ctrl+P) *Arduino: Board manager*
 
 ### Board selection 
 
-Select "ESP32 Dev Module" and port
+Select "ESP32 Dev Module"
 
-### Libraries 
+### Add libraries using (shift+ctrl+P) *Arduino: Libary Manager* 
 
 - WebSockets by Markus Sattler
 - ArduinoJson by Benoit Blanchon
 - DallasTemperature by Miles Burton <miles@mnetcs.com>, Tim Newsome
-- https://www.arduino.cc/reference/en/libraries/onewire/
-
-### Permissions
-
-Configure permission on port
-
-~~~bash
-sudo chmod 666 /dev/ttyUSB0
-~~~
+- Download and copy to $HOME/Arduino, if not exist (https://www.arduino.cc/reference/en/libraries/onewire)
 
 ### Post configuration
 
@@ -115,7 +132,7 @@ sudo chmod 666 /dev/ttyUSB0
 
 Create the folder *micro/build*
 
-After opening the *swpc.ino* file and clicking on the *Arduino:Verify button*,
+After opening the *swpc.ino* file and clicking on the *Arduino:Verify button*, 
 configure the following option within the file *.vscode/arduino.json*
 
 ~~~json

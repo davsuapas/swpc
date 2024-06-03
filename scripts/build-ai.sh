@@ -17,9 +17,9 @@ cp ./ai/main_predict.py "$path_target/"
 cp ./ai/predict.* "$path_target/"
 chmod +x "$path_target/predict.sh"
 
-cp ./ai/model/* "$path_target/"
+cp ./ai/model/*_wq "$path_target/"
+cp ./ai/model/*_cl "$path_target/"
 
-
-python -m venv "$path_target/.venv/swpc_predict"
+python3 -m venv "$path_target/.venv/swpc_predict"
 source "$path_target/.venv/swpc_predict/bin/activate"
 pip install -r ./ai/requirement_predict.yml
