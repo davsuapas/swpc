@@ -83,7 +83,6 @@ Configure the following settings in the file user preferences
   "arduino.useArduinoCli": true,
 ~~~
 
-
 ### ESP32 Driver (AZ-Delivery ESP32 DevKitC V2)
 
 ### Arduino IDE

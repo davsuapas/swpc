@@ -26,3 +26,5 @@ Special care has been taken regarding memory and cpu consumption. Specifically, 
 3. [Develop](doc/develop.md)
 4. [AI](doc/ai.md)
 5. [Test](doc/test.md)
+6. [Deploy](doc/deploy.md)
+7. [Web user interface](doc/ui.md)
