@@ -17,4 +17,4 @@ This dashboard consists of:
     - Temperature: Shows the temperature value in real time.
     - PH: Shows the PH value in real time.
     - ORP (Oxidation Reduction Potential): Shows the ORP value in real time.
-    - The bottom part is made up of several graphs that show the data in real time. These are temperature, PH and ORP.
+  - The bottom part is made up of several graphs that show the data in real time. These are temperature, PH and ORP.
