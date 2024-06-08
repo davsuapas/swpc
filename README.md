@@ -10,6 +10,8 @@ The metrics obtained by the user are: Temperature, ORP (Oxidation Reduction Pote
 
 The metrics can be visualised anytime and anywhere via a web application.
 
+The system is prepared for both microcontroller and server crashes. Therefore, when one of the parts detects that the other is available, the system starts to work normally.
+
 Special care has been taken regarding memory and cpu consumption. Specifically, measurements have been made and for 70 clients connected in real time, values of 20 MB of memory and 0.5% of cpu have been obtained. The system is ready to deploy in aws beanstalk immediately.
 
 
@@ -17,6 +19,7 @@ Special care has been taken regarding memory and cpu consumption. Specifically, 
 [![test](https://github.com/davsuapas/swpc/workflows/test/badge.svg)](https://github.com/davsuapas/swpc/actions?query=workflow%3Atest)
 [![codecov](https://codecov.io/github/davsuapas/swpc/branch/main/graph/badge.svg?token=VG71O5HYBA)](https://codecov.io/github/davsuapas/swpc)
 
+![dashboard](./doc/dashboard.gif)
 
 # TABLE OF CONTENTS
 

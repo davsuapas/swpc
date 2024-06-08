@@ -7,10 +7,19 @@ This dashboard consists of:
 
 - A top bar with a menu of buttons on the right, to perform tasks:
   - Add samples to later create fitted models to predict Chlorine and water quality. Once the model is created, this button can be hidden by changing the [configuration](../internal/config/config.go).
+  
+  ![sample](./samples.png)
+
   - Configuration of micro-controller parameters.
+
+  ![config](./config.png)
+
   - Refresh chlorine and water quality indicators.
   - Exit application.
 - In the main section the screen is divided into two parts:
+
+  ![dashboard](./dashboard.png)
+
   - The upper part is made up of several numerical indicators:
     - Water quality: Shows the quality of the water. This indicator is not calculated in real time, it is necessary to push the refresh button in the menu.
     - Chlorine: Shows the chlorine value. This indicator is not calculated in real time, it is necessary to push the refresh button in the menu.

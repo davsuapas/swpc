@@ -39,5 +39,41 @@ Most of the functionality can be configured through the *SW_POOL_CONTROLLER_CONF
 An example of such a configuration could be the following:
 
 ```json
-./scripts/deploy-awsbt.sh -build
+{
+  "cloud": {
+    "provider": "aws",
+    "aws": {"region": "eu-west-1"}
+  },
+  "server": {
+    "Internal": {"port": 5001, "host": "localhost", "tls": false},
+    "External": {
+      "port": 0,
+      "host": "swpc.eu-west-1.elasticbeanstalk.com",
+      "tls": true
+    }
+  },
+  "data": {
+    "provider": "cloud",
+    "aws": {"configTableName": "", "samplesTableName": "swpc_sample"}
+  },
+  "log": {"development": false, "level": 0},
+  "web": {
+    "secretKey": "12345678901234567890123456789012",
+    "auth": {
+      "jwkUrl": "https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_tgtfdr45/.well-known/jwks.json",
+      "clientId": "1223334343434343434343",
+      "tokenUrl": "https://swpc.auth.eu-west-1.amazoncognito.com/oauth2/token",
+      "provider": "oauth2",
+      "loginUrl": "https://swpc.auth.eu-west-1.amazoncognito.com/login?client_id=%client_id&response_type=code&scope=email+openid&state=%state&redirect_uri=%redirect_uri",
+      "logoutUrl": "https://swpc.auth.eu-west-1.amazoncognito.com/logout?client_id=%client_id&logout_uri=%redirect_uri"
+    }
+  },
+  "location": {"zone": "Europe/Madrid"},
+  "api": {
+    "clientId": "323232323232322323",
+    "tokenSecretKey": "4343434343434343434343",
+    "heartbeatInterval": 120
+  },
+  "iot": {"configUi": false, "sampleUi": true}
+}
 ```
