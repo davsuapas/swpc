@@ -143,10 +143,10 @@ func microConfigRead(
 	}
 
 	if cnf.Data.Provider == config.FileDataProvider &&
-		cnf.Data.ConfigFile.FilePath != "" {
+		cnf.Data.File.ConfigFile != "" {
 		return &iotc.FileConfigRead{
 			Log:      log,
-			DataFile: cnf.Data.ConfigFile.FilePath,
+			DataFile: cnf.Data.File.ConfigFile,
 		}
 	}
 
@@ -172,12 +172,12 @@ func microConfigWrite(
 	}
 
 	if cnf.Data.Provider == config.FileDataProvider &&
-		cnf.Data.ConfigFile.FilePath != "" {
+		cnf.Data.File.ConfigFile != "" {
 		return &iotc.FileConfigWrite{
 			Log:      log,
 			Hub:      hub,
 			Config:   cnf,
-			DataFile: cnf.Data.ConfigFile.FilePath,
+			DataFile: cnf.Data.File.ConfigFile,
 		}
 	}
 
@@ -208,17 +208,7 @@ func newWeb(
 
 	var appConfig web.AppConfigurator
 
-	var repoSample ai.SampleRepo
-
-	if cnf.Data.Provider == config.CloudDataProvider &&
-		cnf.Data.AWS.SamplesTableName != "" {
-		repoSample = ai.NewSampleAWSDynamoRepo(
-			cnfaws.get(),
-			log,
-			cnf.Data.AWS.SamplesTableName)
-	} else {
-		repoSample = &web.SampleDummyRepo{Log: log}
-	}
+	repoSample := buildSampleRepo(cnf, cnfaws, log)
 
 	if cnf.Auth.Provider == config.AuthProviderOauth2 {
 		oauth2 = &web.AuthFlow{
@@ -271,6 +261,33 @@ func newWeb(
 		},
 		WS: web.NewWS(log, cnf.Web, hub),
 	}
+}
+
+func buildSampleRepo(
+	cnf config.Config,
+	cnfaws *awsConfig,
+	log *zap.Logger) ai.SampleRepo {
+	//
+	switch cnf.Data.Provider {
+	case config.CloudDataProvider:
+		if cnf.Data.AWS.SamplesTableName != "" {
+			return ai.NewSampleAWSDynamoRepo(
+				cnfaws.get(),
+				log,
+				cnf.Data.AWS.SamplesTableName)
+		}
+	case config.FileDataProvider:
+		if cnf.Data.File.SampleFile != "" {
+			return &ai.SampleFileRepo{
+				Log:      log,
+				FileName: cnf.Data.File.SampleFile,
+			}
+		}
+	default:
+		return &web.SampleDummyRepo{Log: log}
+	}
+
+	return &web.SampleDummyRepo{Log: log}
 }
 
 func newHub(

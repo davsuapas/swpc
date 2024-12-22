@@ -19,7 +19,9 @@ package ai
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -32,6 +34,8 @@ import (
 
 const (
 	errAWSSaveSample = "Saving sample data in AWS dynamo repository"
+	errOpenSample    = "Opening sample data: "
+	errWritingFile   = "Writing sample data: "
 )
 
 const (
@@ -120,6 +124,40 @@ func (s *SampleAWSDynamoRepo) Save(data SampleData) error {
 
 	if err != nil {
 		return errors.Wrap(err, strings.Concat(errAWSSaveSample, s.tableName))
+	}
+
+	return nil
+}
+
+// SampleFileRepo defines the file repository
+type SampleFileRepo struct {
+	Log      *zap.Logger
+	FileName string
+}
+
+// save saves the samples data into AWS dynamo repository
+func (s *SampleFileRepo) Save(data SampleData) error {
+	s.Log.Info(
+		infSaving,
+		zap.String("sample", data.String()),
+		zap.String("file", s.FileName))
+
+	file, err := os.OpenFile(
+		s.FileName,
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
+		0644)
+
+	if err != nil {
+		return errors.Wrap(err, strings.Concat(errOpenSample, s.FileName))
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	record := []string{data.Temp, data.PH, data.ORP, data.Chlorine, data.Quality}
+	if err := writer.Write(record); err != nil {
+		return errors.Wrap(err, strings.Concat(errWritingFile, s.FileName))
 	}
 
 	return nil

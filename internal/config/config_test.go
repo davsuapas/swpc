@@ -91,8 +91,9 @@ func TestLoadConfig(t *testing.T) {
 				},
 				"data": {
 					"provider": "cloud",
-					"configFile": {
-						"filePath": "./file.dat"
+					"file": {
+						"config": "./file.dat",
+						"sample": "./file1.dat"
 					},
 					"aws": {
 						"configTableName": "tabla",
@@ -164,8 +165,9 @@ func TestLoadConfig(t *testing.T) {
 				},
 				Data: config.Data{
 					Provider: config.CloudDataProvider,
-					ConfigFile: config.FileData{
-						FilePath: "./file.dat",
+					File: config.FileData{
+						ConfigFile: "./file.dat",
+						SampleFile: "./file1.dat",
 					},
 					AWS: config.AWSData{
 						ConfigTableName:  "tabla",

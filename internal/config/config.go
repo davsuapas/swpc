@@ -254,16 +254,18 @@ type AWSData struct {
 
 // FileData defines file data configuration
 type FileData struct {
-	// FilePath is the data path
-	FilePath string `json:"filePath,omitempty"`
+	// ConfigFile is the config file path
+	ConfigFile string `json:"config,omitempty"`
+	// SampleFile is the sample file path
+	SampleFile string `json:"sample,omitempty"`
 }
 
 // Data defines the data configuration
 type Data struct {
 	// Provider is the data provider
 	Provider DataProvider `json:"provider,omitempty"`
-	// ConfigFile is the file data provider
-	ConfigFile FileData `json:"configFile,omitempty"`
+	// File is the file data provider
+	File FileData `json:"file,omitempty"`
 	// AWS is the aws data provider
 	AWS AWSData `json:"aws,omitempty"`
 }
