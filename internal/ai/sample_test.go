@@ -31,10 +31,9 @@ func TestSampleFileRepo_Save(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		sample   ai.SampleData
-		fileName string
-		wantErr  bool
+		name    string
+		sample  ai.SampleData
+		wantErr bool
 	}{
 		{
 			name: "Save sample data to file successfully",
@@ -45,8 +44,7 @@ func TestSampleFileRepo_Save(t *testing.T) {
 				Quality:  "0",
 				Chlorine: "-23.1",
 			},
-			fileName: "./testr/sample.csv",
-			wantErr:  false,
+			wantErr: false,
 		},
 		{
 			name: "Save sample data to file with error",
@@ -57,8 +55,7 @@ func TestSampleFileRepo_Save(t *testing.T) {
 				Quality:  "0",
 				Chlorine: "-23.1",
 			},
-			fileName: "",
-			wantErr:  true,
+			wantErr: true,
 		},
 	}
 
@@ -66,18 +63,22 @@ func TestSampleFileRepo_Save(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			tempDir, err := os.MkdirTemp("", "sample_test")
+			require.NoError(t, err)
+			defer os.RemoveAll(tempDir)
+
+			fileName := ""
+			if !tt.wantErr {
+				fileName = tempDir + "/sample.csv"
+			}
+
 			log := zap.NewExample()
 			repo := ai.SampleFileRepo{
 				Log:      log,
-				FileName: tt.fileName,
+				FileName: fileName,
 			}
 
-			err := repo.Save(tt.sample)
-			if err == nil {
-				if err := os.Remove(tt.fileName); err != nil {
-					require.Error(t, err, "Removing sample data file created")
-				}
-			}
+			err = repo.Save(tt.sample)
 
 			if tt.wantErr {
 				assert.Error(t, err)
