@@ -75,12 +75,10 @@ func TestJWKFetch_Fetch(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			reg := func(w http.ResponseWriter, r *http.Request) {
+			reg := func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(tt.resp.statusCode)
 				_, _ = w.Write([]byte(tt.resp.body))
@@ -95,6 +93,7 @@ func TestJWKFetch_Fetch(t *testing.T) {
 				if len(tt.wantErr) == 0 {
 					require.NoError(t, err, "Error")
 				}
+
 				require.ErrorContains(t, err, tt.wantErr, "Error")
 			}
 
@@ -202,12 +201,10 @@ func TestJWKFetch_JWKKey(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			reg := func(w http.ResponseWriter, r *http.Request) {
+			reg := func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(tt.resp.statusCode)
 				_, _ = w.Write([]byte(tt.resp.body))
@@ -227,6 +224,7 @@ func TestJWKFetch_JWKKey(t *testing.T) {
 				if len(tt.wantErr) == 0 {
 					require.NoError(t, err, "Error")
 				}
+
 				require.ErrorContains(t, err, tt.wantErr, "Error")
 			}
 
@@ -341,12 +339,10 @@ func TestJWT_ParseJWT(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			reg := func(w http.ResponseWriter, r *http.Request) {
+			reg := func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte(tt.respBody))
@@ -363,6 +359,7 @@ func TestJWT_ParseJWT(t *testing.T) {
 				if len(tt.wantErr) == 0 {
 					require.NoError(t, err, "Error")
 				}
+
 				require.ErrorContains(t, err, tt.wantErr, "Error")
 			}
 		})

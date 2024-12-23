@@ -67,6 +67,7 @@ func TestWS_Register_WS_Should_Return_StatusOk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+
 	defer r.Body.Close()
 	defer ws.Close()
 
@@ -112,6 +113,7 @@ func TestWS_Register_WS_Without_Socket_Should_Return_StatusInternalServerError(
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+
 	defer r.Body.Close()
 	defer ws.Close()
 

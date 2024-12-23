@@ -150,6 +150,7 @@ func (s *SampleFileRepo) Save(data SampleData) error {
 	if err != nil {
 		return errors.Wrap(err, strings.Concat(errOpenSample, s.FileName))
 	}
+
 	defer file.Close()
 
 	writer := csv.NewWriter(file)

@@ -98,8 +98,6 @@ func TestPrediction_Predict(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -113,8 +111,11 @@ func TestPrediction_Predict(t *testing.T) {
 			e := echo.New()
 			body := strings.NewReader(tt.argBody)
 			req := httptest.NewRequest(http.MethodPost, "/predict", body)
+
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
 			rec := httptest.NewRecorder()
+
 			ctx := e.NewContext(req, rec)
 
 			if tt.mPreds.apply {
@@ -126,8 +127,9 @@ func TestPrediction_Predict(t *testing.T) {
 			_ = s.Predict(ctx)
 
 			assert.Equal(t, tt.resStatus, rec.Code)
+
 			if rec.Code == http.StatusOK {
-				assert.Equal(
+				assert.JSONEq(
 					t,
 					"{\"wq\":\"regular\",\"cl\":\"123.23\"}\n",
 					rec.Body.String())

@@ -283,7 +283,7 @@ func buildSampleRepo(
 				FileName: cnf.Data.File.SampleFile,
 			}
 		}
-	default:
+	case config.NoneDataProvider:
 		return &web.SampleDummyRepo{Log: log}
 	}
 

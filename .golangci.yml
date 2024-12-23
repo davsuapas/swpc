@@ -4,26 +4,17 @@ linters:
   enable-all: true
   disable:
     - depguard
-    - golint
-    - varcheck
-    - deadcode
-    - interfacer
-    - maligned
-    - scopelint
-    - exhaustivestruct
-    - ifshort
-    - structcheck
-    - nosnakecase
     - rowserrcheck
     - sqlclosecheck
     - wastedassign
     - godot
-    - gomnd
     - gofumpt
     - forbidigo
     - exhaustruct
     - varnamelen
     - ireturn
+    - exportloopref
+    - mnd
 linters-settings:
   lll:
     line-length: 80

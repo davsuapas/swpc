@@ -727,8 +727,6 @@ func Test_StatusString(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -789,16 +787,22 @@ func newWS() (*websocket.Conn, *websocket.Conn, error) {
 func readMessages(wsc *websocket.Conn, numMsg int) []string {
 	var msgs []string
 
-	for i := 0; i < numMsg; i++ {
+	i := 0
+
+	for {
 		_, m, err := wsc.ReadMessage()
 		if err != nil {
 			return msgs
 		}
 
 		msgs = append(msgs, string(m))
-	}
 
-	return msgs
+		i++
+
+		if i == numMsg {
+			return msgs
+		}
+	}
 }
 
 func unmarshalHeartbeat(data string) iot.DeviceConfigDTO {

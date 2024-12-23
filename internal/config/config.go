@@ -223,7 +223,7 @@ type Zap struct {
 	// Development mode. Common value: false
 	Development bool `json:"development,omitempty"`
 	// Level. See logging.Level. Common value: Depending of Development flag
-	Level int `json:"level,omitempty"`
+	Level int8 `json:"level,omitempty"`
 	// Encoding type. Common value: Depending of Development flag
 	// The values can be: j -> json format, c -> console format
 	Encoding string `json:"encoding,omitempty"`

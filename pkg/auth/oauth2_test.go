@@ -101,8 +101,6 @@ func TestOAuth2_Token(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -135,6 +133,7 @@ func TestOAuth2_Token(t *testing.T) {
 				if len(tt.wantErr) == 0 {
 					require.NoError(t, err, "Error")
 				}
+
 				require.ErrorContains(t, err, tt.wantErr, "Error")
 			}
 		})
@@ -162,12 +161,10 @@ func TestOAuth2_RevokeToken(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			reg := func(w http.ResponseWriter, r *http.Request) {
+			reg := func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(tt.respstatus)
 			}
 
@@ -184,6 +181,7 @@ func TestOAuth2_RevokeToken(t *testing.T) {
 				if len(tt.wantErr) == 0 {
 					require.NoError(t, err, "Error")
 				}
+
 				require.ErrorContains(t, err, tt.wantErr, "Error")
 			}
 		})

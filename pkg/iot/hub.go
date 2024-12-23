@@ -932,10 +932,13 @@ func (h *Hub) sendMessage(message string, errMessage string) bool {
 	sent := false
 
 	for i, c := range h.clients {
-		if err := c.sendMessage(message); err != nil {
-			brokenclients = append(brokenclients, uint16(i))
+		//nolint:gosec
+		j := uint16(i)
 
-			if err := h.closeClient(uint16(i)); err != nil {
+		if err := c.sendMessage(message); err != nil {
+			brokenclients = append(brokenclients, j)
+
+			if err := h.closeClient(j); err != nil {
 				h.err <- errors.Wrap(err, errMessage)
 			}
 
@@ -994,21 +997,21 @@ func (h *Hub) onChangeState(_ State) {
 }
 
 func (h *Hub) sendActionToDevice() {
-	var sent = -1
+	var sent uint8 = 255
 
 	if h.state == Asleep {
-		sent = int(sleep)
+		sent = uint8(sleep)
 	}
 
 	if h.state == Active {
-		sent = int(transmit)
+		sent = uint8(transmit)
 	}
 
 	if h.state == Inactive {
-		sent = int(standby)
+		sent = uint8(standby)
 	}
 
-	if sent >= 0 {
+	if sent != 255 {
 		if err := h.device.SendAction(deviceAction(sent)); err != nil {
 			h.setState(false)
 
@@ -1026,7 +1029,7 @@ func (h *Hub) sendActionToDevice() {
 				Level: InfoLevel,
 				Message: strings.Format(
 					infSendAction,
-					strings.FMTValue(infState, strconv.Itoa(sent))),
+					strings.FMTValue(infState, strconv.Itoa(int(sent)))),
 			})
 	}
 }
@@ -1179,12 +1182,15 @@ func (h *Hub) removeDeadClient() {
 	var deadClients []uint16
 
 	for i, c := range h.clients {
+		//nolint:gosec
+		j := uint16(i)
+
 		if c.expired() {
-			deadClients = append(deadClients, uint16(i))
+			deadClients = append(deadClients, j)
 
 			clientID := h.clients[i].id
 
-			if err := h.closeClient(uint16(i)); err != nil {
+			if err := h.closeClient(j); err != nil {
 				h.err <- errors.Wrap(
 					err,
 					strings.Format(
@@ -1219,27 +1225,26 @@ func (h *Hub) removeDeadClient() {
 // removeClient removes client by id
 func (h *Hub) removeClient(clientID string) error {
 	pos := h.findClient(clientID)
-	if pos == -1 {
+	if pos == 255 {
 		return nil
 	}
 
-	posr := uint16(pos)
-
-	err := h.closeClient(posr)
-	h.removeClientByPos(posr)
+	err := h.closeClient(pos)
+	h.removeClientByPos(pos)
 
 	return err
 }
 
 // findClient seeks a client by ID. If the client is not found returns -1
-func (h *Hub) findClient(clientID string) int {
+func (h *Hub) findClient(clientID string) uint16 {
 	for i, c := range h.clients {
 		if c.id == clientID {
-			return i
+			//nolint:gosec
+			return uint16(i)
 		}
 	}
 
-	return -1
+	return 255
 }
 
 // removeClientByPos remove clients by position

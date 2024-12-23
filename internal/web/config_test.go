@@ -70,8 +70,6 @@ func TestConfigWeb_Load(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -156,16 +154,17 @@ func TestConfigWeb_Save(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			e := echo.New()
 			body := strings.NewReader(tt.argBody)
 			req := httptest.NewRequest(http.MethodPost, "/config", body)
+
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
 			rec := httptest.NewRecorder()
+
 			c := e.NewContext(req, rec)
 
 			cf := &web.ConfigWeb{

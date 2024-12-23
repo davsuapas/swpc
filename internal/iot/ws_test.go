@@ -53,6 +53,7 @@ func TestWS_Register_WS_Should_Return_StatusOk(t *testing.T) {
 	u := "ws" + strings.TrimPrefix(s.URL, "http")
 
 	header := make(http.Header)
+	//nolint:canonicalheader
 	header.Add("id", "1")
 
 	ws, r, err := websocket.DefaultDialer.Dial(u, header)
@@ -60,6 +61,7 @@ func TestWS_Register_WS_Should_Return_StatusOk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+
 	defer r.Body.Close()
 	defer ws.Close()
 

@@ -63,6 +63,7 @@ func (w *WS) Register(ctx echo.Context) error {
 		return nil
 	}
 
+	//nolint:canonicalheader
 	deviceID := ctx.Request().Header.Get("id")
 
 	w.log.Info(infRegisterDevice, zap.String("deviceID", deviceID))

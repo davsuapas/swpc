@@ -68,10 +68,11 @@ func TestArraysHas(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			actual := arrays.Has(tt.args.arr, tt.args.item)
+
 			assert.Equal(t, tt.expected, actual)
 		})
 	}
@@ -165,10 +166,11 @@ func TestArraysRemove(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			actual := arrays.Remove(tt.args.arr, tt.args.pos...)
+
 			assert.Equal(t, tt.expected, actual)
 		})
 	}

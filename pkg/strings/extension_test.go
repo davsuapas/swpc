@@ -76,10 +76,11 @@ func TestStrings_fmt(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			res := strings.Format(tt.args.text, tt.args.fmtValues...)
+
 			assert.Equal(t, tt.want, res)
 		})
 	}
