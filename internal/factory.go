@@ -47,6 +47,7 @@ const (
 
 const (
 	infConfigLoaded = "The configuration is loaded"
+	inflog          = "Log configuration"
 )
 
 // APIHandler is the device API handler
@@ -88,7 +89,9 @@ func NewFactory() *Factory {
 
 	log := newLogger(cnf)
 
-	log.Info(infConfigLoaded, zap.String("Config", cnf.String()))
+	if !cnf.Hide {
+		log.Info(infConfigLoaded, zap.String("Config", cnf.String()))
+	}
 
 	s := secretProvider(cnf, awscnf)
 	config.ApplySecret(s, &cnf)
@@ -348,6 +351,9 @@ func newLogger(ctx config.Config) *zap.Logger {
 	log.Level = zap.NewAtomicLevelAt(zapcore.Level(ctx.Level))
 	log.Encoding = ctx.Encoding
 
+	// Set the time format to ISO8601 for better readability
+	log.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
 	l, err := log.Build()
 	if err != nil {
 		panic(
@@ -356,6 +362,13 @@ func newLogger(ctx config.Config) *zap.Logger {
 				strings.FMTValue("Description",
 					err.Error())))
 	}
+
+	l.Info(
+		inflog,
+		zap.Bool("Develop", ctx.Development),
+		zap.Int8("Level", ctx.Level),
+		zap.String("Encoding", log.Encoding),
+	)
 
 	return l
 }

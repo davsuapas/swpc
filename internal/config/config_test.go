@@ -54,7 +54,7 @@ func TestLoadConfig(t *testing.T) {
 						"port": 2021
 					}
 				},
-				"log": {"development": false, "level": 3},
+				"log": {"development": false, "level": 3, "hide": true},
 				"web": {
 					"expirationSession": 15,
 					"secretKey": "123",
@@ -125,6 +125,7 @@ func TestLoadConfig(t *testing.T) {
 					Development: false,
 					Level:       3,
 					Encoding:    "console",
+					Hide:        true,
 				},
 				Web: config.Web{
 					SessionExpiration: 15,

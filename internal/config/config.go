@@ -43,6 +43,7 @@ const (
 		"(file, cloud)"
 	errHeatbeat = "The heratbeat must be confgured"
 	errGets     = "Cannot obtain supplier's secret"
+	errUnsetEnv = "Cannot unset environment variable"
 )
 
 type AuthProvider string
@@ -227,6 +228,8 @@ type Zap struct {
 	// Encoding type. Common value: Depending of Development flag
 	// The values can be: j -> json format, c -> console format
 	Encoding string `json:"encoding,omitempty"`
+	// Hide sensitive data
+	Hide bool `json:"hide,omitempty"`
 }
 
 type Cloud struct {
@@ -336,6 +339,7 @@ func Default() Config {
 			Development: true,
 			Level:       -1,
 			Encoding:    "console",
+			Hide:        false,
 		},
 		Web: Web{
 			SessionExpiration: 10,
@@ -391,6 +395,10 @@ func LoadConfig() Config { //nolint:cyclop
 			panic(
 				strs.Format(errEnvConfig, strs.FMTValue("Description", err.Error())))
 		}
+	}
+
+	if err := os.Unsetenv(ENVConfig); err != nil {
+		panic(errUnsetEnv)
 	}
 
 	if cnf.Encoding != "json" && cnf.Encoding != "console" {
