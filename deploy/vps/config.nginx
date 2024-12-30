@@ -1,0 +1,72 @@
+imit_conn_zone $binary_remote_addr zone=conn_limit_per_ip:1m;
+limit_req_zone $binary_remote_addr zone=req_limit_per_ip:10m rate=5r/s;
+
+server {
+   server_name swpc.vps.webdock.cloud;
+
+   listen 443 ssl; # managed by Certbot
+   ssl_certificate /etc/letsencrypt/live/swpc.vps.webdock.cloud/fullchain.pem; # managed by Certbot
+   ssl_certificate_key /etc/letsencrypt/live/swpc.vps.webdock.cloud/privkey.pem; # managed by Certbot
+   include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+   ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+   # Protection
+   add_header Strict-Transport-Security 'max-age=31536000; includeSubDomains; preload';
+   add_header Content-Security-Policy "font-src 'self';img-src 'self';script-src 'self';";
+   add_header X-XSS-Protection "1; mode=block";
+   add_header X-Frame-Options "SAMEORIGIN";
+   add_header X-Content-Type-Options nosniff;
+   add_header Referrer-Policy "strict-origin";
+   add_header Permissions-Policy "geolocation=(), microphone=(), camera=()";
+
+   # Limit
+   limit_conn conn_limit_per_ip 10;
+   limit_req zone=req_limit_per_ip burst=5 nodelay;
+
+   # Timeouts
+   client_body_timeout 10;
+   client_header_timeout 10;
+   keepalive_timeout 5 5;
+   send_timeout 10;
+
+   # Buffer sizes
+   client_body_buffer_size 128k;
+   client_max_body_size 1m;
+   client_header_buffer_size 1k;
+   large_client_header_buffers 2 1k;
+
+   location ~* ^/api/(web|device)/ws$ {
+     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+     proxy_set_header Host $host;
+     proxy_pass http://localhost:5000;
+     proxy_http_version 1.1;
+     proxy_set_header Upgrade $http_upgrade;
+     proxy_set_header Connection "upgrade";
+   } 
+
+   location / {
+     proxy_pass  http://localhost:5000;
+     proxy_set_header   Connection "";
+     proxy_http_version 1.1;
+     proxy_set_header        Host            $host;
+     proxy_set_header        X-Real-IP       $remote_addr;
+     proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+     proxy_set_header        X-Forwarded-Proto https;
+   }
+
+   # Necessary for Let's Encrypt Domain Name ownership validation. Place any other deny rules after this
+   location ~ /.well-known {
+     allow all;
+   }
+}
+
+server {
+    if ($host = swpc.vps.webdock.cloud) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+   listen 80;
+   server_name swpc.vps.webdock.cloud;
+   return 404; # managed by Certbot
+}

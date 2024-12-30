@@ -29,5 +29,10 @@ Special care has been taken regarding memory and cpu consumption. Specifically, 
 3. [Develop](doc/develop.md)
 4. [AI](doc/ai.md)
 5. [Test](doc/test.md)
-6. [Deploy](doc/deploy.md)
+6. Deploy
+
+    6.1 [Deploy on AWS](doc/deploy_aws.md)
+
+    6.2 [Deploy on VPS](doc/deploy_vps.md)
+
 7. [Web user interface](doc/ui.md)

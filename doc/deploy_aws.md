@@ -1,6 +1,6 @@
 # DEPLOY ON AWS BEANSTALK
 
-We are not going to explain how to deploy in beanstalk, we will explain how to generate the source.zip with everything needed to run the system inside beanstalk.
+We are not going to explain how to deploy on beanstalk, we will explain how to generate the source.zip with everything needed to run the system inside beanstalk.
 
 The source.zip contains:
 
@@ -60,7 +60,7 @@ An example of such a configuration could be the following:
   "web": {
     "secretKey": "12345678901234567890123456789012",
     "auth": {
-      "jwkUrl": "https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_tgtfdr45/.well-known/jwks.json",
+      "jwkUrl": "https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_ffffff/.well-known/jwks.json",
       "clientId": "1223334343434343434343",
       "tokenUrl": "https://swpc.auth.eu-west-1.amazoncognito.com/oauth2/token",
       "provider": "oauth2",
