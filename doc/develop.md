@@ -74,7 +74,7 @@ python3 -m pip install pyserial
 
 ### Visual Studio Code plugin Arduino installation
 
-Install plugin: https://marketplace.visualstudio.com/items?itemName=vsciot-vscode.vscode-arduino
+Install plugin: https://marketplace.visualstudio.com/items?itemName=vscode-arduino.vscode-arduino-community
 
 Configure the following settings in the file user preferences
 
