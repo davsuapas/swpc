@@ -60,21 +60,21 @@ export default class Sample extends React.Component<any, SampleState> {
   private meassureOrp: React.RefObject<Meassure>;
 
   constructor(props: any) {
-      super(props);
+    super(props);
 
-      this.fetch = new Fetch(this.props.alert);
+    this.fetch = new Fetch(this.props.alert);
 
-      this.state = {
-        open: false,
-        cl: 0,
-        clValid: true,
-        waterQuality: 0,
-        saving: false
-      };
+    this.state = {
+      open: false,
+      cl: 0,
+      clValid: true,
+      waterQuality: 0,
+      saving: false
+    };
 
-      this.meassureTemp = React.createRef<Meassure>();
-      this.meassurePh = React.createRef<Meassure>();
-      this.meassureOrp = React.createRef<Meassure>();
+    this.meassureTemp = React.createRef<Meassure>();
+    this.meassurePh = React.createRef<Meassure>();
+    this.meassureOrp = React.createRef<Meassure>();
   }
 
   // open opens the samples editor with the values sent by micro
@@ -90,18 +90,18 @@ export default class Sample extends React.Component<any, SampleState> {
     this.meassurePh.current?.setMeassure(ph);
     this.meassureOrp.current?.setMeassure(orp);
 
-    this.setState({open: true});
+    this.setState({ open: true });
   }
 
   // close saves the sample in the server an close the window
   private async close(save: boolean) {
     if (!save) {
-      this.setState({open: false});
+      this.setState({ open: false });
       return;
-    } 
+    }
 
     if (this.valid()) {
-      this.setState({saving: true});
+      this.setState({ saving: true });
 
       this.fetch?.send("/api/web/sample", {
         method: "POST",
@@ -109,31 +109,31 @@ export default class Sample extends React.Component<any, SampleState> {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "temp": this.meassureTemp.current?.state.value,
-          "ph": this.meassurePh.current?.state.value,
-          "orp": this.meassureOrp.current?.state.value,
+          "temp": this.meassureTemp.current?.state.value.toString(),
+          "ph": this.meassurePh.current?.state.value.toString(),
+          "orp": this.meassureOrp.current?.state.value.toString(),
           "chlorine": this.state.cl.toString(),
           "quality": this.state.waterQuality.toString(),
         })
       },
-      async (result: Response) => {
-          this.setState({open: false});
+        async (result: Response) => {
+          this.setState({ open: false });
           if (result.ok) {
-              return true;
+            return true;
           }
           return false;
-      },
-      () => {
-          this.setState({open: false});
-      });
+        },
+        () => {
+          this.setState({ open: false });
+        });
     }
   }
 
   private valid(): boolean {
-    this.setState({clValid: false});
+    this.setState({ clValid: false });
 
     if (this.state.cl >= 0 && this.state.cl <= 5) {
-      this.setState({clValid: true});
+      this.setState({ clValid: true });
 
       return true;
     }
@@ -143,13 +143,13 @@ export default class Sample extends React.Component<any, SampleState> {
 
   render(): React.ReactNode {
     return (
-    <div>
-      <Dialog
+      <div>
+        <Dialog
           open={this.state.open}
           TransitionComponent={Transition}
           keepMounted
           onClose={() => !this.state.saving && this.close(false)}
-      >
+        >
           <DialogTitle>Obtener muestra</DialogTitle>
           <DialogContent>
             <DialogContentText id="alert-dialog-slide-description">
@@ -160,34 +160,34 @@ export default class Sample extends React.Component<any, SampleState> {
             <Stack marginTop="20px" spacing={2}>
               <TextField
                 id="chlorine"
-                sx={{marginTop:"10px"}}
+                sx={{ marginTop: "10px" }}
                 label="Cloro (mg/L)"
                 type="number"
                 value={this.state.cl}
                 onChange={event =>
-                    this.setState({cl: Number(event.target.value)})}
-                InputProps={{ inputProps: { min: 0, max: 5 } }}                  
+                  this.setState({ cl: Number(event.target.value) })}
+                InputProps={{ inputProps: { min: 0, max: 5 } }}
                 size="medium"
                 error={!this.state.clValid}
-                helperText="Introduzca un valor entre 0 y 5 mg/L"/> 
+                helperText="Introduzca un valor entre 0 y 5 mg/L" />
               <InputLabel variant="standard" htmlFor="waterQuality">
                 Calidad del agua
-              </InputLabel>                                 
+              </InputLabel>
               <Select
-                  id="waterQuality"
-                  sx={{marginTop:"10px"}}
-                  label="Calidad del agua"
-                  value={this.state.waterQuality}
-                  onChange={event =>
-                      this.setState(
-                      {waterQuality: Number(event.target.value)})}
-                  size="small"
-              >        
+                id="waterQuality"
+                sx={{ marginTop: "10px" }}
+                label="Calidad del agua"
+                value={this.state.waterQuality}
+                onChange={event =>
+                  this.setState(
+                    { waterQuality: Number(event.target.value) })}
+                size="small"
+              >
                 <MenuItem value={0}>Mala</MenuItem>
                 <MenuItem value={1}>Regular</MenuItem>
-                <MenuItem value={2}>Buena</MenuItem>        
+                <MenuItem value={2}>Buena</MenuItem>
               </Select>
-          </Stack>
+            </Stack>
             <Stack
               marginTop={"20px"}
               direction={{ xs: 'column', sm: 'row' }}
@@ -196,54 +196,54 @@ export default class Sample extends React.Component<any, SampleState> {
               <Grid container spacing={2}>
                 <Grid item xs={12} md={2} lg={2}>
                   <Item>
-                    <Meassure 
-                      ref={this.meassurePh} name={literals.phName} 
-                      unitName={literals.phUnit} src=""/>
+                    <Meassure
+                      ref={this.meassurePh} name={literals.phName}
+                      unitName={literals.phUnit} src="" />
                   </Item>
                 </Grid>
                 <Grid item xs={12} md={5} lg={5}>
                   <Item>
-                    <Meassure 
-                      ref={this.meassureOrp} name={literals.orpName} 
-                      unitName={literals.orpUnit} src=""/>
+                    <Meassure
+                      ref={this.meassureOrp} name={literals.orpName}
+                      unitName={literals.orpUnit} src="" />
                   </Item>
                 </Grid>
                 <Grid item xs={12} md={5} lg={5}>
                   <Item>
-                    <Meassure 
-                      ref={this.meassureTemp} name={literals.temperatureName} 
-                      unitName={literals.temperatureUnit} src=""/>
+                    <Meassure
+                      ref={this.meassureTemp} name={literals.temperatureName}
+                      unitName={literals.temperatureUnit} src="" />
                   </Item>
                 </Grid>
               </Grid>
             </Stack>
           </DialogContent>
           <DialogActions>
-              <Box sx={{ m: 1, position: 'relative' }}>
-                  <Button onClick={
-                    () => this.close(true)}>
-                      {this.state.saving ? "Enviando" : "Enviar"}</Button>
-                  {this.state.saving && (
-                      <CircularProgress
-                          size={24}
-                          sx={{
-                              color: colorPurple,
-                              position: 'absolute',
-                              top: '50%',
-                              left: '50%',
-                              marginTop: '-12px',
-                              marginLeft: '-12px',
-                          }}
-                      />
-                  )}                
-              </Box>
-              <Button
-               disabled={this.state.saving}
-               onClick={() => this.close(false)}>Cancelar
-              </Button>
+            <Box sx={{ m: 1, position: 'relative' }}>
+              <Button onClick={
+                () => this.close(true)}>
+                {this.state.saving ? "Enviando" : "Enviar"}</Button>
+              {this.state.saving && (
+                <CircularProgress
+                  size={24}
+                  sx={{
+                    color: colorPurple,
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    marginTop: '-12px',
+                    marginLeft: '-12px',
+                  }}
+                />
+              )}
+            </Box>
+            <Button
+              disabled={this.state.saving}
+              onClick={() => this.close(false)}>Cancelar
+            </Button>
           </DialogActions>
-      </Dialog>
-    </div>
+        </Dialog>
+      </div>
     );
   }
 }
