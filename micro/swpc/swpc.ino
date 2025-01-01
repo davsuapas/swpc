@@ -29,21 +29,21 @@
 const char *rootCACertificate = nullptr;
 
 #define ssl true
-#define host "swpc.vps.webdock.cloud"
+#define host "<host>"
 #define port 443
 
 #define URIAPI "/api/device/ws"
 #define URIToken "/auth/token/"
 
 // clientID define the ID to connect to the server
-#define clientID "fr$5gDe46juHnbg54$@dr"
+#define clientID "<id>"
 
 // WIFI definition
-const char *ssid = "WIWI";
-const char *password = "SFR4GLY96NVB265HRPOI!";
+const char *ssid = "<ssid>";
+const char *password = "<pass>";
 
 // Device ID
-#define DeviceID "atalaya"
+#define DeviceID "<id>"
 
 // BEGIN Sensors configuration
 // Pin to Temp is defined directly in setup function
