@@ -1,5 +1,5 @@
-imit_conn_zone $binary_remote_addr zone=conn_limit_per_ip:1m;
-limit_req_zone $binary_remote_addr zone=req_limit_per_ip:10m rate=5r/s;
+limit_conn_zone $binary_remote_addr zone=conn_limit_per_ip:1m;
+limit_req_zone $binary_remote_addr zone=req_limit_per_ip:1m rate=10r/s;
 
 server {
    server_name swpc.vps.webdock.cloud;
@@ -19,33 +19,41 @@ server {
    add_header Referrer-Policy "strict-origin";
    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()";
 
-   # Limit
+   # Límites
    limit_conn conn_limit_per_ip 10;
    limit_req zone=req_limit_per_ip burst=5 nodelay;
 
    # Timeouts
-   client_body_timeout 10;
-   client_header_timeout 10;
-   keepalive_timeout 5 5;
-   send_timeout 10;
+   client_body_timeout 10s;
+   client_header_timeout 10s;
 
    # Buffer sizes
    client_body_buffer_size 128k;
    client_max_body_size 1m;
    client_header_buffer_size 1k;
-   large_client_header_buffers 2 1k;
+   large_client_header_buffers 2 4k;
 
    location ~* ^/api/(web|device)/ws$ {
+     # Timeouts
+     proxy_read_timeout 360s;    # 3x heartbeat
+     proxy_send_timeout 360s;    # 3x heartbeat
+     proxy_connect_timeout 20s;
+     keepalive_timeout 360s;     # 3x heartbeat
+
      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
      proxy_set_header Host $host;
-     proxy_pass http://localhost:5000;
+     proxy_pass http://127.0.0.1:5000;
      proxy_http_version 1.1;
      proxy_set_header Upgrade $http_upgrade;
      proxy_set_header Connection "upgrade";
-   } 
+   }            
 
-   location / {
-     proxy_pass  http://localhost:5000;
+location / {
+     # Timeouts
+     keepalive_timeout 5s;
+     send_timeout 10s;
+
+     proxy_pass  http://127.0.0.1:5000;
      proxy_set_header   Connection "";
      proxy_http_version 1.1;
      proxy_set_header        Host            $host;

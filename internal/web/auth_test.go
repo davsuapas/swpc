@@ -245,30 +245,16 @@ func TestAuthFlow_Logout(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		args       args
-		mockHubUse bool
-		want       want
+		name string
+		args args
+		want want
 	}{
-		{
-			name: `Logout without WSClientIDName cookie.
-			 		 	 it should return StatusInternalServerError`,
-			args: args{
-				clientName: "error",
-			},
-			mockHubUse: false,
-			want: want{
-				statusCode: http.StatusInternalServerError,
-				cookies:    0,
-			},
-		},
 		{
 			name: "Logout. it should return StatusFound with RedirectLoginOk",
 			args: args{
 				clientName: web.WSClientIDName,
 				clientID:   "123",
 			},
-			mockHubUse: true,
 			want: want{
 				statusCode: http.StatusFound,
 				cookies:    2,
@@ -299,10 +285,6 @@ func TestAuthFlow_Logout(t *testing.T) {
 				Config: config.Default(),
 			}
 
-			if tt.mockHubUse {
-				h.On("UnregisterClient", tt.args.clientID)
-			}
-
 			_ = o.Logout(c)
 
 			assert.Equal(t, tt.want.statusCode, rec.Code)
@@ -310,8 +292,6 @@ func TestAuthFlow_Logout(t *testing.T) {
 			r := rec.Result()
 			defer r.Body.Close()
 			assert.Len(t, r.Cookies(), tt.want.cookies, "Cookies")
-
-			h.AssertExpectations(t)
 		})
 	}
 }

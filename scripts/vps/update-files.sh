@@ -9,6 +9,9 @@ rm -rf /opt/swpc/*
 cp -r ./bin /opt/swpc/
 cp ./swpc.env /etc/swpc/swpc.env
 
+# Remove log file if they exist
+rm /var/log/swpc/swpc.log
+
 ./update-service.sh
 
 echo "SWPC files updated successfully"

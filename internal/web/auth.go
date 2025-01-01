@@ -130,10 +130,6 @@ func (o *AuthFlow) Login(ctx echo.Context) error {
 func (o *AuthFlow) Logout(ctx echo.Context) error {
 	o.Log.Info(infLogoff)
 
-	if !unregisterHub(ctx, o.Log, o.Hub) {
-		return ctx.NoContent(http.StatusInternalServerError)
-	}
-
 	cookie := cookies(AuthHeaderName, "", time.Time{})
 	cookie.MaxAge = 0 // Remove cookie
 	cookie.Secure = o.Config.External.TLS

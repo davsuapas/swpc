@@ -28,22 +28,22 @@
 // it's used for self-certification
 const char *rootCACertificate = nullptr;
 
-#define ssl false
-#define host "192.168.1.135"
-#define port 5000
+#define ssl true
+#define host "swpc.vps.webdock.cloud"
+#define port 443
 
 #define URIAPI "/api/device/ws"
 #define URIToken "/auth/token/"
 
 // clientID define the ID to connect to the server
-#define clientID "sw3kf$fekdy56dfh"
+#define clientID "fr$5gDe46juHnbg54$@dr"
 
 // WIFI definition
-const char *ssid = "";
-const char *password = "";
+const char *ssid = "WIWI";
+const char *password = "SFR4GLY96NVB265HRPOI!";
 
 // Device ID
-#define DeviceID ""
+#define DeviceID "atalaya"
 
 // BEGIN Sensors configuration
 // Pin to Temp is defined directly in setup function
@@ -96,7 +96,8 @@ const float ph7 = 1690;
 
 // CollectMetricsParam are the parameters
 // for collecting metrics
-typedef struct {
+typedef struct
+{
   // time is the starting time when you start
   // collecting metrics.
   uint64_t time;
@@ -105,7 +106,8 @@ typedef struct {
 CollectMetricsParam collectMetricsParam;
 
 // See pkg.iot.hub
-typedef struct {
+typedef struct
+{
   uint8_t wakeUpTime;
   uint16_t collectMetricsTime;
   uint8_t buffer;
@@ -147,13 +149,15 @@ DallasTemperature *temp;
 // action sets the next action to execute
 uint8_t action;
 
-float tempSensor() {
+float tempSensor()
+{
   temp->requestTemperatures();
 
   return temp->getTempCByIndex(0);
 }
 
-float phSensor() {
+float phSensor()
+{
   // The sensor voltage is read and converted to millivolts.
   float phMillivolts = analogRead(pinPH) / 4095.0 * 3300;
 
@@ -166,7 +170,8 @@ float phSensor() {
   return pending * (phMillivolts - 1500) / 3.0 + offset;
 }
 
-float orpSensor() {
+float orpSensor()
+{
   // Internet-based figures
   return ((30 * (double)voltageORP * 1000) -
           (75 * analogRead(pinORP) * voltageORP * 1000 / 4095)) /
@@ -174,7 +179,8 @@ float orpSensor() {
          offsetORP;
 }
 
-void setup() {
+void setup()
+{
   // Temp sensor
   pinMode(GPIO_NUM_0, INPUT);
   // Led
@@ -188,10 +194,13 @@ void setup() {
   ourWire = new OneWire(GPIO_NUM_0);
   temp = new DallasTemperature(ourWire);
 
-  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_UNDEFINED) {
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_UNDEFINED)
+  {
     Serial.println("(setup).The device starts working");
     wakeUpTime = 30;
-  } else {
+  }
+  else
+  {
     Serial.printf(
         "(setup).The device wakes up after hibernation."
         "wakeUpTime: %u\n",
@@ -213,40 +222,49 @@ void setup() {
   wsSetup();
 }
 
-void loop() {
+void loop()
+{
   wsLoop();
 
   // It uses a state machine pattern.
   // Each iteration observes and determines
   // the next action to be executed.
-  switch (action) {
-    case actionCollectMetrics:
-      collectMetricsJob();
-      break;
-    case actionTransmit:
-      transmissionJob();
-      break;
-    case actionStandby:
-      standbyJob();
-      break;
-    case actionSleep:
-      sleepJob();
-      break;
+  switch (action)
+  {
+  case actionCollectMetrics:
+    collectMetricsJob();
+    break;
+  case actionTransmit:
+    transmissionJob();
+    break;
+  case actionStandby:
+    standbyJob();
+    break;
+  case actionSleep:
+    sleepJob();
+    break;
   }
 }
 
 // wsBegin initialise web socket to connect to hub
-void wsBegin() {
+void wsBegin()
+{
   // Configure receiver for hub messages
   ws.onEvent(hubEvent);
 
-  if (ssl) {
-    if (rootCACertificate == nullptr) {
+  if (ssl)
+  {
+    if (rootCACertificate == nullptr)
+    {
       ws.beginSSL(host, port, URIAPI, SSL_FINGERPRINT_NULL);
-    } else {
+    }
+    else
+    {
       ws.beginSslWithCA(host, port, URIAPI, rootCACertificate);
     }
-  } else {
+  }
+  else
+  {
     ws.begin(host, port, URIAPI);
   }
 
@@ -256,20 +274,24 @@ void wsBegin() {
 
 // wsSetup configures web socket to connect
 // Uses websocket for communication
-void wsSetup() {
-  if (action == actionSleep) {
+void wsSetup()
+{
+  if (action == actionSleep)
+  {
     return;
   }
 
   Serial.println("(wsSetup).Configures web socket to connect to the hub");
 
-  if (!activeWIFIConnection()) {
+  if (!activeWIFIConnection())
+  {
     sleep();
     return;
   }
 
   String token;
-  if (!getToken(token)) {
+  if (!getToken(token))
+  {
     sleep();
     return;
   }
@@ -288,14 +310,17 @@ void wsSetup() {
 
 // wsLoop polls websocket and manages the retry
 // of the connections
-void wsLoop() {
-  if (action == actionSleep) {
+void wsLoop()
+{
+  if (action == actionSleep)
+  {
     return;
   }
 
   ws.loop();
 
-  if (!ws.isConnected()) {
+  if (!ws.isConnected())
+  {
     // The logical way to set up lastConnectionTime would be to
     // initialise millis() on the disconnect event,
     // but the disconnect event is triggered even if there is a
@@ -305,13 +330,15 @@ void wsLoop() {
     // Therefore, in this event we configure lastConnectionTime=0
     // and so the first time we detect disconnection we configure
     // lastConnectionTime to millis() to perform a possible timeout.
-    if (lastConnectionTime == 0) {
+    if (lastConnectionTime == 0)
+    {
       lastConnectionTime = millis();
     }
 
     // The time cannot be longer than the maximum value
     // of the token expiration set in internal/api/auth.go
-    if (millis() - lastConnectionTime >= timeoutDisconnected) {
+    if (millis() - lastConnectionTime >= timeoutDisconnected)
+    {
       // Expired
       Serial.println("(wsLoop).The web socket connection time has expired");
       sleep();
@@ -320,78 +347,85 @@ void wsLoop() {
 }
 
 // hubEvent process the message received via event hub
-void hubEvent(WStype_t type, uint8_t *payload, size_t length) {
-  switch (type) {
-    case WStype_ERROR:
-      Serial.printf("(hubEvent-ERROR).Web socket error. Error: %s", payload);
-      ws.disconnect();
+void hubEvent(WStype_t type, uint8_t *payload, size_t length)
+{
+  switch (type)
+  {
+  case WStype_ERROR:
+    Serial.printf("(hubEvent-ERROR).Web socket error. Error: %s", payload);
+    ws.disconnect();
 
-      break;
-    case WStype_DISCONNECTED:
-      Serial.println(
-          "(hubEvent).The socket to communicate with the hub has "
-          "been disconnected.");
+    break;
+  case WStype_DISCONNECTED:
+    Serial.println(
+        "(hubEvent).The socket to communicate with the hub has "
+        "been disconnected.");
 
-      digitalWrite(GPIO_NUM_4, LOW);
-      wsSetup();
+    digitalWrite(GPIO_NUM_4, LOW);
+    wsSetup();
 
-      break;
-    case WStype_CONNECTED:
-      Serial.println(
-          "(hubEvent).The socket to communicate with the hub has "
-          "been connected.");
-      lastConnectionTime = 0;
+    break;
+  case WStype_CONNECTED:
+    Serial.println(
+        "(hubEvent).The socket to communicate with the hub has "
+        "been connected.");
+    lastConnectionTime = 0;
 
-      break;
-    case WStype_TEXT:
-      uint8_t typeMessage = ((char *)payload)[0];
+    break;
+  case WStype_TEXT:
+    uint8_t typeMessage = ((char *)payload)[0];
 
-      char data[sizeConfig];
-      strcpy(data, (char *)(payload + 1));
+    char data[sizeConfig];
+    strcpy(data, (char *)(payload + 1));
 
-      Serial.print("(hubEvent). Message received via event hub");
-      Serial.printf("(typeMessage: %u, data: %s)\n", typeMessage, data);
+    Serial.print("(hubEvent). Message received via event hub");
+    Serial.printf("(typeMessage: %u, data: %s)\n", typeMessage, data);
 
-      if (typeMessage == mtypeDeviceConfig) {
-        config(data);
+    if (typeMessage == mtypeDeviceConfig)
+    {
+      config(data);
+    }
+
+    if (typeMessage == mtypeAction)
+    {
+      if (strlen(data) > 1)
+      {
+        Serial.print(
+            "(hubEvent-ERROR)."
+            "Message received of type action but the data is bad");
+
+        return;
       }
+      uint8_t actionh = data[0] - '0';
 
-      if (typeMessage == mtypeAction) {
-        if (strlen(data) > 1) {
-          Serial.print(
-              "(hubEvent-ERROR)."
-              "Message received of type action but the data is bad");
-
-          return;
-        }
-        uint8_t actionh = data[0] - '0';
-
-        switch (actionh) {
-          case mtypeActionSleep:
-            digitalWrite(GPIO_NUM_4, LOW);
-            sleep();
-            break;
-          case mtypeActionTransmit:
-            digitalWrite(GPIO_NUM_4, HIGH);
-            transmitMetricsAlready();
-            break;
-          case mtypeActionStandby:
-            digitalWrite(GPIO_NUM_4, LOW);
-            standby();
-            break;
-          default:
-            Serial.println(
-                "(hubEvent-ERROR). Message received not acknowledged");
-            break;
-        }
+      switch (actionh)
+      {
+      case mtypeActionSleep:
+        digitalWrite(GPIO_NUM_4, LOW);
+        sleep();
+        break;
+      case mtypeActionTransmit:
+        digitalWrite(GPIO_NUM_4, HIGH);
+        transmitMetricsAlready();
+        break;
+      case mtypeActionStandby:
+        digitalWrite(GPIO_NUM_4, LOW);
+        standby();
+        break;
+      default:
+        Serial.println(
+            "(hubEvent-ERROR). Message received not acknowledged");
+        break;
       }
+    }
 
-      break;
+    break;
   }
 }
 
 // transmitMetrics requests transmission action
-void transmitMetrics() {
+void transmitMetrics()
+{
   Serial.println("(transmitMetrics).Requesting transmit metrics");
 
   action = actionTransmit;
@@ -399,14 +433,16 @@ void transmitMetrics() {
 
 // transmitMetricsAlready collects an initial set of metrics and performs
 // the transmission request transmission action
-void transmitMetricsAlready() {
+void transmitMetricsAlready()
+{
   Serial.println(
       "(transmitMetricsAlready)."
       "Requesting transmit initial metrics");
 
   initSensorBuffer();
 
-  for (uint8_t i = 0; i < configData.buffer; i++) {
+  for (uint8_t i = 0; i < configData.buffer; i++)
+  {
     storeMetrics();
   }
 
@@ -417,7 +453,8 @@ void transmitMetricsAlready() {
 // connected to the hub the metrics buffer.
 // After transmitting, it continues to collect metrics
 // to continue transmitting.
-void transmissionJob() {
+void transmissionJob()
+{
   Serial.println("(transmissionJob).Transmitting metrics to the hub");
   printMemoryInfo();
 
@@ -431,7 +468,8 @@ void transmissionJob() {
 
   Serial.printf("(transmissionJob).Metrics to send: '%s'\n", buffers);
 
-  if (!ws.sendTXT(buffers)) {
+  if (!ws.sendTXT(buffers))
+  {
     Serial.printf("(transmissionJob-ERROR).Error transmitting metrics");
     ws.disconnect();
 
@@ -446,7 +484,8 @@ void transmissionJob() {
 }
 
 // collectMetrics actives collect metrics action
-void collectMetrics() {
+void collectMetrics()
+{
   Serial.println("(collectMetrics).Requesting collect metrics");
 
   collectMetricsParam.time = millis();
@@ -458,11 +497,13 @@ void collectMetrics() {
 // collectMetricsJob collects the metrics every "configData.collectMetricsTime"
 // set in the configuration and when the preset time is reached,
 // the metrics are transmitted to the hub.
-void collectMetricsJob() {
+void collectMetricsJob()
+{
   int64_t timeElapsedMetricsSec =
       (millis() - collectMetricsParam.time) / seconds;
 
-  if (timeElapsedMetricsSec >= configData.buffer) {
+  if (timeElapsedMetricsSec >= configData.buffer)
+  {
     Serial.printf(
         "(collectMetricsJob).Buffer filled. ("
         "timeElapsedMetricsSec: %lld, "
@@ -481,7 +522,8 @@ void collectMetricsJob() {
 }
 
 // standby actives standby job
-void standby() {
+void standby()
+{
   Serial.println("(standby).Requesting standby action");
 
   action = actionStandby;
@@ -489,20 +531,23 @@ void standby() {
 
 // standbyJob puts the device in standby mode,
 // waiting for events from the hub to come in.
-void standbyJob() {
-  delay(200);  // to save energy
+void standbyJob()
+{
+  delay(200); // to save energy
   action = actionStandby;
 }
 
 // sleep actives sleep job
-void sleep() {
+void sleep()
+{
   Serial.println("(sleep).Requesting sleep action");
 
   action = actionSleep;
 }
 
 // sleepJo frees up resources and goes into hibernation mode
-void sleepJob() {
+void sleepJob()
+{
   Serial.println("(sleepJob).Sleeping device...");
 
   ws.disconnect();
@@ -521,13 +566,15 @@ void sleepJob() {
 }
 
 // config updates the device settings
-void config(const char *data) {
+void config(const char *data)
+{
   Serial.println("(config).Updating configuration");
 
   StaticJsonDocument<128> doc;
   DeserializationError err = deserializeJson(doc, data);
 
-  if (err.code() != DeserializationError::Code::Ok) {
+  if (err.code() != DeserializationError::Code::Ok)
+  {
     Serial.printf(
         "(config-ERROR).Error deserialization configuration. Error: %s\n",
         err.c_str());
@@ -552,7 +599,8 @@ void config(const char *data) {
   Serial.printf("WakeUpTime: %u)\n", wakeUpTime);
 }
 
-void initSensorBuffer() {
+void initSensorBuffer()
+{
   bufferm.clear();
 
   tempb = bufferm.createNestedArray("temp");
@@ -561,7 +609,8 @@ void initSensorBuffer() {
 }
 
 // storeMetrics store metrics of the sensor in the buffer
-void storeMetrics() {
+void storeMetrics()
+{
   Serial.println("(storeMetrics).collect metrics");
 
   char val[10];
@@ -579,16 +628,20 @@ void storeMetrics() {
   orpb.add(val);
 }
 
-void rtrim(char *str) {
-  if (str == NULL || *str == '\0') return;
+void rtrim(char *str)
+{
+  if (str == NULL || *str == '\0')
+    return;
 
   char *ptr = str + strlen(str) - 1;
-  while (ptr >= str && *ptr == ' ') *ptr-- = '\0';
+  while (ptr >= str && *ptr == ' ')
+    *ptr-- = '\0';
 }
 
 // getToken gets security token
-bool getToken(String &result) {
-  uint16_t maxRetry = 5 * 60;  // Minutes
+bool getToken(String &result)
+{
+  uint16_t maxRetry = 5 * 60; // Minutes
   uint16_t retry;
 
   Serial.println("(getToken).Getting security token");
@@ -598,7 +651,8 @@ bool getToken(String &result) {
   strcat(uri, clientID);
 
   HTTPClient http;
-  if (!httpBegin(&http, uri)) {
+  if (!httpBegin(&http, uri))
+  {
     Serial.println("(getToken-ERROR). Error setting http to get token");
 
     return false;
@@ -608,14 +662,17 @@ bool getToken(String &result) {
 
   int httpCode = 0;
 
-  while (++retry < maxRetry) {
+  while (++retry < maxRetry)
+  {
     httpCode = http.GET();
 
-    if (httpCode > 0) {
+    if (httpCode > 0)
+    {
       break;
     }
 
-    if (retry % 10 == 0) {
+    if (retry % 10 == 0)
+    {
       Serial.printf(
           "\n(getToken-ERROR).Unable to open the connection to %s (Code: %d)\n",
           host, httpCode);
@@ -631,7 +688,8 @@ bool getToken(String &result) {
 
   http.end();
 
-  if (httpCode < 0) {
+  if (httpCode < 0)
+  {
     Serial.printf(
         "(getToken-ERROR).Unable to open the connection to %s (Code: %d)\n",
         host, httpCode);
@@ -639,7 +697,8 @@ bool getToken(String &result) {
     return false;
   }
 
-  if (httpCode != HTTP_CODE_OK) {
+  if (httpCode != HTTP_CODE_OK)
+  {
     Serial.printf("(getToken).Cannot get the token. ");
     Serial.printf("(URI: %s, Code: %s, Result: %s)\n", URIToken, httpCode,
                   result);
@@ -652,8 +711,10 @@ bool getToken(String &result) {
 
 // activeWIFIConnection checks for WIFI connection
 // and if not, try again.
-bool activeWIFIConnection() {
-  if (WiFi.status() != WL_CONNECTED) {
+bool activeWIFIConnection()
+{
+  if (WiFi.status() != WL_CONNECTED)
+  {
     Serial.println(
         "(activeWIFIConnection).Connection has not been established "
         "or has been lost. Re-attempted to connect...");
@@ -664,8 +725,10 @@ bool activeWIFIConnection() {
                   password);
 
     uint8_t retry;
-    while (WiFi.status() != WL_CONNECTED) {
-      if (++retry == 2 * 60) {  // Minutes
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      if (++retry == 2 * 60)
+      { // Minutes
         Serial.printf(
             "\n(activeWIFIConnection-ERROR). Error connecting to WIFI: %u\n",
             WiFi.status());
@@ -686,8 +749,10 @@ bool activeWIFIConnection() {
 }
 
 // httpBegin configures a http service via uri param
-bool httpBegin(HTTPClient *http, const char *uri) {
-  if (ssl) {
+bool httpBegin(HTTPClient *http, const char *uri)
+{
+  if (ssl)
+  {
     char url[sizeof(host) + 50];
     snprintf(url, sizeof(url), "https://%s:%u%s", host, port, uri);
 
@@ -702,7 +767,8 @@ bool httpBegin(HTTPClient *http, const char *uri) {
   return http->begin(host, port, uri);
 }
 
-void printMemoryInfo() {
+void printMemoryInfo()
+{
   Serial.print("Total memory: ");
   Serial.print(ESP.getHeapSize());
   Serial.print(" bytes. Free memory: ");
