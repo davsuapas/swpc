@@ -641,7 +641,7 @@ void rtrim(char *str)
 // getToken gets security token
 bool getToken(String &result)
 {
-  uint16_t maxRetry = 5 * 60; // Minutes
+  uint16_t maxRetry = 10 * 60; // Minutes
   uint16_t retry;
 
   Serial.println("(getToken).Getting security token");
@@ -666,12 +666,12 @@ bool getToken(String &result)
   {
     httpCode = http.GET();
 
-    if (httpCode > 0)
+    if (httpCode == HTTP_CODE_OK)
     {
       break;
     }
 
-    if (retry % 10 == 0)
+    if (retry % 30 == 0)
     {
       Serial.printf(
           "\n(getToken-ERROR).Unable to open the connection to %s (Code: %d)\n",
@@ -682,31 +682,22 @@ bool getToken(String &result)
     delay(1 * seconds);
   }
 
-  Serial.println();
+  bool ok = false;
 
-  result = http.getString();
+  if (httpCode == HTTP_CODE_OK)
+  {
+    result = http.getString();
+    ok = true;
+  }
+  else
+  {
+    Serial.printf("\n(getToken).Cannot get the token. ");
+    Serial.printf("(Code: %d)\n", httpCode);
+  }
 
   http.end();
 
-  if (httpCode < 0)
-  {
-    Serial.printf(
-        "(getToken-ERROR).Unable to open the connection to %s (Code: %d)\n",
-        host, httpCode);
-
-    return false;
-  }
-
-  if (httpCode != HTTP_CODE_OK)
-  {
-    Serial.printf("(getToken).Cannot get the token. ");
-    Serial.printf("(URI: %s, Code: %s, Result: %s)\n", URIToken, httpCode,
-                  result);
-
-    return false;
-  }
-
-  return true;
+  return ok;
 }
 
 // activeWIFIConnection checks for WIFI connection
@@ -721,13 +712,12 @@ bool activeWIFIConnection()
 
     WiFi.begin(ssid, password);
 
-    Serial.printf("(activeWIFIConnection).Connecting to WIFI (ID: %s)", ssid,
-                  password);
+    Serial.printf("(activeWIFIConnection).Connecting to WIFI (ID: %s)", ssid);
 
     uint8_t retry;
     while (WiFi.status() != WL_CONNECTED)
     {
-      if (++retry == 2 * 60)
+      if (++retry == 10 * 60)
       { // Minutes
         Serial.printf(
             "\n(activeWIFIConnection-ERROR). Error connecting to WIFI: %u\n",
