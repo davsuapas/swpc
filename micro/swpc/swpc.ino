@@ -18,10 +18,15 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <DallasTemperature.h>
+#include "DFRobot_ORP_PRO.h"
 #include <HTTPClient.h>
 #include <OneWire.h>
 #include <WebSocketsClient.h>
 #include <WiFi.h>
+
+// Time
+#define seconds 1000UL
+#define minutes 60 * seconds
 
 // BEGIN user configuration area
 // rootCACertificate = nullptr y ssl = true
@@ -29,24 +34,29 @@
 const char *rootCACertificate = nullptr;
 
 #define ssl true
-#define host "<host>"
+#define host ""
 #define port 443
 
 #define URIAPI "/api/device/ws"
 #define URIToken "/auth/token/"
 
 // clientID define the ID to connect to the server
-#define clientID "<id>"
+#define clientID ""
 
 // WIFI definition
-const char *ssid = "<ssid>";
-const char *password = "<pass>";
+const char *ssid = "";
+const char *password = "";
 
 // Device ID
-#define DeviceID "<id>"
+#define DeviceID ""
 
 // BEGIN Sensors configuration
-// Pin to Temp is defined directly in setup function
+// Pin to temp sensor
+#define pinTemp 0
+
+// Pin to led indicator
+#define pinLed 4
+
 // Pin to PH sensor
 #define pinPH 34
 // Reference voltage value for PH = 4.0 obtained in the first calibration
@@ -55,17 +65,11 @@ const float ph4 = 1280;
 const float ph7 = 1690;
 
 // Pin to ORP sensor
-#define pinORP 35
-// ORP sensor reference voltage
-#define voltageORP 5.00
-// ORP sensor calibration according to the manufacturer's website.
-// It would be necessary to have a good look at it, it CAN BE VARIABLE!!!
-#define offsetORP 13
-// END Sensors configuration
-// END user configuration area
-
-#define seconds 1000UL
-#define minutes 60 * seconds
+#define pinORP 33
+// Analog bits mask
+#define adcRes 4098
+// Votage 5v
+#define voltRef 5000
 
 // actionCollectMetrics actives the CollectMetricsJob
 #define actionCollectMetrics 1
@@ -145,6 +149,8 @@ unsigned long lastConnectionTime;
 // Sensors
 OneWire *ourWire;
 DallasTemperature *temp;
+// Look at orpSensor() function to see how i get orp reference voltage mv
+DFRobot_ORP_PRO orp(1440); 
 
 // action sets the next action to execute
 uint8_t action;
@@ -172,26 +178,32 @@ float phSensor()
 
 float orpSensor()
 {
-  // Internet-based figures
-  return ((30 * (double)voltageORP * 1000) -
-          (75 * analogRead(pinORP) * voltageORP * 1000 / 4095)) /
-             75 -
-         offsetORP;
+  // To calibrate substituting the ORP calculation adcVoltage
+  // by 'return (((long)analogRead(pinORP) * voltRef + adcRes / 2) / adcRes) - 2480;'
+  // and remove orp.getORP(adcVoltage)
+  // Getting the value that appears most on the user interface orp.
+  // Once the value is obtained use it in DFRobot_ORP_PRO orp(obtained_value)
+  // and leave the code again to calculate the orp
+  // Another way is to purchase a probe solution to calibrate 
+  // and set the exact orp(value) value
+  float adcVoltage = ((unsigned long)analogRead(pinORP) * voltRef + adcRes / 2) / adcRes;
+
+  return orp.getORP(adcVoltage);
 }
 
 void setup()
 {
   // Temp sensor
-  pinMode(GPIO_NUM_0, INPUT);
+  pinMode(pinTemp, INPUT);
   // Led
-  pinMode(GPIO_NUM_4, OUTPUT);
+  pinMode(pinLed, OUTPUT);
 
   Serial.begin(115200);
 
   delay(2 * seconds);
 
   // Init sensors
-  ourWire = new OneWire(GPIO_NUM_0);
+  ourWire = new OneWire(pinTemp);
   temp = new DallasTemperature(ourWire);
 
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_UNDEFINED)
@@ -241,7 +253,7 @@ void loop()
     standbyJob();
     break;
   case actionSleep:
-    sleepJob();
+    sleepJob();                         
     break;
   }
 }
@@ -262,7 +274,8 @@ void wsBegin()
     {
       ws.beginSslWithCA(host, port, URIAPI, rootCACertificate);
     }
-  }
+  }     
+
   else
   {
     ws.begin(host, port, URIAPI);
@@ -361,7 +374,7 @@ void hubEvent(WStype_t type, uint8_t *payload, size_t length)
         "(hubEvent).The socket to communicate with the hub has "
         "been disconnected.");
 
-    digitalWrite(GPIO_NUM_4, LOW);
+    digitalWrite(pinLed, LOW);
     wsSetup();
 
     break;
@@ -401,15 +414,15 @@ void hubEvent(WStype_t type, uint8_t *payload, size_t length)
       switch (actionh)
       {
       case mtypeActionSleep:
-        digitalWrite(GPIO_NUM_4, LOW);
+        digitalWrite(pinLed, LOW);
         sleep();
         break;
       case mtypeActionTransmit:
-        digitalWrite(GPIO_NUM_4, HIGH);
+        digitalWrite(pinLed, HIGH);
         transmitMetricsAlready();
         break;
       case mtypeActionStandby:
-        digitalWrite(GPIO_NUM_4, LOW);
+        digitalWrite(pinLed, LOW);
         standby();
         break;
       default:

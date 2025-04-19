@@ -123,7 +123,9 @@ Select "ESP32 Dev Module"
 - WebSockets by Markus Sattler
 - ArduinoJson by Benoit Blanchon
 - DallasTemperature by Miles Burton <miles@mnetcs.com>, Tim Newsome
-- Download and copy to $HOME/Arduino, if not exist (https://www.arduino.cc/reference/en/libraries/onewire)
+- Download and copy to $HOME/Arduino/libraries (https://www.arduino.cc/reference/en/libraries/onewire)
+- Download and copy to $HOME/Arduino/libraries (https://github.com/cdjq/DFRobot_Analog_ORP_Sensor)
+
 
 ### Post configuration
 
