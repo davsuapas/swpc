@@ -18,7 +18,6 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <DallasTemperature.h>
-#include "DFRobot_ORP_PRO.h"
 #include <HTTPClient.h>
 #include <OneWire.h>
 #include <WebSocketsClient.h>
@@ -34,21 +33,21 @@
 const char *rootCACertificate = nullptr;
 
 #define ssl true
-#define host ""
+#define host "swpc.vps.webdock.cloud"
 #define port 443
 
 #define URIAPI "/api/device/ws"
 #define URIToken "/auth/token/"
 
 // clientID define the ID to connect to the server
-#define clientID ""
+#define clientID "fr$5gDe46juHnbg54$@dr"
 
 // WIFI definition
-const char *ssid = "";
-const char *password = "";
+const char *ssid = "WIWI";
+const char *password = "SFR4GLY96NVB265HRPOI!";
 
 // Device ID
-#define DeviceID ""
+#define DeviceID "atalaya"
 
 // BEGIN Sensors configuration
 // Pin to temp sensor
@@ -70,6 +69,11 @@ const float ph7 = 1690;
 #define adcRes 4098
 // Votage 5v
 #define voltRef 5000
+// Maximum allowed difference between current 
+// and target ORP values before making adjustments (in mV)
+// Lower value = more precise calibration
+// Typical range: 1.0-30.0 mV
+const float calibrationMarginORP = 25.0f;
 
 // actionCollectMetrics actives the CollectMetricsJob
 #define actionCollectMetrics 1
@@ -117,6 +121,10 @@ typedef struct
   uint8_t buffer;
   uint8_t heartbeatInterval;
   uint8_t heartbeatTimeoutCount;
+  bool calibratingORP; 
+  float targetORP;
+  float calibrationORP;
+  unsigned long stabilizationTimeORP;
 } Config;
 
 Config configData;
@@ -136,6 +144,17 @@ JsonArray tempb;
 JsonArray phpb;
 JsonArray orpb;
 
+// Calibration variables
+typedef struct
+{
+  bool stabilizationORPDone;
+  float incrementalAverageORP;
+  int numReadingsORP;
+  unsigned long calibrationStartTimeORP;
+} CalibrationORP;
+
+CalibrationORP calibrationORP;
+
 // Communications
 // pongTimeout is the time it takes to receive
 // the pong after sending the ping.
@@ -149,8 +168,6 @@ unsigned long lastConnectionTime;
 // Sensors
 OneWire *ourWire;
 DallasTemperature *temp;
-// Look at orpSensor() function to see how i get orp reference voltage mv
-DFRobot_ORP_PRO orp(1440); 
 
 // action sets the next action to execute
 uint8_t action;
@@ -178,17 +195,76 @@ float phSensor()
 
 float orpSensor()
 {
-  // To calibrate substituting the ORP calculation adcVoltage
-  // by 'return (((long)analogRead(pinORP) * voltRef + adcRes / 2) / adcRes) - 2480;'
-  // and remove orp.getORP(adcVoltage)
-  // Getting the value that appears most on the user interface orp.
-  // Once the value is obtained use it in DFRobot_ORP_PRO orp(obtained_value)
-  // and leave the code again to calculate the orp
-  // Another way is to purchase a probe solution to calibrate 
-  // and set the exact orp(value) value
   float adcVoltage = ((unsigned long)analogRead(pinORP) * voltRef + adcRes / 2) / adcRes;
 
-  return orp.getORP(adcVoltage);
+  if (configData.calibratingORP) {
+    return calibrateORP(adcVoltage);
+  }
+  else {
+    return adcVoltage + configData.calibrationORP;
+  }
+}
+
+void initStabilizeORP() {
+  calibrationORP.stabilizationORPDone = false;
+  calibrationORP.incrementalAverageORP = 0;
+  calibrationORP.numReadingsORP = 0;
+  calibrationORP.calibrationStartTimeORP = millis();
+}
+
+// Calibrates the ORP sensor by adjusting the calibration
+// value to match the target ORP level.
+// Ensures stabilization by averaging readings over a
+// defined period.
+// Returns the calibration value,
+// which can be displayed on the screen.
+float calibrateORP(float adcVoltage) {
+  // If calibration is already stabilized,
+  // just return the current calibration value
+  if (calibrationORP.stabilizationORPDone) {
+    return configData.calibrationORP;
+  }
+  
+  // Calculate current ORP calibration to match target ORP
+  configData.calibrationORP = configData.targetORP - adcVoltage;
+   
+  calibrationORP.numReadingsORP++;
+
+   // Calculate incremental avg
+  calibrationORP.incrementalAverageORP +=
+    (configData.calibrationORP - calibrationORP.incrementalAverageORP) /
+    calibrationORP.numReadingsORP;
+
+  Serial.printf(
+    "ORP currentORP: %.2f = (adcVoltage: %.2f + calibrationORP: %.2f); "
+    "targetORP: %.2f, calibrationAvg: %.2f\n",
+    adcVoltage + configData.calibrationORP,
+    adcVoltage,
+    configData.calibrationORP,
+    configData.targetORP,
+    calibrationORP.incrementalAverageORP);
+    
+   // Calculate time elapsed in stabilization period
+  unsigned long elapsedTime =
+    millis() - calibrationORP.calibrationStartTimeORP;
+    
+   // Check if we've reached the stabilization time
+  if (elapsedTime >= configData.stabilizationTimeORP) {
+    configData.calibrationORP = calibrationORP.incrementalAverageORP;
+
+    // Mark stabilization as complete
+    calibrationORP.stabilizationORPDone = true;
+    
+    // Final debug output
+    Serial.printf("ORP stabilization COMPLETE "
+      "after %lu ms with %d readings\n", 
+      elapsedTime,
+      calibrationORP.numReadingsORP);
+    Serial.printf("Final ORP calibration: %.2f\n",
+      configData.calibrationORP);
+  }
+  
+  return configData.calibrationORP;
 }
 
 void setup()
@@ -228,6 +304,10 @@ void setup()
   configData.buffer = 3;
   configData.heartbeatInterval = 30;
   configData.heartbeatTimeoutCount = 2;
+  configData.calibratingORP = false;
+  configData.calibrationORP = 1440;
+
+  initStabilizeORP();
 
   // Communications
   wsBegin();
@@ -281,8 +361,10 @@ void wsBegin()
     ws.begin(host, port, URIAPI);
   }
 
-  ws.enableHeartbeat(configData.heartbeatInterval * seconds, pongTimeout,
-                     configData.heartbeatTimeoutCount);
+  ws.enableHeartbeat(
+    configData.heartbeatInterval * seconds,
+    pongTimeout,
+    configData.heartbeatTimeoutCount);
 }
 
 // wsSetup configures web socket to connect
@@ -599,17 +681,31 @@ void config(const char *data)
   configData.collectMetricsTime = doc["cmt"];
   configData.heartbeatInterval = doc["hbi"];
   configData.heartbeatTimeoutCount = doc["hbtc"];
+  configData.calibratingORP = doc["cgorp"];
+  configData.targetORP = doc["torp"];
+  configData.calibrationORP = doc["corp"];
+  configData.stabilizationTimeORP = (int)doc["storp"] * seconds;
   wakeUpTime = doc["wut"];
 
-  ws.enableHeartbeat(configData.heartbeatInterval * seconds, pongTimeout,
-                     configData.heartbeatTimeoutCount);
+  initStabilizeORP();
+
+  ws.enableHeartbeat(
+    configData.heartbeatInterval * seconds,
+    pongTimeout,
+    configData.heartbeatTimeoutCount);
 
   Serial.printf("(config).The configuration is updated via hub (");
   Serial.printf("heartbeatInterval: %u, ", configData.heartbeatInterval);
   Serial.printf("heartbeatTimeCount: %u, ", configData.heartbeatTimeoutCount);
   Serial.printf("Buffer: %u, ", configData.buffer);
   Serial.printf("CollectMetricsTime: %d, ", configData.collectMetricsTime);
-  Serial.printf("WakeUpTime: %u)\n", wakeUpTime);
+  Serial.printf("WakeUpTime: %u, ", wakeUpTime);
+  Serial.printf(
+    "calibratingORP: %s, ",
+    configData.calibratingORP ? "true" : "false");
+  Serial.printf("targetORP: %f, ", configData.targetORP);
+  Serial.printf("calibrationORP: %f, ", configData.calibrationORP);
+  Serial.printf("stabilizationTimeORP: %lu)", configData.stabilizationTimeORP);
 }
 
 void initSensorBuffer()
@@ -764,8 +860,11 @@ bool httpBegin(HTTPClient *http, const char *uri)
     return http->begin(url, rootCACertificate);
   }
 
-  Serial.printf("(httpConnect).Connecting to http://%s:%u%s\n", host, port,
-                uri);
+  Serial.printf(
+    "(httpConnect).Connecting to http://%s:%u%s\n",
+    host,
+    port,
+    uri);
 
   return http->begin(host, port, uri);
 }

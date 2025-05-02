@@ -368,7 +368,7 @@ func Default() Config {
 			Provider: NoneDataProvider,
 		},
 		IOT: IOT{
-			ConfigUI: false,
+			ConfigUI: true,
 			SampleUI: false,
 		},
 	}

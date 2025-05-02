@@ -70,14 +70,31 @@ type Config struct {
 	// It must be taken into account that if the buffer is for example 3 seconds,
 	// double the buffer is stored, to avoid unnecessary waits in the web client.
 	Buffer uint8 `json:"buffer"`
+	// CalibratingORP is the flag to calibrate the ORP
+	CalibratingORP bool `json:"calibratingOrp"`
+	// TargetORP is the target value for the calibrating ORP
+	TargetORP float32 `json:"targetOrp"`
+	// CalibrationORP is the value for the calibration ORP
+	// When set to calibrate with the flag it will be
+	// the initial value of the calibration.
+	// When not set to calibration mode, it will be the calibrated value
+	// obtained from the calibration.
+	CalibrationORP float32 `json:"calibrationOrp"`
+	// StabilizationTimeORP is the time in seconds to stabilize
+	// the calibration value
+	StabilizationTimeORP int8 `json:"stabilizationTimeOrp"`
 }
 
 func DefaultConfig() Config {
 	return Config{
-		IniSendTime: "09:00",
-		EndSendTime: "22:00",
-		Wakeup:      30,
-		Buffer:      3,
+		IniSendTime:          "09:00",
+		EndSendTime:          "22:00",
+		Wakeup:               30,
+		Buffer:               3,
+		CalibratingORP:       false,
+		TargetORP:            469,
+		CalibrationORP:       -320,
+		StabilizationTimeORP: 20,
 	}
 }
 
@@ -324,10 +341,14 @@ func (c AWSDynamoConfigWrite) Save(data Config) error {
 
 func notifyHub(c config.Config, data Config, h Hub) {
 	h.Config(iot.DeviceConfig{
-		CollectMetricsTime: c.CollectMetricsTime,
-		WakeUpTime:         data.Wakeup,
-		Buffer:             data.Buffer,
-		IniSendTime:        data.IniSendTime,
-		EndSendTime:        data.EndSendTime,
+		CollectMetricsTime:   c.CollectMetricsTime,
+		WakeUpTime:           data.Wakeup,
+		Buffer:               data.Buffer,
+		IniSendTime:          data.IniSendTime,
+		EndSendTime:          data.EndSendTime,
+		CalibratingORP:       data.CalibratingORP,
+		TargetORP:            data.TargetORP,
+		CalibrationORP:       data.CalibrationORP,
+		StabilizationTimeORP: data.StabilizationTimeORP,
 	})
 }

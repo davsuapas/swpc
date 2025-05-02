@@ -314,11 +314,15 @@ func newHub(
 	hub := iot.NewHub(
 		iot.Config{
 			DeviceConfig: iot.DeviceConfig{
-				WakeUpTime:         microc.Wakeup,
-				CollectMetricsTime: config.CollectMetricsTime,
-				Buffer:             microc.Buffer,
-				IniSendTime:        microc.IniSendTime,
-				EndSendTime:        microc.EndSendTime,
+				WakeUpTime:           microc.Wakeup,
+				CollectMetricsTime:   config.CollectMetricsTime,
+				Buffer:               microc.Buffer,
+				IniSendTime:          microc.IniSendTime,
+				EndSendTime:          microc.EndSendTime,
+				CalibratingORP:       microc.CalibratingORP,
+				TargetORP:            microc.TargetORP,
+				CalibrationORP:       microc.CalibrationORP,
+				StabilizationTimeORP: microc.StabilizationTimeORP,
 			},
 			Location:         loc,
 			CommLatency:      time.Duration(config.CommLatencyTime) * time.Second,

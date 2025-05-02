@@ -48,7 +48,7 @@ const drawerWidth: number = 255;
 
 const mdTheme = createTheme();
 
-interface DashboardState{
+interface DashboardState {
   loadingConfig: boolean;
   standby: boolean;
   refresh: boolean;
@@ -82,7 +82,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
 
   private meassureWq: React.RefObject<Meassure>;
   private meassureCl: React.RefObject<Meassure>;
-  
+
   private meassureTemp: React.RefObject<Meassure>;
   private meassurePh: React.RefObject<Meassure>;
   private meassureOrp: React.RefObject<Meassure>;
@@ -118,7 +118,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
 
     this.meassureWq = React.createRef<Meassure>();
     this.meassureCl = React.createRef<Meassure>();
- 
+
     this.meassureTemp = React.createRef<Meassure>();
     this.meassurePh = React.createRef<Meassure>();
     this.meassureOrp = React.createRef<Meassure>();
@@ -135,11 +135,11 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
   }
 
   activeStandby(active: boolean): void {
-    this.setState({standby: active});
+    this.setState({ standby: active });
   }
 
   activeLoadingConfig(active: boolean): void {
-    this.setState({loadingConfig: active});
+    this.setState({ loadingConfig: active });
   }
 
   private loadOndemandData(metrics: Metrics | null): void {
@@ -153,7 +153,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
       return
     }
 
-    this.setState({refresh: true});
+    this.setState({ refresh: true });
 
     let meassure = {}
 
@@ -178,7 +178,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
       },
       body: JSON.stringify(meassure)
     },
-    async (result: Response) => {
+      async (result: Response) => {
         let manejado = true;
 
         if (result.ok) {
@@ -201,7 +201,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
               break;
           }
 
-          this.setState({wqBoxColor: boxColor});
+          this.setState({ wqBoxColor: boxColor });
           this.meassureWq.current?.setMeassure(wq, boxColor);
 
           this.meassureCl.current?.setMeassure(Number(res.cl).toFixed(2).toString());
@@ -222,13 +222,13 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
           }
         }
 
-        this.setState({refresh: false});
+        this.setState({ refresh: false });
 
         return manejado;
-    },
-    () => {
-      this.setState({refresh: false});
-    });
+      },
+      () => {
+        this.setState({ refresh: false });
+      });
   }
 
   private socketStatus(status: CommStatus) {
@@ -244,7 +244,7 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
 
     this.ondemandData = false;
   }
-  
+
   // streamMetrics sends all the metrics received by socket to all the chart controls
   private streamMetrics(metrics: Metrics) {
     this.chartTemp.current?.setData(metrics.temp);
@@ -263,224 +263,224 @@ export default class Dashboard extends React.Component<any, DashboardState> impl
     // Pipeline between the chart and meassure. 
     // it sends the last meassure received by chart to the meassure control
     if (this.chartTemp.current) {
-      this.chartTemp.current.event.lastDataReceived = (m) => {this.meassureTemp.current?.setMeassure(m);}
+      this.chartTemp.current.event.lastDataReceived = (m) => { this.meassureTemp.current?.setMeassure(m); }
     }
     if (this.chartPh.current) {
-      this.chartPh.current.event.lastDataReceived = (m) => {this.meassurePh.current?.setMeassure(m);}
+      this.chartPh.current.event.lastDataReceived = (m) => { this.meassurePh.current?.setMeassure(m); }
     }
     if (this.chartOrp.current) {
-      this.chartOrp.current.event.lastDataReceived = (m) => {this.meassureOrp.current?.setMeassure(m.toFixed(2));}
+      this.chartOrp.current.event.lastDataReceived = (m) => { this.meassureOrp.current?.setMeassure(m.toFixed(2)); }
     }
   }
 
   render(): React.ReactNode {
     return (
       <ThemeProvider theme={mdTheme}>
-            <CssBaseline />
-            <AppBar position="static">
-              <Toolbar>
-                <Typography
-                  component="h1"
-                  variant="h6"
+        <CssBaseline />
+        <AppBar position="static">
+          <Toolbar>
+            <Typography
+              component="h1"
+              variant="h6"
+              color="inherit"
+              noWrap
+              sx={{ flexGrow: 1 }}
+            >
+              Métricas piscina
+            </Typography>
+            <Tooltip title="Refescar las prediciones de la calidad del agua y el cloro">
+              <IconButton
+                color="inherit"
+                onClick={() => this.loadOndemandData(null)}>
+                <RefreshIcon />
+                {this.state.refresh && (
+                  <CircularProgress
+                    size={40}
+                    sx={{
+                      color: colorPurple,
+                      position: 'absolute',
+                      zIndex: 1,
+                    }}
+                  />
+                )}
+              </IconButton>
+            </Tooltip>
+            {this.sampleUI && (
+              <Tooltip title="Muestra">
+                <IconButton
                   color="inherit"
-                  noWrap
-                  sx={{ flexGrow: 1 }}
-                >
-                  Métricas piscina
-                </Typography>
-                <Tooltip title="Refescar las prediciones de la calidad del agua y el cloro">
-                    <IconButton
-                      color="inherit"
-                      onClick={() => this.loadOndemandData(null)}>
-                      <RefreshIcon />
-                      {this.state.refresh && (
-                        <CircularProgress
-                          size={40}
-                          sx={{
-                            color: colorPurple,
-                            position: 'absolute',
-                            zIndex: 1,
-                          }}
-                        />
-                      )}                  
-                    </IconButton>
-                </Tooltip>
-                {this.sampleUI && (
-                  <Tooltip title="Muestra">
-                    <IconButton
-                      color="inherit"
-                      onClick={
-                        () => {
-                          if (this.sfactory.state == CommStatus.broadcasting &&
-                            this.meassureTemp.current != undefined &&
-                            this.meassurePh.current != undefined &&
-                            this.meassureOrp.current != undefined
-                          ) {
-                            this.sample.current?.open(
-                              this.meassureTemp.current.state.value,
-                              this.meassurePh.current.state.value,
-                              this.meassureOrp.current.state.value);
-                          } else {
-                              this.alert.current?.content(
-                                "No se detectan métricas",
-                                "No se puede realizar una muestra sino se " +
-                                "envían métricas desde el micro-controlador");
-                              this.alert.current?.open();
-                          }
-                        }
-                      }>
-                      <AppRegistration />
-                    </IconButton>
-                  </Tooltip>
-                )}
-                {this.configUI && (
-                  <Tooltip title="Configuración">
-                    <IconButton
-                      color="inherit"
-                      onClick={() => this.config.current?.open(this)}>
-                      <Assignment />
-                      {this.state.loadingConfig && (
-                        <CircularProgress
-                          size={40}
-                          sx={{
-                            color: colorPurple,
-                            position: 'absolute',
-                            zIndex: 1,
-                          }}
-                        />
-                      )}                  
-                    </IconButton>
-                  </Tooltip>
-                )}
-                <Tooltip title="Salir">
-                  <IconButton color="inherit" onClick={() => this.exit()}>
-                      <ExitToAppIcon />
-                  </IconButton>
-                </Tooltip>
-              </Toolbar>
-            </AppBar>
-              <Container maxWidth="xl" sx={{ mt:5, mb: 5, position: "relative"}}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6} lg={2}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: drawerWidth,
-                        backgroundColor: this.state.wqBoxColor
-                      }}
-                    >
-                      <Meassure ref={this.meassureWq} name={literals.wqName} unitName={literals.wqUnit} src="w.png" />
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={2}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: drawerWidth,
-                      }}
-                    >
-                      <Meassure ref={this.meassureCl} name={literals.clName} unitName={literals.clUnit} src="cl.png" />
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={2}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: drawerWidth,
-                      }}
-                    >
-                      <Meassure ref={this.meassurePh} name={literals.phName} unitName={literals.phUnit} src="ph.png" />
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={3}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: drawerWidth,
-                      }}
-                    >
-                      <Meassure ref={this.meassureOrp} name={literals.orpName} unitName={literals.orpUnit} src="orp.png" />
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={3}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: drawerWidth,
-                      }}
-                    >
-                      <Meassure ref={this.meassureTemp} name={literals.temperatureName} unitName={literals.temperatureUnit} src="temp.png" />
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={12}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: drawerWidth,
-                      }}
-                    >
-                      <Chart ref={this.chartPh} name={literals.phName}
-                        unitName={literals.phUnit} theme={mdTheme} media={this.media.current} />
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={6}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: drawerWidth,
-                      }}
-                    >
-                      <Chart ref={this.chartOrp} name={literals.orpName}
-                        unitName={literals.orpUnit} theme={mdTheme} media={this.media.current} />
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={6}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: drawerWidth,
-                      }}
-                    >
-                      <Chart ref={this.chartTemp} name={literals.temperatureName} 
-                        unitName={literals.temperatureUnit} theme={mdTheme} media={this.media.current} />
-                    </Paper>
-                  </Grid>
-                </Grid>
-                <div style={{position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)"}}>
-                {this.state.standby && (
-                  <CircularProgress 
-                      size={80}
+                  onClick={
+                    () => {
+                      if (this.sfactory.state == CommStatus.broadcasting &&
+                        this.meassureTemp.current != undefined &&
+                        this.meassurePh.current != undefined &&
+                        this.meassureOrp.current != undefined
+                      ) {
+                        this.sample.current?.open(
+                          this.meassureTemp.current.state.value,
+                          this.meassurePh.current.state.value,
+                          this.meassureOrp.current.state.value);
+                      } else {
+                        this.alert.current?.content(
+                          "No se detectan métricas",
+                          "No se puede realizar una muestra sino se " +
+                          "envían métricas desde el micro-controlador");
+                        this.alert.current?.open();
+                      }
+                    }
+                  }>
+                  <AppRegistration />
+                </IconButton>
+              </Tooltip>
+            )}
+            {this.configUI && (
+              <Tooltip title="Configuración">
+                <IconButton
+                  color="inherit"
+                  onClick={() => this.config.current?.open(this)}>
+                  <Assignment />
+                  {this.state.loadingConfig && (
+                    <CircularProgress
+                      size={40}
                       sx={{
                         color: colorPurple,
                         position: 'absolute',
                         zIndex: 1,
-                        margin: "0 auto"
                       }}
                     />
-                )}
-                </div>              
-              </Container>
-            <Alert ref={this.alert}></Alert>
-            <Config ref={this.config} alert={this.alert}/>
-            <Sample ref={this.sample} alert={this.alert}/>
-            <MediaQuery ref={this.media} theme={mdTheme}></MediaQuery>
+                  )}
+                </IconButton>
+              </Tooltip>
+            )}
+            <Tooltip title="Salir">
+              <IconButton color="inherit" onClick={() => this.exit()}>
+                <ExitToAppIcon />
+              </IconButton>
+            </Tooltip>
+          </Toolbar>
+        </AppBar>
+        <Container maxWidth="xl" sx={{ mt: 5, mb: 5, position: "relative" }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6} lg={2}>
+              <Paper
+                sx={{
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: drawerWidth,
+                  backgroundColor: this.state.wqBoxColor
+                }}
+              >
+                <Meassure ref={this.meassureWq} name={literals.wqName} unitName={literals.wqUnit} src="w.png" />
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={6} lg={2}>
+              <Paper
+                sx={{
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: drawerWidth,
+                }}
+              >
+                <Meassure ref={this.meassureCl} name={literals.clName} unitName={literals.clUnit} src="cl.png" />
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={6} lg={2}>
+              <Paper
+                sx={{
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: drawerWidth,
+                }}
+              >
+                <Meassure ref={this.meassurePh} name={literals.phName} unitName={literals.phUnit} src="ph.png" />
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={6} lg={3}>
+              <Paper
+                sx={{
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: drawerWidth,
+                }}
+              >
+                <Meassure ref={this.meassureOrp} name={literals.orpName} unitName={literals.orpUnit} src="orp.png" />
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={6} lg={3}>
+              <Paper
+                sx={{
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: drawerWidth,
+                }}
+              >
+                <Meassure ref={this.meassureTemp} name={literals.temperatureName} unitName={literals.temperatureUnit} src="temp.png" />
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={6} lg={12}>
+              <Paper
+                sx={{
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: drawerWidth,
+                }}
+              >
+                <Chart ref={this.chartPh} name={literals.phName}
+                  unitName={literals.phUnit} theme={mdTheme} media={this.media.current} />
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={6} lg={6}>
+              <Paper
+                sx={{
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: drawerWidth,
+                }}
+              >
+                <Chart ref={this.chartOrp} name={literals.orpName}
+                  unitName={literals.orpUnit} theme={mdTheme} media={this.media.current} />
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={6} lg={6}>
+              <Paper
+                sx={{
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: drawerWidth,
+                }}
+              >
+                <Chart ref={this.chartTemp} name={literals.temperatureName}
+                  unitName={literals.temperatureUnit} theme={mdTheme} media={this.media.current} />
+              </Paper>
+            </Grid>
+          </Grid>
+          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
+            {this.state.standby && (
+              <CircularProgress
+                size={80}
+                sx={{
+                  color: colorPurple,
+                  position: 'absolute',
+                  zIndex: 1,
+                  margin: "0 auto"
+                }}
+              />
+            )}
+          </div>
+        </Container>
+        <Alert ref={this.alert}></Alert>
+        <Config ref={this.config} alert={this.alert} />
+        <Sample ref={this.sample} alert={this.alert} />
+        <MediaQuery ref={this.media} theme={mdTheme}></MediaQuery>
       </ThemeProvider>
-    );    
+    );
   }
 }

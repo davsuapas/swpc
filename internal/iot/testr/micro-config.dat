@@ -1,1 +1,1 @@
-{"iniSendTime":"10:00","endSendTime":"21:01","wakeup":16,"buffer":3}
+{"iniSendTime":"10:00","endSendTime":"21:01","wakeup":16,"buffer":3,"calibratingOrp":true,"targetOrp":450.10,"calibrationOrp":1132.12,"stabilizationTimeOrp":20}

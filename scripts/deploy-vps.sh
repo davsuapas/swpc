@@ -2,8 +2,8 @@
 
 # Build for Virtual Private Server
 
-path_env=$1
-build=$2
+build=$1
+path_env=$
 
 path_scripts=./scripts
 path_target_release="$GOPATH/swpc/release"

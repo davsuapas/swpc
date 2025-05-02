@@ -36,3 +36,4 @@ Special care has been taken regarding memory and cpu consumption. Specifically, 
     6.2 [Deploy on VPS](doc/deploy_vps.md)
 
 7. [Web user interface](doc/ui.md)
+8. [ORP Calibration](doc/orpc.md)

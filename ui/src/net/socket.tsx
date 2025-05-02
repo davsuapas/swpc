@@ -23,159 +23,160 @@ import Alert from "../info/alert";
 
 // CommStatus is the communications status
 export enum CommStatus {
-    inactive,
-    active,
-    broadcasting
+  inactive,
+  active,
+  broadcasting
 }
 
 export interface Metrics {
-    temp: number[];
-    ph: number[];
-    orp: number[];
+  temp: number[];
+  ph: number[];
+  orp: number[];
 }
 
 export interface SocketEvent {
-    streamMetrics: (metrics: Metrics) => void;
-    status: (status: CommStatus) => void;
-  }
- 
+  streamMetrics: (metrics: Metrics) => void;
+  status: (status: CommStatus) => void;
+}
+
 // SocketFactory Manages socket iteration with the server
 export default class SocketFactory {
 
-    event: SocketEvent;
+  event: SocketEvent;
 
-    private ws: WebsocketBuilder;
+  private ws: WebsocketBuilder;
 
-    state: CommStatus;
+  state: CommStatus;
 
-    constructor(
-      private alert: RefObject<Alert>,
-      private actions: Actions) {
+  constructor(
+    private alert: RefObject<Alert>,
+    private actions: Actions) {
 
-      this.state = CommStatus.inactive;
+    this.state = CommStatus.inactive;
 
-      const protocol = location.protocol == "https:" ? "wss" : "ws";
-      this.ws = new WebsocketBuilder(protocol + "://" + document.location.host + "/api/web/ws");
+    const protocol = location.protocol == "https:" ? "wss" : "ws";
+    this.ws = new WebsocketBuilder(protocol + "://" + document.location.host + "/api/web/ws");
 
-      this.event = {
-          streamMetrics: () => {},
-          status: () => {}
-      }
+    this.event = {
+      streamMetrics: () => { },
+      status: () => { }
+    }
+  }
+
+  private setStatus(state: CommStatus) {
+    if (this.state != state) {
+      this.event.status(state)
     }
 
-    private setStatus(state: CommStatus) {
-      if (this.state != state) {
-        this.event.status(state)
+    this.state = state
+  }
+
+  // start opens socket connection, registers in server and controls events
+  open(): Websocket {
+    return this.ws.onClose((_, ev) => {
+      console.log("El socket se ha cerrado con el código: " + ev.code);
+
+      this.setStatus(CommStatus.inactive);
+
+      if (this.alert.current) {
+        this.alert.current.content(
+          "Conexión cerrada",
+          "La sesión se ha caducado, o bien por cumplir el tiempo máximo de sesión, " +
+          "o bien porque el servidor, por algún motivo, ha cerrado la sesión. " +
+          "Si desea continuar vuelva a iniciar sesión. " +
+          "Se procederá a cerrar la sessión de trabajo.");
+        this.alert.current.events.closed = () => {
+          logoff();
+        };
+        this.alert.current.open();
       }
+    })
+      .onError((_, ev) => {
+        this.setStatus(CommStatus.inactive);
 
-      this.state = state
-    }
+        if (this.alert.current) {
+          this.alert.current.content(
+            "Error de conexión",
+            "Se ha producido un error con la conexión en tiempo real. " +
+            "Se procederá a cerrar la sessión de trabajo.");
+          this.alert.current.events.closed = () => {
+            logoff()
+          };
+          this.alert.current.open();
+        }
+      })
+      .onMessage((socket, ev) => {
+        const message = new MessageFactory(ev.data)
 
-    // start opens socket connection, registers in server and controls events
-    open(): Websocket {
-        return this.ws.onClose((_, ev) => {
-            console.log("El socket se ha cerrado con el código: " + ev.code);
-
-            this.setStatus(CommStatus.inactive);
+        try {
+          if (message.messageType == MessageType.control) {
+            this.setStatus(message.controlMessage());
 
             if (this.alert.current) {
-                this.alert.current.content(
-                    "Conexión cerrada",
-                    "La sesión se ha caducado, o bien por cumplir el tiempo máximo de sesión, " +
-                    "o bien porque el servidor, por algún motivo, ha cerrado la sesión. " + 
-                    "Si desea continuar vuelva a iniciar sesión. " +
-                    "Se procederá a cerrar la sessión de trabajo.");
-                this.alert.current.events.closed = () => {
-                    logoff();
-                };
-                this.alert.current.open();
+              this.alert.current.content(
+                "Comunicación con el micro-controlador sin respuesta",
+                "No se detecta ningún envío de métricas desde el micro-controlador, seguiremos " +
+                "intentado reestablecer la comunicación. Si persiste el problema, " +
+                "asegúrese que el micro-controlador se encuentra encedido y que la comunicación " +
+                "se encuentra habilitada. También puede ser debido, a que no se encuentra " +
+                "dentro del horario establecido para la recepción de las métricas, " +
+                "o simplemente hay un retraso en las comunicaciones")
+
+              this.alert.current.open();
+              this.actions.activeStandby(true)
             }
-        })
-        .onError((_ , ev) => {
-            this.setStatus(CommStatus.inactive);
+          } else {
+            this.setStatus(CommStatus.broadcasting);
+            this.actions.activeStandby(false);
+            this.event.streamMetrics(message.metricsMessage());
+          }
+        }
+        catch (ex) {
+          console.log("Sockets.onMessage: " + ex);
 
-            if (this.alert.current) {
-                this.alert.current.content(
-                    "Error de conexión",
-                    "Se ha producido un error con la conexión en tiempo real. " +
-                    "Se procederá a cerrar la sessión de trabajo.");
-                this.alert.current.events.closed = () => {
-                    logoff()
-                };
-                this.alert.current.open();
-            }
-        })
-        .onMessage((socket , ev) => {
-            const message = new MessageFactory(ev.data)
+          this.setStatus(CommStatus.inactive);
 
-            try {
-                if (message.messageType == MessageType.control ) {
-                    this.setStatus(message.controlMessage());
+          this.alert.current?.content(
+            "Se ha producido un error al recibir información del servidor.",
+            "Si el error persiste, cierre la sesión y vuelva a intentarlo")
 
-                    if (this.alert.current) {
-                        this.alert.current.content(
-                            "Comunicación con el micro-controlador sin respuesta",
-                            "No se detecta ningún envío de métricas desde el micro-controlador, seguiremos " +
-                            "intentado reestablecer la comunicación. Si persiste el problema, " +
-                            "asegúrese que el micro-controlador se encuentra encedido y que la comunicación " +
-                            "se encuentra habilitada. También puede ser debido, a que no se encuentra " +
-                            "dentro del horario establecido para la recepción de las métricas, " +
-                            "o simplemente hay un retraso en las comunicaciones")
-                            
-                        this.alert.current.open();
-                        this.actions.activeStandby(true)
-                    }
-                } else {
-                    this.setStatus(CommStatus.broadcasting);
-                    this.actions.activeStandby(false);
-                    this.event.streamMetrics(message.metricsMessage());
-                }
-            }
-            catch (ex) {
-                console.log("Sockets.onMessage: " + ex);
-
-                this.setStatus(CommStatus.inactive);
-
-                this.alert.current?.content(
-                    "Se ha producido un error al recibir información del servidor.",
-                    "Si el error persiste, cierre la sesión y vuelva a intentarlo")
-
-                this.alert.current?.open();
-            }
-        }).build();
-    }
+          this.alert.current?.open();
+        }
+      })
+      .build();
+  }
 }
 
 enum MessageType {
-    // control is a message of control type
-    control,
-    // control is a message of metric type
-    metrics  
+  // control is a message of control type
+  control,
+  // control is a message of metric type
+  metrics
 }
 
 // MessageFactory builds the message
 class MessageFactory {
-    messageType: MessageType;
-    private rawMessage: string;
+  messageType: MessageType;
+  private rawMessage: string;
 
-    constructor(msg: string) {
-        this.messageType = msg.at(0) == "0" ? MessageType.control : MessageType.metrics
-        this.rawMessage = msg.substring(1)
-    }
+  constructor(msg: string) {
+    this.messageType = msg.at(0) == "0" ? MessageType.control : MessageType.metrics
+    this.rawMessage = msg.substring(1)
+  }
 
-    // controlMessage gets communication status
-    controlMessage(): CommStatus {
-        return Number.parseInt(this.rawMessage) == 1 ?
-         CommStatus.active : 
-         CommStatus.inactive
-    }
+  // controlMessage gets communication status
+  controlMessage(): CommStatus {
+    return Number.parseInt(this.rawMessage) == 1 ?
+      CommStatus.active :
+      CommStatus.inactive
+  }
 
-    metricsMessage(): Metrics {
-        const metrics = JSON.parse(this.rawMessage);
-        return {
-            temp: metrics.temp.map((m: String) => Number(m)),
-            ph: metrics.ph.map((m: String) => Number(m)),
-            orp: metrics.orp.map((m: String) => Number(m)),
-        }
+  metricsMessage(): Metrics {
+    const metrics = JSON.parse(this.rawMessage);
+    return {
+      temp: metrics.temp.map((m: String) => Number(m)),
+      ph: metrics.ph.map((m: String) => Number(m)),
+      orp: metrics.orp.map((m: String) => Number(m)),
     }
+  }
 }

@@ -151,6 +151,19 @@ type DeviceConfig struct {
 	// Buffer is the time in seconds to store metrics
 	// before sending to the hub
 	Buffer uint8 `json:"buffer"`
+	// CalibratingORP is the flag to calibrate the ORP
+	CalibratingORP bool `json:"cgorp"`
+	// TargetORP is the target value for the calibrating ORP
+	TargetORP float32 `json:"torp"`
+	// CalibrationORP is the value for the calibration ORP
+	// When set to calibrate with the flag it will be
+	// the initial value of the calibration.
+	// When not set to calibration mode, it will be the calibrated value
+	// obtained from the calibration.
+	CalibrationORP float32 `json:"corp"`
+	// StabilizationTimeORP is the time in seconds to stabilize
+	// the calibration value
+	StabilizationTimeORP int8 `json:"storp"`
 	// IniSendTime is the range for initiating metric sends.
 	// Format HH:mm
 	IniSendTime string `json:"-"`
