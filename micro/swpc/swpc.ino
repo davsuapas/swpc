@@ -33,21 +33,21 @@
 const char *rootCACertificate = nullptr;
 
 #define ssl true
-#define host "swpc.vps.webdock.cloud"
+#define host ""
 #define port 443
 
 #define URIAPI "/api/device/ws"
 #define URIToken "/auth/token/"
 
 // clientID define the ID to connect to the server
-#define clientID "fr$5gDe46juHnbg54$@dr"
+#define clientID ""
 
 // WIFI definition
-const char *ssid = "WIWI";
-const char *password = "SFR4GLY96NVB265HRPOI!";
+const char *ssid = "";
+const char *password = "";
 
 // Device ID
-#define DeviceID "atalaya"
+#define DeviceID ""
 
 // BEGIN Sensors configuration
 // Pin to temp sensor
@@ -69,11 +69,6 @@ const float ph7 = 1690;
 #define adcRes 4098
 // Votage 5v
 #define voltRef 5000
-// Maximum allowed difference between current 
-// and target ORP values before making adjustments (in mV)
-// Lower value = more precise calibration
-// Typical range: 1.0-30.0 mV
-const float calibrationMarginORP = 25.0f;
 
 // actionCollectMetrics actives the CollectMetricsJob
 #define actionCollectMetrics 1
@@ -124,7 +119,10 @@ typedef struct
   bool calibratingORP; 
   float targetORP;
   float calibrationORP;
-  unsigned long stabilizationTimeORP;
+  bool calibratingPH; 
+  float targetPH;
+  float calibrationPH;
+  unsigned long stabilizationTime;
 } Config;
 
 Config configData;
@@ -147,13 +145,24 @@ JsonArray orpb;
 // Calibration variables
 typedef struct
 {
-  bool stabilizationORPDone;
-  float incrementalAverageORP;
-  int numReadingsORP;
-  unsigned long calibrationStartTimeORP;
-} CalibrationORP;
+  bool stabilizationDone;
+  float incrementalAverage;
+  int numReadings;
+} Calibration;
 
-CalibrationORP calibrationORP;
+Calibration calibrationORP;
+Calibration calibrationPH;
+
+unsigned long calibrationStartTime;
+
+// ORP sensor
+typedef struct
+{
+  float incrementalAverage;
+  int numReadings;
+} ORP;
+
+ORP orp;
 
 // Communications
 // pongTimeout is the time it takes to receive
@@ -179,6 +188,61 @@ float tempSensor()
   return temp->getTempCByIndex(0);
 }
 
+// Calibrates the sensor by adjusting the calibration
+// value to match the target level.
+// Ensures stabilization by averaging readings over a
+// defined period.
+// Returns the calibration value,
+// which can be displayed on the screen.
+float calibrate(float measure, float target, Calibration &calibStore) {
+  // Calculate current calibration to match target
+  float calibration = target - measure;
+   
+  calibStore.numReadings++;
+
+   // Calculate incremental avg
+   calibStore.incrementalAverage +=
+    (calibration - calibStore.incrementalAverage) /
+    calibStore.numReadings;
+
+  Serial.printf(
+    "Measure calibrates: %.2f = (measure: %.2f + calibration: %.2f); "
+    "target: %.2f, calibrationAvg: %.2f\n",
+    measure + calibration,
+    measure,
+    calibration,
+    target,
+    calibStore.incrementalAverage);
+    
+   // Calculate time elapsed in stabilization period
+  unsigned long elapsedTime = millis() - calibrationStartTime;
+    
+   // Check if we've reached the stabilization time
+  if (elapsedTime >= configData.stabilizationTime) {
+    calibration = calibStore.incrementalAverage;
+
+    // Mark stabilization as complete
+    calibStore.stabilizationDone = true;
+    
+    // Final debug output
+    Serial.printf("Calibration stabilization COMPLETE "
+      "after %lu ms with %d readings\n", 
+      elapsedTime,
+      calibStore.numReadings);
+    Serial.printf("Final calibration: %.2f\n", calibration);
+  }
+  
+  return calibration;
+}
+
+void initStabilizePH() {
+  calibrationPH.stabilizationDone = false;
+  calibrationPH.incrementalAverage = 0;
+  calibrationPH.numReadings = 0;
+  calibrationStartTime = millis();
+}
+
+
 float phSensor()
 {
   // The sensor voltage is read and converted to millivolts.
@@ -190,81 +254,61 @@ float phSensor()
   // PH sensor is calibrated
   float offset = 7.0 - pending * (ph7 - 1500) / 3.0;
 
-  return pending * (phMillivolts - 1500) / 3.0 + offset;
-}
+  float valor = pending * (phMillivolts - 1500) / 3.0 + offset;
 
-float orpSensor()
-{
-  float adcVoltage = ((unsigned long)analogRead(pinORP) * voltRef + adcRes / 2) / adcRes;
+  if (configData.calibratingPH) {
+    // If calibration is already stabilized,
+    // just return the current calibration value
+    if (calibrationPH.stabilizationDone) {
+      return configData.calibrationPH;
+    }
 
-  if (configData.calibratingORP) {
-    return calibrateORP(adcVoltage);
-  }
-  else {
-    return adcVoltage + configData.calibrationORP;
+    configData.calibrationPH = 
+      calibrate(valor, configData.targetPH, calibrationPH);
+
+    return configData.calibrationPH;
+  } else {
+    return valor + configData.calibrationPH;
   }
 }
 
 void initStabilizeORP() {
-  calibrationORP.stabilizationORPDone = false;
-  calibrationORP.incrementalAverageORP = 0;
-  calibrationORP.numReadingsORP = 0;
-  calibrationORP.calibrationStartTimeORP = millis();
+  calibrationORP.stabilizationDone = false;
+  calibrationORP.incrementalAverage = 0;
+  calibrationORP.numReadings = 0;
+  calibrationStartTime = millis();
 }
 
-// Calibrates the ORP sensor by adjusting the calibration
-// value to match the target ORP level.
-// Ensures stabilization by averaging readings over a
-// defined period.
-// Returns the calibration value,
-// which can be displayed on the screen.
-float calibrateORP(float adcVoltage) {
-  // If calibration is already stabilized,
-  // just return the current calibration value
-  if (calibrationORP.stabilizationORPDone) {
+void initORP() {
+  orp.incrementalAverage = 0;
+  orp.numReadings = 0;
+}
+
+float orpSensor()
+{
+  float adcVoltage =
+   ((unsigned long)analogRead(pinORP) * voltRef + adcRes / 2) / adcRes;
+
+  if (configData.calibratingORP) {
+    // If calibration is already stabilized,
+    // just return the current calibration value
+    if (calibrationORP.stabilizationDone) {
+      return configData.calibrationORP;
+    }
+
+    configData.calibrationORP = 
+      calibrate(adcVoltage, configData.targetORP, calibrationORP);
+
     return configData.calibrationORP;
+  } else {
+    float orpValue = adcVoltage + configData.calibrationORP;
+
+    orp.numReadings++;
+    orp.incrementalAverage +=
+      (orpValue - orp.incrementalAverage) / orp.numReadings;    
+
+    return orp.incrementalAverage;
   }
-  
-  // Calculate current ORP calibration to match target ORP
-  configData.calibrationORP = configData.targetORP - adcVoltage;
-   
-  calibrationORP.numReadingsORP++;
-
-   // Calculate incremental avg
-  calibrationORP.incrementalAverageORP +=
-    (configData.calibrationORP - calibrationORP.incrementalAverageORP) /
-    calibrationORP.numReadingsORP;
-
-  Serial.printf(
-    "ORP currentORP: %.2f = (adcVoltage: %.2f + calibrationORP: %.2f); "
-    "targetORP: %.2f, calibrationAvg: %.2f\n",
-    adcVoltage + configData.calibrationORP,
-    adcVoltage,
-    configData.calibrationORP,
-    configData.targetORP,
-    calibrationORP.incrementalAverageORP);
-    
-   // Calculate time elapsed in stabilization period
-  unsigned long elapsedTime =
-    millis() - calibrationORP.calibrationStartTimeORP;
-    
-   // Check if we've reached the stabilization time
-  if (elapsedTime >= configData.stabilizationTimeORP) {
-    configData.calibrationORP = calibrationORP.incrementalAverageORP;
-
-    // Mark stabilization as complete
-    calibrationORP.stabilizationORPDone = true;
-    
-    // Final debug output
-    Serial.printf("ORP stabilization COMPLETE "
-      "after %lu ms with %d readings\n", 
-      elapsedTime,
-      calibrationORP.numReadingsORP);
-    Serial.printf("Final ORP calibration: %.2f\n",
-      configData.calibrationORP);
-  }
-  
-  return configData.calibrationORP;
 }
 
 void setup()
@@ -306,8 +350,11 @@ void setup()
   configData.heartbeatTimeoutCount = 2;
   configData.calibratingORP = false;
   configData.calibrationORP = 1440;
+  configData.stabilizationTime = 30 * seconds;
 
   initStabilizeORP();
+  initStabilizePH();
+  initORP();
 
   // Communications
   wsBegin();
@@ -535,6 +582,7 @@ void transmitMetricsAlready()
       "Requesting transmit initial metrics");
 
   initSensorBuffer();
+  initORP();
 
   for (uint8_t i = 0; i < configData.buffer; i++)
   {
@@ -684,10 +732,15 @@ void config(const char *data)
   configData.calibratingORP = doc["cgorp"];
   configData.targetORP = doc["torp"];
   configData.calibrationORP = doc["corp"];
-  configData.stabilizationTimeORP = (int)doc["storp"] * seconds;
+  configData.calibratingPH = doc["cgph"];
+  configData.targetPH = doc["tph"];
+  configData.calibrationPH = doc["cph"];
+  configData.stabilizationTime = (int)doc["st"] * seconds;
   wakeUpTime = doc["wut"];
 
   initStabilizeORP();
+  initStabilizePH();
+  initORP();
 
   ws.enableHeartbeat(
     configData.heartbeatInterval * seconds,
@@ -700,12 +753,17 @@ void config(const char *data)
   Serial.printf("Buffer: %u, ", configData.buffer);
   Serial.printf("CollectMetricsTime: %d, ", configData.collectMetricsTime);
   Serial.printf("WakeUpTime: %u, ", wakeUpTime);
+  Serial.printf("calibrationORP: %f, ", configData.calibrationORP);
+  Serial.printf("calibrationPH: %f, ", configData.calibrationPH);
   Serial.printf(
     "calibratingORP: %s, ",
     configData.calibratingORP ? "true" : "false");
   Serial.printf("targetORP: %f, ", configData.targetORP);
-  Serial.printf("calibrationORP: %f, ", configData.calibrationORP);
-  Serial.printf("stabilizationTimeORP: %lu)", configData.stabilizationTimeORP);
+  Serial.printf(
+    "calibratingPH: %s, ",
+    configData.calibratingPH ? "true" : "false");
+  Serial.printf("targetPH: %f, ", configData.targetPH);
+  Serial.printf("stabilizationTime: %lu)", configData.stabilizationTime);
 }
 
 void initSensorBuffer()

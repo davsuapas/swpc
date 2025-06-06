@@ -477,15 +477,18 @@ func TestHub_SendConfigToDevice(t *testing.T) {
 	hub.RegisterDevice(device)
 
 	hub.Config(iot.DeviceConfig{
-		WakeUpTime:           1,
-		CollectMetricsTime:   1,
-		Buffer:               1,
-		IniSendTime:          "11:00",
-		EndSendTime:          "12:00",
-		CalibratingORP:       true,
-		TargetORP:            450.10,
-		CalibrationORP:       1132,
-		StabilizationTimeORP: 10,
+		WakeUpTime:         1,
+		CollectMetricsTime: 1,
+		Buffer:             1,
+		IniSendTime:        "11:00",
+		EndSendTime:        "12:00",
+		CalibrationORP:     1132,
+		CalibrationPH:      1.2,
+		CalibratingORP:     true,
+		TargetORP:          450.10,
+		CalibratingPH:      true,
+		TargetPH:           7.2,
+		StabilizationTime:  10,
 	})
 
 	msgd := readMessages(wsdc, 3)
@@ -494,13 +497,16 @@ func TestHub_SendConfigToDevice(t *testing.T) {
 		t,
 		iot.DeviceConfigDTO{
 			DeviceConfig: iot.DeviceConfig{
-				WakeUpTime:           1,
-				CollectMetricsTime:   1,
-				Buffer:               1,
-				CalibratingORP:       true,
-				TargetORP:            450.10,
-				CalibrationORP:       1132,
-				StabilizationTimeORP: 10,
+				WakeUpTime:         1,
+				CollectMetricsTime: 1,
+				Buffer:             1,
+				CalibrationORP:     1132,
+				CalibrationPH:      1.2,
+				CalibratingORP:     true,
+				TargetORP:          450.10,
+				CalibratingPH:      true,
+				TargetPH:           7.2,
+				StabilizationTime:  10,
 			},
 			HBI:  10,
 			HBTC: 1,

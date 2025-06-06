@@ -70,31 +70,40 @@ type Config struct {
 	// It must be taken into account that if the buffer is for example 3 seconds,
 	// double the buffer is stored, to avoid unnecessary waits in the web client.
 	Buffer uint8 `json:"buffer"`
+	// CalibrationORP is the value for the calibration ORP
+	// it will be the calibrated value
+	// to obtain the offset value
+	CalibrationORP float32 `json:"calibrationOrp"`
+	// CalibrationPH is the value for the calibration pH
+	// it will be the calibrated value
+	// to obtain the offset value
+	CalibrationPH float32 `json:"calibrationPh"`
 	// CalibratingORP is the flag to calibrate the ORP
 	CalibratingORP bool `json:"calibratingOrp"`
 	// TargetORP is the target value for the calibrating ORP
 	TargetORP float32 `json:"targetOrp"`
-	// CalibrationORP is the value for the calibration ORP
-	// When set to calibrate with the flag it will be
-	// the initial value of the calibration.
-	// When not set to calibration mode, it will be the calibrated value
-	// obtained from the calibration.
-	CalibrationORP float32 `json:"calibrationOrp"`
-	// StabilizationTimeORP is the time in seconds to stabilize
+	// CalibratingPH is the flag to calibrate the pH
+	CalibratingPH bool `json:"calibratingPh"`
+	// TargetPH is the target value for the calibrating PH
+	TargetPH float32 `json:"targetPh"`
+	// StabilizationTime is the time in seconds to stabilize
 	// the calibration value
-	StabilizationTimeORP int8 `json:"stabilizationTimeOrp"`
+	StabilizationTime int8 `json:"stabilizationTime"`
 }
 
 func DefaultConfig() Config {
 	return Config{
-		IniSendTime:          "09:00",
-		EndSendTime:          "22:00",
-		Wakeup:               30,
-		Buffer:               3,
-		CalibratingORP:       false,
-		TargetORP:            469,
-		CalibrationORP:       -320,
-		StabilizationTimeORP: 20,
+		IniSendTime:       "09:00",
+		EndSendTime:       "22:00",
+		Wakeup:            30,
+		Buffer:            3,
+		CalibrationORP:    -320,
+		CalibrationPH:     0,
+		CalibratingORP:    false,
+		TargetORP:         469,
+		CalibratingPH:     false,
+		TargetPH:          7,
+		StabilizationTime: 20,
 	}
 }
 
@@ -341,14 +350,17 @@ func (c AWSDynamoConfigWrite) Save(data Config) error {
 
 func notifyHub(c config.Config, data Config, h Hub) {
 	h.Config(iot.DeviceConfig{
-		CollectMetricsTime:   c.CollectMetricsTime,
-		WakeUpTime:           data.Wakeup,
-		Buffer:               data.Buffer,
-		IniSendTime:          data.IniSendTime,
-		EndSendTime:          data.EndSendTime,
-		CalibratingORP:       data.CalibratingORP,
-		TargetORP:            data.TargetORP,
-		CalibrationORP:       data.CalibrationORP,
-		StabilizationTimeORP: data.StabilizationTimeORP,
+		CollectMetricsTime: c.CollectMetricsTime,
+		WakeUpTime:         data.Wakeup,
+		Buffer:             data.Buffer,
+		IniSendTime:        data.IniSendTime,
+		EndSendTime:        data.EndSendTime,
+		CalibrationORP:     data.CalibrationORP,
+		CalibrationPH:      data.CalibrationPH,
+		CalibratingORP:     data.CalibratingORP,
+		TargetORP:          data.TargetORP,
+		CalibratingPH:      data.CalibratingPH,
+		TargetPH:           data.TargetPH,
+		StabilizationTime:  data.StabilizationTime,
 	})
 }

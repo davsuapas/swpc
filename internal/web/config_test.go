@@ -56,8 +56,11 @@ func TestConfigWeb_Load(t *testing.T) {
 			res: res{
 				status: http.StatusOK,
 				body: "{\"iniSendTime\":\"10:00\",\"endSendTime\":\"21:01\"," +
-					"\"wakeup\":16,\"buffer\":3,\"calibratingOrp\":false," +
-					"\"targetOrp\":0,\"calibrationOrp\":0,\"stabilizationTimeOrp\":0}\n",
+					"\"wakeup\":16,\"buffer\":3," +
+					"\"calibrationOrp\":0,\"calibrationPh\":0," +
+					"\"calibratingOrp\":false,\"targetOrp\":0," +
+					"\"calibratingPh\":false,\"targetPh\":0," +
+					"\"stabilizationTime\":0}\n",
 			},
 		},
 		{
@@ -118,25 +121,30 @@ func TestConfigWeb_Save(t *testing.T) {
 				hubf: func() iotc.Hub {
 					h := mocks.NewHub(t)
 					h.On("Config", iot.DeviceConfig{
-						WakeUpTime:           10,
-						CollectMetricsTime:   1000,
-						Buffer:               10,
-						IniSendTime:          "12:00",
-						EndSendTime:          "12:00",
-						CalibratingORP:       true,
-						TargetORP:            450.10,
-						CalibrationORP:       1132.12,
-						StabilizationTimeORP: 20,
+						WakeUpTime:         10,
+						CollectMetricsTime: 1000,
+						Buffer:             10,
+						IniSendTime:        "12:00",
+						EndSendTime:        "12:00",
+						CalibrationORP:     1132.12,
+						CalibrationPH:      1.12,
+						CalibratingORP:     true,
+						TargetORP:          450.10,
+						CalibratingPH:      true,
+						TargetPH:           7.2,
+						StabilizationTime:  20,
 					})
 
 					return h
 				},
 				dataFile: "./testr/micro-config-write-sucess.dat",
 			},
-			argBody: `{"iniSendTime": "12:00", "endSendTime": "12:00",
-			 "wakeup": 10, "buffer": 10,"calibratingOrp":true,
-			 "targetOrp":450.10,"calibrationOrp":1132.12,
-			 "stabilizationTimeOrp":20}`,
+			argBody: `{"iniSendTime":"12:00","endSendTime":"12:00",
+			 "wakeup":10,"buffer":10,
+			 "calibrationOrp":1132.12,"calibrationPh":1.12,
+			 "calibratingOrp":true,"targetOrp":450.10,
+			 "calibratingPh":true,"targetPh":7.2,
+			 "stabilizationTime":20}`,
 			resStatus: http.StatusOK,
 		},
 		{

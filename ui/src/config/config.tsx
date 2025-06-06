@@ -48,13 +48,18 @@ interface ConfigState {
   endSendTimeValue: string;
   bufferValid: boolean;
   bufferValue: number;
+  calibrationORPValid: boolean;
+  calibrationORPValue: string;
+  calibrationPHValid: boolean;
+  calibrationPHValue: string;
   calibratingORPValue: boolean;
   targetORPValid: boolean;
   targetORPValue: string;
-  calibrationORPValid: boolean;
-  calibrationORPValue: string;
-  stabilizationTimeORPValid: boolean;
-  stabilizationTimeORPValue: number;
+  calibratingPHValue: boolean;
+  targetPHValid: boolean;
+  targetPHValue: string;
+  stabilizationTimeValid: boolean;
+  stabilizationTimeValue: number;
   saving: boolean;
 }
 
@@ -76,13 +81,18 @@ export default class Config extends React.Component<any, ConfigState> {
       endSendTimeValue: "",
       bufferValid: false,
       bufferValue: 0,
+      calibrationORPValid: false,
+      calibrationORPValue: "0",
+      calibrationPHValid: false,
+      calibrationPHValue: "0",
       calibratingORPValue: false,
       targetORPValid: false,
       targetORPValue: "0",
-      calibrationORPValid: false,
-      calibrationORPValue: "0",
-      stabilizationTimeORPValid: false,
-      stabilizationTimeORPValue: 0,
+      calibratingPHValue: false,
+      targetPHValid: false,
+      targetPHValue: "0",
+      stabilizationTimeValid: false,
+      stabilizationTimeValue: 0,
       saving: false
     };
   }
@@ -105,10 +115,13 @@ export default class Config extends React.Component<any, ConfigState> {
               res.iniSendTime,
               res.endSendTime,
               res.buffer,
+              res.calibrationOrp,
+              res.calibrationPh,
               res.calibratingOrp,
               res.targetOrp,
-              res.calibrationOrp,
-              res.stabilizationTimeOrp);
+              res.calibratingPh,
+              res.targetPh,
+              res.stabilizationTime);
             this.setState({ open: true });
           }
           catch {
@@ -136,10 +149,12 @@ export default class Config extends React.Component<any, ConfigState> {
     this.setState({
       wakeupValid: true,
       sendTimeValid: true,
+      calibrationORPValid: true,
+      calibrationPHValid: true,
       bufferValid: true,
       targetORPValid: true,
-      calibrationORPValid: true,
-      stabilizationTimeORPValid: true,
+      targetPHValid: true,
+      stabilizationTimeValid: true,
     });
   }
 
@@ -171,6 +186,13 @@ export default class Config extends React.Component<any, ConfigState> {
       valid = false;
     }
 
+    if (!(this.state.stabilizationTimeValue >= 5 &&
+      this.state.stabilizationTimeValue <= 30)) {
+
+      this.setState({ stabilizationTimeValid: false });
+      valid = false;
+    }
+
     const calibrationORPValue = Number(this.state.calibrationORPValue)
     if (!(calibrationORPValue >= -5000 && calibrationORPValue <= 5000)) {
 
@@ -185,10 +207,17 @@ export default class Config extends React.Component<any, ConfigState> {
       valid = false;
     }
 
-    if (!(this.state.stabilizationTimeORPValue >= 5 &&
-      this.state.stabilizationTimeORPValue <= 30)) {
+    const calibrationPHValue = Number(this.state.calibrationPHValue)
+    if (!(calibrationPHValue >= -14 && calibrationPHValue <= 14)) {
 
-      this.setState({ stabilizationTimeORPValid: false });
+      this.setState({ calibrationPHValid: false });
+      valid = false;
+    }
+
+    const targetPHValue = Number(this.state.targetPHValue)
+    if (!(targetPHValue >= 0 && targetPHValue <= 14)) {
+
+      this.setState({ targetPHValid: false });
       valid = false;
     }
 
@@ -201,19 +230,25 @@ export default class Config extends React.Component<any, ConfigState> {
     iniSendTime: string,
     endSendTime: string,
     buffer: number,
+    calibrationORP: number,
+    calibrationPH: number,
     calibratingORP: boolean,
     targetORP: number,
-    calibrationORP: number,
-    stabilizationTimeORP: number) {
+    calibratingPH: boolean,
+    targetPH: number,
+    stabilizationTime: number) {
     this.setState({
       wakeupValue: wakeup,
       iniSendTimeValue: iniSendTime,
       endSendTimeValue: endSendTime,
       bufferValue: buffer,
       calibrationORPValue: String(calibrationORP),
+      calibrationPHValue: String(calibrationPH),
       calibratingORPValue: calibratingORP,
       targetORPValue: String(targetORP),
-      stabilizationTimeORPValue: stabilizationTimeORP,
+      calibratingPHValue: calibratingPH,
+      targetPHValue: String(targetPH),
+      stabilizationTimeValue: stabilizationTime,
     });
   }
 
@@ -238,9 +273,12 @@ export default class Config extends React.Component<any, ConfigState> {
           "endSendTime": this.state.endSendTimeValue,
           "buffer": this.state.bufferValue,
           "calibrationOrp": Number(this.state.calibrationORPValue),
+          "calibrationPh": Number(this.state.calibrationPHValue),
           "calibratingOrp": this.state.calibratingORPValue,
           "targetOrp": Number(this.state.targetORPValue),
-          "stabilizationTimeOrp": this.state.stabilizationTimeORPValue
+          "calibratingPh": this.state.calibratingPHValue,
+          "targetPh": Number(this.state.targetPHValue),
+          "stabilizationTime": this.state.stabilizationTimeValue
         })
       },
         async (result: Response) => {
@@ -275,9 +313,9 @@ export default class Config extends React.Component<any, ConfigState> {
               métricas y en el segundo se configurará tres valores, entre que horas se emitirán los valores
               de las métricas y cada cuantos segundos almacena el micro las métricas antes de enviarlas.
               Cuanto más tiempo tiene la web abierta para recibir métricas mayor debería ser este buffer.
-              Cuando iniciamos la calibración del sensor ORP, el micro se pone en modo calibración e
-              intenta conseguir el objetivo que le hemos marcado, durante el tiempo de estabilización. Es conveniente dejar unos minutos a que el sensor se estabilice
-              antes de iniciar la calibración. El valor de calibración se muestra en el interface web, en el indicador de ORP. Una vez estabilizada la calibración, escriba este valor en el campo de calibración ORP y desmarque el check de iniciar calibración.
+              Cuando iniciamos la calibración del sensor ORP/pH, el micro se pone en modo calibración e intenta conseguir el objetivo que le hemos marcado, durante el tiempo de estabilización. Es conveniente dejar unos minutos a que el sensor se estabilice
+              antes de iniciar la calibración. El valor de calibración se muestra en el interface web, en el indicador de ORP/pH. Una vez estabilizada la calibración, escriba este valor en el campo de calibración ORP/pH y desmarque el check de iniciar calibración.
+              Se pueden calibrar los dos sensores la la vez.
             </DialogContentText>
             <TextField
               id="wakeup"
@@ -349,8 +387,38 @@ export default class Config extends React.Component<any, ConfigState> {
                   "Es el valor final que se usa para calibrar el sensor ORP" :
                   "El valor debe estar entre -5000 y 5000"}
               />
+              <TextField
+                id="calibrationPH"
+                sx={{ marginTop: "20px" }}
+                label="Valor de calibración pH"
+                type="text"
+                inputMode="numeric"
+                value={this.state.calibrationPHValue}
+                onChange={event => this.setState({ calibrationPHValue: event.target.value })}
+                size="medium"
+                error={!this.state.calibrationPHValid}
+                helperText={this.state.calibrationPHValid ?
+                  "Es el valor final que se usa para calibrar el sensor pH" :
+                  "El valor debe estar entre -14 y 14"}
+              />
             </FormGroup>
             <Divider sx={{ marginTop: "10px" }} />
+            <FormGroup row sx={{ marginTop: "10px" }}>
+              <TextField
+                id="stabilizationTimeORP"
+                sx={{ marginTop: "10px" }}
+                label="Tiempo para estabilizar el ORP y/o pH (sg)"
+                type="number"
+                value={this.state.stabilizationTimeValue}
+                onChange={event => this.setState({ stabilizationTimeValue: parseInt(event.target.value) })}
+                InputProps={{ inputProps: { min: 5, max: 60 } }}
+                size="medium"
+                error={!this.state.stabilizationTimeValid}
+                helperText={this.state.stabilizationTimeValid ?
+                  "Es el tiempo que tarda el micro en estabilizar el ORP y/o pH" :
+                  "El valor debe estar entre 5 y 60 sg"}
+              />
+            </FormGroup>
             <FormGroup row sx={{ marginTop: "10px" }}>
               <FormControlLabel
                 control={
@@ -362,7 +430,7 @@ export default class Config extends React.Component<any, ConfigState> {
                   />
                 }
                 label="Iniciar calibración ORP"
-                sx={{ marginTop: "20px" }}
+                sx={{ marginTop: "10px" }}
               />
               <TextField
                 id="targetORP"
@@ -378,19 +446,35 @@ export default class Config extends React.Component<any, ConfigState> {
                   "Es el objetivo a conseguir cuando se inicia la calibración" :
                   "El valor debe estar entre -2000 y 2000 mV"}
               />
+            </FormGroup>
+            <FormGroup row sx={{ marginTop: "10px" }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    id="calibratingPH"
+                    size='medium'
+                    checked={this.state.calibratingPHValue}
+                    onChange={(event) => this.setState({ calibratingPHValue: event.target.checked })}
+                  />
+                }
+                label="Iniciar calibración pH"
+                sx={{ marginTop: "10px" }}
+              />
+            </FormGroup>
+            <FormGroup row sx={{ marginTop: "10px" }}>
               <TextField
-                id="stabilizationTimeORP"
-                sx={{ marginTop: "20px" }}
-                label="Tiempo para estabilizar ORP (sg)"
-                type="number"
-                value={this.state.stabilizationTimeORPValue}
-                onChange={event => this.setState({ stabilizationTimeORPValue: parseInt(event.target.value) })}
-                InputProps={{ inputProps: { min: 5, max: 60 } }}
+                id="targetPH"
+                sx={{ marginTop: "10px" }}
+                label="Objetivo PH"
+                type="text"
+                inputMode="numeric"
+                value={this.state.targetPHValue}
+                onChange={event => this.setState({ targetPHValue: event.target.value })}
                 size="medium"
-                error={!this.state.stabilizationTimeORPValid}
-                helperText={this.state.stabilizationTimeORPValid ?
-                  "Es el tiempo que tarda el micro en estabilizar el ORP" :
-                  "El valor debe estar entre 5 y 60 mV"}
+                error={!this.state.targetPHValid}
+                helperText={this.state.targetPHValid ?
+                  "Es el objetivo a conseguir cuando se inicia la calibración" :
+                  "El valor debe estar entre 0 y 14"}
               />
             </FormGroup>
           </DialogContent>
@@ -414,7 +498,7 @@ export default class Config extends React.Component<any, ConfigState> {
             <Button disabled={this.state.saving} onClick={() => this.close(false)}>Cancelar</Button>
           </DialogActions>
         </Dialog>
-      </div>
+      </div >
     );
   }
 }
